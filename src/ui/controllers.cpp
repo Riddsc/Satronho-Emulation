@@ -61,7 +61,7 @@ void DPad(Ctx& c, float cx, float cy, float size, ImU32 body, ImU32 shade) {
     } arms[] = {{RETRO_DEVICE_ID_JOYPAD_UP, 0, -1}, {RETRO_DEVICE_ID_JOYPAD_DOWN, 0, 1}, {RETRO_DEVICE_ID_JOYPAD_LEFT, -1, 0}, {RETRO_DEVICE_ID_JOYPAD_RIGHT, 1, 0}};
     for (const auto& arm : arms) {
         const float mx = cx + arm.dx * (a - w * 1.1f), my = cy + arm.dy * (a - w * 1.1f);
-        c.Hit(arm.id, mx, my, w * 1.25f);
+        c.Hit(arm.id, mx, my, std::max(w * 1.3f, 18.0f));
         // Flechita en relieve.
         const ImVec2 tip = c.P(mx + arm.dx * w * 0.45f, my + arm.dy * w * 0.45f);
         const ImVec2 b1 = c.P(mx - arm.dx * w * 0.25f + arm.dy * w * 0.45f, my - arm.dy * w * 0.25f + arm.dx * w * 0.45f);
@@ -77,7 +77,7 @@ void DPad(Ctx& c, float cx, float cy, float size, ImU32 body, ImU32 shade) {
 }
 
 void RoundButton(Ctx& c, int id, float x, float y, float r, ImU32 col, ImU32 shade) {
-    c.Hit(id, x, y, r * 1.15f);
+    c.Hit(id, x, y, std::max(r * 1.3f, 22.0f)); // los botones chicos también se pueden tocar
     const ImVec2 p = c.P(x, y);
     c.dl->AddCircleFilled({p.x + c.L(2), p.y + c.L(4)}, c.L(r), IM_COL32(0, 0, 0, 70));
     c.dl->AddCircleFilled(p, c.L(r), c.Down(id) ? U32(Color::Gold) : col);
@@ -200,8 +200,8 @@ void DrawGba(Ctx& c) {
     dl->AddRectFilled(c.P(6, 40), c.P(566, 320), IM_COL32(0, 0, 0, 80), c.L(130));
     dl->AddRectFilled(c.P(0, 30), c.P(560, 310), shell, c.L(130));
     dl->AddRectFilled(c.P(150, 30), c.P(410, 310), shell_dark, c.L(28));
-    c.Text("L", 105, 12, 14, IM_COL32(50, 40, 100, 255));
-    c.Text("R", 455, 12, 14, IM_COL32(50, 40, 100, 255));
+    c.Text("L", 105, 12, 18, c.Down(RETRO_DEVICE_ID_JOYPAD_L) ? IM_COL32(60, 40, 0, 255) : IM_COL32(50, 40, 100, 255));
+    c.Text("R", 455, 12, 18, c.Down(RETRO_DEVICE_ID_JOYPAD_R) ? IM_COL32(60, 40, 0, 255) : IM_COL32(50, 40, 100, 255));
     // Pantalla.
     dl->AddRectFilled(c.P(166, 58), c.P(394, 236), IM_COL32(40, 38, 52, 255), c.L(14));
     dl->AddRectFilledMultiColor(c.P(190, 78), c.P(370, 198), IM_COL32(60, 70, 80, 255), IM_COL32(50, 58, 70, 255),
@@ -214,10 +214,10 @@ void DrawGba(Ctx& c) {
     c.Text("A", 482, 156, 13, IM_COL32(210, 205, 240, 255));
     c.Text("B", 436, 194, 13, IM_COL32(210, 205, 240, 255));
     // Start y Select: botones redondos pequeños abajo a la izquierda.
-    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_START, 112, 236, 10, IM_COL32(40, 34, 70, 255), IM_COL32(70, 62, 110, 255));
-    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_SELECT, 112, 270, 10, IM_COL32(40, 34, 70, 255), IM_COL32(70, 62, 110, 255));
-    c.Text("START", 132, 236, 10, IM_COL32(210, 205, 240, 255), false);
-    c.Text("SELECT", 132, 270, 10, IM_COL32(210, 205, 240, 255), false);
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_START, 108, 232, 12, IM_COL32(40, 34, 70, 255), IM_COL32(70, 62, 110, 255));
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_SELECT, 108, 272, 12, IM_COL32(40, 34, 70, 255), IM_COL32(70, 62, 110, 255));
+    c.Text("START", 128, 232, 12, IM_COL32(210, 205, 240, 255), false);
+    c.Text("SELECT", 128, 272, 12, IM_COL32(210, 205, 240, 255), false);
     // Parlante.
     for (int r = 0; r < 3; ++r)
         for (int i = 0; i < 3; ++i) dl->AddCircleFilled(c.P(462 + i * 14, 236 + r * 14), c.L(3), shell_dark);

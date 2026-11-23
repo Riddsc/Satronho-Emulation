@@ -214,6 +214,9 @@ void Input::Load(const Ini& ini) {
         if (ini.Values().count(b + "m")) hk_pad[i] = PadCodeFromId(ini.Get(b + "m"));
     }
     deadzone = std::clamp(ini.GetFloat("controles.zona_muerta", 0.25f), 0.05f, 0.9f);
+    tilt_source = std::clamp(ini.GetInt("controles.inclinacion.fuente", 0), 0, 1);
+    tilt_invert_x = ini.GetBool("controles.inclinacion.invertir_x", false);
+    tilt_invert_y = ini.GetBool("controles.inclinacion.invertir_y", false);
     stick_dpad = ini.GetBool("controles.stick_cruceta", true);
     log_buttons = ini.GetBool("controles.registro", false);
 }
@@ -256,6 +259,9 @@ void Input::Save(Ini& ini) const {
         ini.Set(b + "m", PadCodeId(hk_pad[i]));
     }
     ini.SetFloat("controles.zona_muerta", deadzone);
+    ini.SetInt("controles.inclinacion.fuente", tilt_source);
+    ini.SetBool("controles.inclinacion.invertir_x", tilt_invert_x);
+    ini.SetBool("controles.inclinacion.invertir_y", tilt_invert_y);
     ini.SetBool("controles.stick_cruceta", stick_dpad);
     ini.SetBool("controles.registro", log_buttons);
 }
@@ -337,6 +343,7 @@ void Input::StartCapture(int player, const SystemDef& sys, int button, bool pad,
 
 void Input::StartWizard(int player, const SystemDef& sys, bool pad) {
     capture = {};
+    capture.any = true;
     capture.player = player;
     capture.sys = sys.id;
     capture.pad = pad;
@@ -351,6 +358,7 @@ void Input::StartWizard(int player, const SystemDef& sys, bool pad) {
 
 void Input::StartHotkeyCapture(Hotkey h, bool pad) {
     capture = {};
+    capture.any = true;
     capture.hotkey = true;
     capture.button = static_cast<int>(h);
     capture.pad = pad;
@@ -578,6 +586,65 @@ void Input::Update(CoreHost& core, const SystemDef& sys, bool keyboard_enabled) 
             core.pads[pl].analog[0][0] = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX);
             core.pads[pl].analog[0][1] = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY);
         }
+    }
+}
+
+// ---------------------------------------------------------------- inclinación
+
+bool Input::PadHasMotion(int slot) const {
+    SDL_Gamepad* pad = PadAt(slot);
+    return pad && SDL_GamepadHasSensor(pad, SDL_SENSOR_ACCEL);
+}
+
+void Input::TiltNow(float* x, float* y, float* gyro) {
+    float tx = 0, ty = 0, gz = 0;
+    const PlayerConfig& pc = players[0];
+    if (pc.keyboard) {
+        const bool* ks = SDL_GetKeyboardState(nullptr);
+        if (ks[tilt_keys[0]]) ty -= 1;
+        if (ks[tilt_keys[1]]) ty += 1;
+        if (ks[tilt_keys[2]]) tx -= 1;
+        if (ks[tilt_keys[3]]) tx += 1;
+    }
+    if (SDL_Gamepad* pad = PadAt(pc.pad)) {
+        if (tilt_source == 1 && SDL_GamepadHasSensor(pad, SDL_SENSOR_ACCEL)) {
+            // Mando de PS4/PS5/Switch: se inclina el mando de verdad.
+            if (!SDL_GamepadSensorEnabled(pad, SDL_SENSOR_ACCEL)) SDL_SetGamepadSensorEnabled(pad, SDL_SENSOR_ACCEL, true);
+            if (SDL_GamepadHasSensor(pad, SDL_SENSOR_GYRO) && !SDL_GamepadSensorEnabled(pad, SDL_SENSOR_GYRO))
+                SDL_SetGamepadSensorEnabled(pad, SDL_SENSOR_GYRO, true);
+            float a[3] = {};
+            if (SDL_GetGamepadSensorData(pad, SDL_SENSOR_ACCEL, a, 3)) {
+                tx += a[0] / SDL_STANDARD_GRAVITY;
+                ty += a[2] / SDL_STANDARD_GRAVITY;
+            }
+            float g[3] = {};
+            if (SDL_GetGamepadSensorData(pad, SDL_SENSOR_GYRO, g, 3)) gz = g[2];
+        } else {
+            auto axis = [&](SDL_GamepadAxis ax) {
+                const float v = SDL_GetGamepadAxis(pad, ax) / 32767.0f;
+                return std::fabs(v) < deadzone * 0.6f ? 0.0f : v;
+            };
+            tx += axis(SDL_GAMEPAD_AXIS_RIGHTX);
+            ty += axis(SDL_GAMEPAD_AXIS_RIGHTY);
+            gz = axis(SDL_GAMEPAD_AXIS_RIGHTX) * 2.0f;
+        }
+    }
+    if (tilt_invert_x) tx = -tx;
+    if (tilt_invert_y) ty = -ty;
+    *x = std::clamp(tx, -1.0f, 1.0f);
+    *y = std::clamp(ty, -1.0f, 1.0f);
+    if (gyro) *gyro = gz;
+}
+
+float Input::Sensor(unsigned id) {
+    float x, y, gz;
+    TiltNow(&x, &y, &gz);
+    switch (id) {
+    case RETRO_SENSOR_ACCELEROMETER_X: return x;
+    case RETRO_SENSOR_ACCELEROMETER_Y: return y;
+    case RETRO_SENSOR_ACCELEROMETER_Z: return 1.0f;
+    case RETRO_SENSOR_GYROSCOPE_Z: return gz;
+    default: return 0.0f;
     }
 }
 

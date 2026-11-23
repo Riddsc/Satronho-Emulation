@@ -36,7 +36,8 @@ void Settings::Load(const Ini& ini) {
 
     guides = ini.GetBool("guias.activas", guides);
     bubble = ini.GetBool("guias.burbuja", bubble);
-    ui_scale = std::clamp(ini.GetFloat("interfaz.escala", ui_scale), 0.75f, 1.75f);
+    ui_scale = ini.GetFloat("interfaz.escala2", ui_scale);
+    if (ui_scale != 0.0f) ui_scale = std::clamp(ui_scale, 0.75f, 1.75f);
 
     folders.clear();
     const int n = ini.GetInt("biblioteca.carpetas", 0);
@@ -79,7 +80,8 @@ void Settings::Save(Ini& ini) const {
 
     ini.SetBool("guias.activas", guides);
     ini.SetBool("guias.burbuja", bubble);
-    ini.SetFloat("interfaz.escala", ui_scale);
+    ini.SetFloat("interfaz.escala2", ui_scale);
+    ini.Erase("interfaz.escala");
 
     // Se borran las carpetas viejas antes de escribir la lista nueva.
     for (int i = 0; i < 64; ++i) ini.Erase("biblioteca.carpeta." + std::to_string(i));

@@ -46,7 +46,7 @@ struct Settings {
     // Guías e interfaz
     bool guides = true;
     bool bubble = true;
-    float ui_scale = 1.0f;
+    float ui_scale = 0.0f;           // 0 = automático según la pantalla
 
     // Biblioteca
     std::vector<std::string> folders;

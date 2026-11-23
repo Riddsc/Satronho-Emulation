@@ -99,6 +99,7 @@ public:
     PadState pads[4];
     std::function<void(const int16_t*, size_t)> on_audio;     // frames estéreo intercalados
     std::function<void(const std::string&, int)> on_message; // texto, duración en ms
+    std::function<float(unsigned)> on_sensor;                // RETRO_SENSOR_* -> valor
     bool video_enabled = true;
     bool audio_enabled = true;
     bool fast_forwarding = false;

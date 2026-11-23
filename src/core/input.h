@@ -116,6 +116,14 @@ public:
     static std::string PadCodeLabel(int code, PadFamily family);
     static std::string KeyLabel(SDL_Scancode sc);
 
+    // Inclinación (juegos con sensor en el cartucho, como Kirby Tilt 'n' Tumble).
+    int tilt_source = 0; // 0 stick derecho, 1 sensor de movimiento del mando
+    bool tilt_invert_x = false, tilt_invert_y = false;
+    std::array<SDL_Scancode, 4> tilt_keys{SDL_SCANCODE_I, SDL_SCANCODE_K, SDL_SCANCODE_J, SDL_SCANCODE_L};
+    float Sensor(unsigned id);           // lo pide el núcleo (RETRO_SENSOR_*)
+    void TiltNow(float* x, float* y, float* gyro); // -1..1, también para la vista en vivo
+    bool PadHasMotion(int slot) const;
+
     float deadzone = 0.25f;
     bool stick_dpad = true;
     bool log_buttons = false;

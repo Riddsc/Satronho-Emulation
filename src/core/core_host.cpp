@@ -48,7 +48,17 @@ bool WriteFileAtomic(const fs::path& file, const void* data, size_t size) {
     return !ec;
 }
 
+// Los núcleos escriben muchísimo (mGBA anota cada carga de estado). Se guarda solo lo útil:
+// todo mientras se carga el juego, y después únicamente avisos y errores, sin repetirlos.
+bool g_verbose = false;
+int g_core_lines = 0;
+std::string g_last_line;
+int g_repeat = 0;
+
 void CoreLog(enum retro_log_level level, const char* fmt, ...) {
+    if (level == RETRO_LOG_DEBUG) return;
+    if (level == RETRO_LOG_INFO && !g_verbose) return;
+    if (g_core_lines > 400) return;
     char buf[1024];
     va_list args;
     va_start(args, fmt);
@@ -56,6 +66,13 @@ void CoreLog(enum retro_log_level level, const char* fmt, ...) {
     va_end(args);
     size_t n = std::strlen(buf);
     while (n && (buf[n - 1] == '\n' || buf[n - 1] == '\r')) buf[--n] = 0;
+    if (g_last_line == buf) {
+        if (++g_repeat > 2) return;
+    } else {
+        g_last_line = buf;
+        g_repeat = 0;
+    }
+    ++g_core_lines;
     switch (level) {
     case RETRO_LOG_ERROR: Log::Error("[núcleo] %s", buf); break;
     case RETRO_LOG_WARN: Log::Warn("[núcleo] %s", buf); break;
@@ -66,6 +83,17 @@ void CoreLog(enum retro_log_level level, const char* fmt, ...) {
 
 struct CoreCallbacks {
     static bool Env(unsigned cmd, void* data) { return g_host && g_host->Environment(cmd, data); }
+    static bool SensorState(unsigned port, enum retro_sensor_action action, unsigned rate) {
+        (void)port;
+        (void)rate;
+        // Acelerómetro y giroscopio sí (se simulan con el stick, teclas o el sensor del mando).
+        return action == RETRO_SENSOR_ACCELEROMETER_ENABLE || action == RETRO_SENSOR_ACCELEROMETER_DISABLE ||
+               action == RETRO_SENSOR_GYROSCOPE_ENABLE || action == RETRO_SENSOR_GYROSCOPE_DISABLE;
+    }
+    static float SensorInput(unsigned port, unsigned id) {
+        if (!g_host || port != 0 || !g_host->on_sensor) return 0.0f;
+        return g_host->on_sensor(id);
+    }
     static void Video(const void* data, unsigned w, unsigned h, size_t pitch) {
         if (g_host) g_host->Video(data, w, h, pitch);
     }
@@ -151,6 +179,8 @@ bool CoreHost::LoadCore(const fs::path& path, std::string* error) {
     options_.clear();
     categories_.clear();
 
+    g_verbose = true;
+    g_core_lines = 0;
     retro_set_environment_(&CoreCallbacks::Env);
     retro_set_video_refresh_(&CoreCallbacks::Video);
     retro_set_audio_sample_(&CoreCallbacks::Sample);
@@ -160,6 +190,7 @@ bool CoreHost::LoadCore(const fs::path& path, std::string* error) {
     retro_init_();
     std::memset(&sys_info_, 0, sizeof sys_info_);
     retro_get_system_info_(&sys_info_);
+    g_verbose = false;
     Log::Info("Núcleo cargado: %s %s (%s)", sys_info_.library_name ? sys_info_.library_name : "?",
               sys_info_.library_version ? sys_info_.library_version : "",
               sys_info_.valid_extensions ? sys_info_.valid_extensions : "");
@@ -210,7 +241,10 @@ bool CoreHost::LoadGame(const fs::path& rom, std::string* error) {
     rom_path_ = rom;
     frame_.clear();
     frame_w_ = frame_h_ = 0;
-    if (!retro_load_game_(&info)) {
+    g_verbose = true;
+    const bool loaded = retro_load_game_(&info);
+    g_verbose = false;
+    if (!loaded) {
         if (error) *error = "El núcleo no pudo abrir este juego. Puede que el archivo esté dañado o que su chip no sea compatible.";
         rom_path_.clear();
         return false;
@@ -614,6 +648,12 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
     case Cmd(RETRO_ENVIRONMENT_GET_TARGET_REFRESH_RATE):
         *static_cast<float*>(data) = target_refresh;
         return true;
+    case Cmd(RETRO_ENVIRONMENT_GET_SENSOR_INTERFACE): {
+        auto* si = static_cast<retro_sensor_interface*>(data);
+        si->set_sensor_state = &CoreCallbacks::SensorState;
+        si->get_sensor_input = &CoreCallbacks::SensorInput;
+        return true;
+    }
     case Cmd(RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS):
         *static_cast<unsigned*>(data) = 4;
         return true;
