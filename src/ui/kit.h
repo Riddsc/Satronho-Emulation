@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "imgui.h"
+#include "sys/systems.h"
 
 struct SDL_Texture;
 struct SDL_Renderer;
@@ -112,7 +113,8 @@ void PanelEnd();
 void GuideBanner(const Image& avatar, const char* name, const char* role, unsigned color, const char* text, float width = 0);
 
 // Portada dibujada para un juego de NES (cartucho con etiqueta de color).
-void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std::string& title, float rounding, bool hovered);
+void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std::string& title, float rounding, bool hovered,
+                   Layout layout = Layout::Nes, const char* label = "OCTA");
 
 std::string Initials(const std::string& title);
 void Ellipsize(ImDrawList* dl, ImFont* font, float size, ImVec2 pos, ImU32 color, const std::string& text, float max_w, int max_lines = 1);

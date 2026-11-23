@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <ctime>
 
+#include "sys/systems.h"
 #include "util/log.h"
 
 namespace Satronho {
@@ -85,6 +86,7 @@ Game Library::MakeGame(const fs::path& file) {
     SplitTitle(Paths::ToUtf8(file.stem()), g.title, g.tags);
     g.ext = Lower(Paths::ToUtf8(file.extension()));
     if (!g.ext.empty() && g.ext[0] == '.') g.ext.erase(0, 1);
+    if (const SystemDef* sys = SystemForExtension(g.ext)) g.system = sys->id;
     char hex[16];
     std::snprintf(hex, sizeof hex, "%08x", Fnv(Lower(g.path_utf8)));
     g.key = hex;
@@ -98,8 +100,9 @@ void Library::ApplyMeta(Game& g) const {
     g.last_played = meta_.GetI64(g.key + ".ultima", 0);
 }
 
-void Library::Rescan(const std::vector<std::string>& folders, const std::vector<std::string>& extensions) {
+void Library::Rescan(const std::vector<std::string>& folders) {
     if (scanning_) return;
+    const std::vector<std::string> extensions = AllExtensions();
     if (worker_.joinable()) worker_.join();
     scanning_ = true;
     worker_ = std::thread([this, folders, extensions] {

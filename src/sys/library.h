@@ -19,6 +19,7 @@ struct Game {
     std::string title;              // nombre limpio, sin etiquetas
     std::vector<std::string> tags;  // (USA), (Rev 1)...
     std::string ext;
+    std::string system;             // id de la consola (octa, bolsillo, bolsillo_plus)
     std::string key;                // identificador estable para tiempo de juego y favoritos
     uint32_t hue = 0;               // color de la portada
     bool favorite = false;
@@ -33,7 +34,7 @@ public:
     void Save();
 
     // Busca juegos en las carpetas en segundo plano.
-    void Rescan(const std::vector<std::string>& folders, const std::vector<std::string>& extensions);
+    void Rescan(const std::vector<std::string>& folders);
     bool Scanning() const { return scanning_; }
     bool TakeChanged();             // true una vez tras terminar un escaneo
 

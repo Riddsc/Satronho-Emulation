@@ -28,6 +28,19 @@ Mega (Genesis), Anillo (Saturn), Sueño (Dreamcast), CD (PS1), CD2 (PS2), Portá
 descarga el zip y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre la app, hace
 `Expand-Archive` + `Copy-Item` encima de la carpeta del programa y la vuelve a abrir.
 
+## Varias consolas (fase 2)
+
+- `src/sys/systems.cpp`: cada emulador (id, nombre, núcleo, extensiones, botones, forma del control,
+  etiqueta del cartucho y valores por defecto del núcleo). Bolsillo y Bolsillo Plus comparten
+  mGBA (y sus opciones). El núcleo se carga al abrir un juego (`App::EnsureCore`).
+- La biblioteca escanea todas las extensiones y cada juego guarda su consola; la barra lateral filtra.
+- Controles (`src/core/input.cpp`): perfiles por consola («Predeterminado» + los del usuario),
+  jugador 1 y 2 con teclado y/o mando (por posición entre los conectados), atajos con tecla y
+  botón. Códigos de mando: botones SDL, 200 = LT, 201 = RT. Dibujos de los controles en
+  `src/ui/controllers.cpp` (distribución original, trazo propio, sin logos).
+- Efectos: `Effect::Lcd` (rejilla) y `Effect::Auto` (CRT en consolas de casa, LCD en portátiles).
+- Pantalla completa a 60 Hz en monitores de 120/144 Hz (`App::SetFullscreen`).
+
 ## Estructura
 
 - `src/core/` — `core_host` (carga del núcleo, entorno libretro, estados, SRAM, opciones),

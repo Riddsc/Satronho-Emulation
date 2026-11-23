@@ -16,13 +16,14 @@ public:
     void Init(SDL_Renderer* renderer) { r_ = renderer; }
     void Shutdown();
     void Upload(const CoreHost& core);  // sube el cuadro nuevo a la tarjeta gráfica
-    void Draw(const CoreHost& core, const Settings& s, int win_w, int win_h);
+    void Draw(const CoreHost& core, const Settings& s, int win_w, int win_h, bool handheld);
     SDL_FRect LastRect() const { return dest_; }
     void Invalidate();
 
 private:
     void EnsureTexture(const CoreHost& core);
     void EnsureEffects(int src_h, float strength, int effect);
+    void EnsureLcd(int src_w, int src_h, float strength);
     void UpdateAmbient(const CoreHost& core);
 
     SDL_Renderer* r_ = nullptr;
@@ -32,6 +33,9 @@ private:
     SDL_Texture* scan_ = nullptr;
     SDL_Texture* mask_ = nullptr;
     SDL_Texture* vignette_ = nullptr;
+    SDL_Texture* lcd_ = nullptr;
+    int lcd_w_ = 0, lcd_h_ = 0;
+    float lcd_strength_ = -1;
     int tex_w_ = 0, tex_h_ = 0;
     SDL_PixelFormat tex_fmt_ = SDL_PIXELFORMAT_UNKNOWN;
     int sharp_w_ = 0, sharp_h_ = 0;

@@ -8,6 +8,8 @@
 #include "app.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "libretro.h"
+#include "ui/controllers.h"
 #include "util/log.h"
 
 namespace Satronho {
@@ -81,34 +83,6 @@ std::string NiceValue(const CoreOption::Value& v) {
     return it != names.end() ? it->second : v.label;
 }
 
-const char* KeyName(SDL_Scancode sc) {
-    switch (sc) {
-    case SDL_SCANCODE_UP: return "Flecha arriba";
-    case SDL_SCANCODE_DOWN: return "Flecha abajo";
-    case SDL_SCANCODE_LEFT: return "Flecha izquierda";
-    case SDL_SCANCODE_RIGHT: return "Flecha derecha";
-    case SDL_SCANCODE_RETURN: return "Enter";
-    case SDL_SCANCODE_KP_ENTER: return "Enter (numérico)";
-    case SDL_SCANCODE_RSHIFT: return "Shift derecho";
-    case SDL_SCANCODE_LSHIFT: return "Shift izquierdo";
-    case SDL_SCANCODE_RCTRL: return "Ctrl derecho";
-    case SDL_SCANCODE_LCTRL: return "Ctrl izquierdo";
-    case SDL_SCANCODE_LALT: return "Alt";
-    case SDL_SCANCODE_RALT: return "Alt Gr";
-    case SDL_SCANCODE_SPACE: return "Espacio";
-    case SDL_SCANCODE_BACKSPACE: return "Retroceso";
-    case SDL_SCANCODE_TAB: return "Tab";
-    case SDL_SCANCODE_ESCAPE: return "Esc";
-    case SDL_SCANCODE_DELETE: return "Supr";
-    case SDL_SCANCODE_INSERT: return "Insert";
-    case SDL_SCANCODE_HOME: return "Inicio";
-    case SDL_SCANCODE_END: return "Fin";
-    case SDL_SCANCODE_PAGEUP: return "Re Pág";
-    case SDL_SCANCODE_PAGEDOWN: return "Av Pág";
-    default: return SDL_GetScancodeName(sc);
-    }
-}
-
 } // namespace
 
 void App::GuideSays(GuideId id, const char* text, float width) {
@@ -145,6 +119,7 @@ void App::DrawUi() {
     ImGui::PopStyleVar();
     switch (page_) {
     case Page::Library: DrawLibrary(); break;
+    case Page::Controls: DrawControls(); break;
     case Page::Suggested: DrawSuggested(); break;
     case Page::News: DrawNews(); break;
     case Page::Settings: DrawSettings(); break;
@@ -186,17 +161,33 @@ void App::DrawSidebar(float width) {
     char count[16];
     std::snprintf(count, sizeof count, "%zu", games_.size());
     SectionLabel("   JUGAR");
-    if (NavItem("Biblioteca", Icon::Library, page_ == Page::Library, games_.empty() ? nullptr : count)) page_ = Page::Library;
+    if (NavItem("Biblioteca", Icon::Library, page_ == Page::Library && lib_system_.empty(), games_.empty() ? nullptr : count)) {
+        page_ = Page::Library;
+        lib_system_.clear();
+    }
     ImGui::Dummy({0, S(10)});
     SectionLabel("   CONSOLAS");
-    if (NavItem("Octa", Icon::Gamepad, false, "Lista", false, Color::Gold, "NES")) page_ = Page::Library;
-    static const char* soon[][2] = {{"Bolsillo", "GB · GBC"}, {"Bolsillo Plus", "GBA"}, {"Mega", "Genesis"}, {"Hexa", "SNES"}, {"CD", "PS1"}};
-    for (const auto& c : soon) NavItem(c[0], Icon::Gamepad, false, "Pronto", true, Color::Accent, c[1]);
+    for (const auto& sys : Systems()) {
+        size_t n = 0;
+        for (const auto& g : games_) n += g.system == sys.id;
+        const std::string badge = n ? std::to_string(n) : std::string("Lista");
+        if (NavItem(sys.name.c_str(), Icon::Gamepad, page_ == Page::Library && lib_system_ == sys.id, badge.c_str(), false, sys.color, sys.hint.c_str())) {
+            page_ = Page::Library;
+            lib_system_ = sys.id;
+        }
+    }
+    {
+        std::string names;
+        for (const auto& c : SoonSystems()) names += (names.empty() ? "" : ", ") + std::string(c.name);
+        NavItem("Más consolas", Icon::Gamepad, false, "Pronto", true, Color::Accent);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) HelpTooltip(("Vienen en camino: " + names + ".").c_str());
+    }
     ImGui::Dummy({0, S(10)});
     SectionLabel("   SATRONHO");
     if (NavItem("Configuración sugerida", Icon::Sparkle, page_ == Page::Suggested, nullptr, false, Color::Teal)) page_ = Page::Suggested;
     const bool update = updater_.GetState() == Updater::State::Available;
     if (NavItem("Novedades", Icon::Bell, page_ == Page::News, update ? "Nueva" : nullptr, false, Color::Pink)) page_ = Page::News;
+    if (NavItem("Controles", Icon::Gamepad, page_ == Page::Controls, nullptr, false, Color::Amber)) page_ = Page::Controls;
     if (NavItem("Ajustes", Icon::Gear, page_ == Page::Settings)) page_ = Page::Settings;
     if (NavItem("Acerca de", Icon::Info, page_ == Page::About)) page_ = Page::About;
 
@@ -215,7 +206,7 @@ void App::DrawSidebar(float width) {
     }
     {
         FontScope f(GetFonts().regular, 12);
-        const std::string b = build_ > 0 ? Fmt("Build %d · Octa", build_) : std::string("Versión de desarrollo");
+        const std::string b = build_ > 0 ? Fmt("Build %d", build_) : std::string("Versión de desarrollo");
         dl->AddText({p.x + S(58), p.y + S(30)}, U32(Color::Dim), b.c_str());
     }
     ImGui::Dummy({w, foot_h});
@@ -228,9 +219,10 @@ void App::DrawSidebar(float width) {
 
 void App::DrawCoreMissing() {
     PanelBegin("##sin_nucleo", {0, 0}, 0x2A1622);
-    IconText(Icon::Info, "No se encontró el núcleo de Satronho Octa", U32(Color::Red));
-    Muted(Fmt("Satronho Emulation necesita el archivo «cores/%s» junto al programa. Vuelve a descargar la build completa desde los Releases. (%s)",
-              "nestopia_libretro", core_error_.c_str()).c_str());
+    std::string names;
+    for (const auto& n : missing_cores_) names += (names.empty() ? "" : ", ") + n;
+    IconText(Icon::Info, ("Falta el núcleo de: " + names).c_str(), U32(Color::Red));
+    Muted("Esos emuladores necesitan sus archivos en la carpeta «cores» junto al programa. Vuelve a descargar la build completa desde los Releases.");
     PanelEnd();
     ImGui::Dummy({0, S(12)});
 }
@@ -240,12 +232,20 @@ void App::DrawLibrary() {
         games_ = library_.Snapshot();
         games_dirty_ = false;
     }
-    if (!core_ok_) DrawCoreMissing();
+    if (!missing_cores_.empty()) DrawCoreMissing();
+
+    // Juegos de la consola elegida.
+    const SystemDef* lib_sys = lib_system_.empty() ? nullptr : SystemById(lib_system_);
+    std::vector<const Game*> shown;
+    for (const auto& g : games_)
+        if (!lib_sys || g.system == lib_sys->id) shown.push_back(&g);
 
     // Encabezado.
     const float avail = ImGui::GetContentRegionAvail().x;
     const ImVec2 top = ImGui::GetCursorScreenPos();
-    Title("Biblioteca", Fmt("Satronho Octa · para juegos de NES · %zu %s", games_.size(), games_.size() == 1 ? "juego" : "juegos").c_str());
+    const char* plural = shown.size() == 1 ? "juego" : "juegos";
+    if (lib_sys) Title(lib_sys->full.c_str(), Fmt("Para %s · %zu %s", lib_sys->games.c_str(), shown.size(), plural).c_str());
+    else Title("Biblioteca", Fmt("Todas tus consolas · %zu %s", shown.size(), plural).c_str());
     const float after_title = ImGui::GetCursorScreenPos().y;
 
     // Herramientas a la derecha.
@@ -275,7 +275,7 @@ void App::DrawLibrary() {
     }
     ImGui::SetCursorScreenPos({top.x, std::max(after_title, top.y + S(56)) + S(14)});
 
-    if (games_.empty()) {
+    if (shown.empty()) {
         if (library_.Scanning()) {
             Spinner(S(12), Color::Accent);
             ImGui::SameLine();
@@ -290,8 +290,8 @@ void App::DrawLibrary() {
     const std::string query = Lower(search_);
     if (query.empty()) {
         const Game* recent = nullptr;
-        for (const auto& g : games_)
-            if (g.last_played > 0 && (!recent || g.last_played > recent->last_played)) recent = &g;
+        for (const Game* g : shown)
+            if (g->last_played > 0 && (!recent || g->last_played > recent->last_played)) recent = g;
         if (recent) {
             DrawContinueHero(*recent, avail);
             ImGui::Dummy({0, S(10)});
@@ -320,10 +320,10 @@ void App::DrawLibrary() {
     ImGui::Dummy({0, S(6)});
 
     std::vector<const Game*> list;
-    for (const auto& g : games_) {
-        if (settings_.favorites_only && !g.favorite) continue;
-        if (!query.empty() && Lower(g.title).find(query) == std::string::npos) continue;
-        list.push_back(&g);
+    for (const Game* g : shown) {
+        if (settings_.favorites_only && !g->favorite) continue;
+        if (!query.empty() && Lower(g->title).find(query) == std::string::npos) continue;
+        list.push_back(g);
     }
     std::sort(list.begin(), list.end(), [&](const Game* a, const Game* b) {
         if (settings_.sort == 1 && a->last_played != b->last_played) return a->last_played > b->last_played;
@@ -376,7 +376,9 @@ void App::DrawContinueHero(const Game& g, float width) {
     dl->AddRectFilledMultiColor({p.x + S(150), p.y + 1}, {p.x + width - S(20), p.y + h - 1}, Hsv(hue, 0.6f, 0.30f, 0.0f), Hsv(hue, 0.6f, 0.35f, 0.55f),
                                 Hsv(hue, 0.6f, 0.35f, 0.55f), Hsv(hue, 0.6f, 0.30f, 0.0f));
     dl->AddRect(p, {p.x + width, p.y + h}, Hsv(hue, 0.5f, 0.7f, 0.35f), S(20));
-    DrawCartridge(dl, {p.x + S(14), p.y + S(12)}, {p.x + S(144), p.y + h - S(12)}, g.hue, g.title, S(14), false);
+    const SystemDef* gs = SystemById(g.system);
+    DrawCartridge(dl, {p.x + S(14), p.y + S(12)}, {p.x + S(144), p.y + h - S(12)}, g.hue, g.title, S(14), false,
+                  gs ? gs->layout : Layout::Nes, gs ? gs->label.c_str() : "OCTA");
 
     const float tx = p.x + S(170);
     {
@@ -435,7 +437,8 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     if (hv > 0) dl->AddRectFilled({a.x + S(2), a.y + S(10)}, {b.x - S(2), b.y + S(8)}, IM_COL32(0, 0, 0, static_cast<int>(70 * hv)), rr);
     dl->AddRectFilled(a, b, U32(Color::Surface), rr);
     const float cover_h = w * 0.95f;
-    DrawCartridge(dl, a, {b.x, a.y + cover_h}, g.hue, g.title, rr, hv > 0.5f);
+    const SystemDef* gs = SystemById(g.system);
+    DrawCartridge(dl, a, {b.x, a.y + cover_h}, g.hue, g.title, rr, hv > 0.5f, gs ? gs->layout : Layout::Nes, gs ? gs->label.c_str() : "OCTA");
     if (selected || hv > 0) dl->AddRect(a, b, U32(selected ? Color::Accent : Color::Surface3, selected ? 1.0f : hv), rr, S(selected ? 2.0f : 1.5f));
 
     // Botón de jugar al pasar el mouse.
@@ -467,7 +470,11 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     {
         FontScope f(GetFonts().regular, 12.5f);
         std::string meta = g.playtime_s > 0 ? FormatPlaytime(g.playtime_s) : std::string("Sin jugar");
-        if (!g.tags.empty()) meta += "  ·  " + g.tags.front();
+        if (lib_system_.empty()) {
+            if (const SystemDef* gsys = SystemById(g.system)) meta += "  ·  " + gsys->name;
+        } else if (!g.tags.empty()) {
+            meta += "  ·  " + g.tags.front();
+        }
         Ellipsize(dl, GetFonts().regular, S(12.5f), {a.x + S(14), a.y + cover_h + S(38)}, U32(Color::Muted), meta, w - S(28), 1);
     }
 
@@ -493,7 +500,7 @@ void App::DrawEmptyLibrary() {
     ImGui::Dummy({0, S(6)});
     ImGui::SetCursorPosX(x0);
     GuideSays(GuideId::Samy,
-              "Agrega la carpeta donde guardas tus juegos de NES (.nes) y yo busco también en las subcarpetas. "
+              "Agrega la carpeta donde guardas tus juegos (NES, Game Boy, Game Boy Color o Game Boy Advance) y yo busco también en las subcarpetas. "
               "Si prefieres, arrastra un juego a la ventana y lo abrimos de una.",
               w);
     ImGui::Dummy({0, S(12)});
@@ -725,7 +732,10 @@ void App::DrawSettings() {
     switch (tab_) {
     case SettingsTab::Video: DrawSettingsVideo(); break;
     case SettingsTab::Audio: DrawSettingsAudio(); break;
-    case SettingsTab::Controls: DrawSettingsControls(); break;
+    case SettingsTab::Controls:
+        page_ = Page::Controls;
+        tab_ = SettingsTab::Video;
+        break;
     case SettingsTab::Performance: DrawSettingsPerformance(); break;
     case SettingsTab::Meter: DrawSettingsMeter(); break;
     case SettingsTab::Core: DrawSettingsCore(); break;
@@ -745,8 +755,17 @@ void App::DrawSettingsVideo() {
     bool changed = false;
 
     RowBegin("Pantalla completa", "También con F11 o Alt+Enter.");
-    if (Toggle("##fs", &settings_.fullscreen)) {
-        SDL_SetWindowFullscreen(window_, settings_.fullscreen);
+    bool fs = settings_.fullscreen;
+    if (Toggle("##fs", &fs)) {
+        SetFullscreen(fs);
+        changed = true;
+    }
+    RowEnd();
+
+    RowBegin("Pantalla completa a 60 Hz", "Si tu pantalla es de 120 o 144 Hz, al jugar en pantalla completa la cambio a 60 Hz: las consolas "
+                                          "van a 60 cuadros y así el movimiento queda perfectamente parejo.");
+    if (Toggle("##fs60", &settings_.fullscreen_60hz)) {
+        if (settings_.fullscreen) SetFullscreen(true);
         changed = true;
     }
     RowEnd();
@@ -759,8 +778,8 @@ void App::DrawSettingsVideo() {
     changed |= Segmented("##filtro", &settings_.filter, {"Píxel exacto", "Nítido suave", "Suave"}, S(320));
     RowEnd();
 
-    RowBegin("Efecto de pantalla", "Líneas de barrido o el aspecto completo de un televisor CRT.");
-    changed |= Segmented("##efecto", &settings_.effect, {"Ninguno", "Líneas", "CRT"}, S(320));
+    RowBegin("Efecto de pantalla", "«Auto» usa televisor CRT en las consolas de casa y pantalla LCD en las portátiles.");
+    changed |= Segmented("##efecto", &settings_.effect, {"Ninguno", "Líneas", "CRT", "LCD", "Auto"}, S(340));
     RowEnd();
 
     if (settings_.effect != 0) {
@@ -838,129 +857,6 @@ void App::DrawSettingsAudio() {
     if (changed) SaveConfig();
 }
 
-void App::DrawSettingsControls() {
-    GuideSays(GuideId::Samy, "Haz clic en un botón y luego presiona la tecla o el botón del mando que quieras. Esc cancela.");
-    ImGui::Dummy({0, S(14)});
-
-    const auto pads = input_.Gamepads();
-    {
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        DrawIcon(ImGui::GetWindowDrawList(), Icon::Gamepad, {p.x + S(11), p.y + S(12)}, S(18), U32(pads.empty() ? Color::Dim : Color::Green));
-        ImGui::SetCursorScreenPos({p.x + S(30), p.y});
-        if (pads.empty()) Muted("Ningún mando conectado. Puedes conectar uno en cualquier momento.", 14);
-        else {
-            std::string s;
-            for (const auto& pd : pads) s += (s.empty() ? "" : "   ·   ") + Fmt("Jugador %d: ", pd.port) + pd.name;
-            FontScope f(GetFonts().medium, 14);
-            ImGui::TextUnformatted(s.c_str());
-        }
-    }
-    ImGui::Dummy({0, S(8)});
-
-    const float col1 = S(150), colw = S(200);
-    {
-        FontScope f(GetFonts().semibold, 12);
-        ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Dim));
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        ImGui::TextUnformatted("BOTÓN");
-        ImGui::SetCursorScreenPos({p.x + col1, p.y});
-        ImGui::TextUnformatted("TECLADO");
-        ImGui::SetCursorScreenPos({p.x + col1 + colw + S(16), p.y});
-        ImGui::TextUnformatted("MANDO");
-        ImGui::PopStyleColor();
-    }
-    const double t = ImGui::GetTime();
-    for (const auto& b : NesButtons()) {
-        ImGui::PushID(b.id);
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        {
-            FontScope f(GetFonts().semibold, 14.5f);
-            ImGui::SetCursorScreenPos({p.x, p.y + S(8)});
-            ImGui::TextUnformatted(b.name);
-        }
-        auto cell = [&](bool gamepad, float x) {
-            ImGui::SetCursorScreenPos({p.x + x, p.y});
-            const bool capturing = input_.capture_button == b.id && input_.capture_gamepad == gamepad;
-            std::string label;
-            if (capturing) label = gamepad ? "Presiona un botón…" : "Presiona una tecla…";
-            else if (gamepad) {
-                const char* n = SDL_GetGamepadStringForButton(input_.pad_buttons[b.id]);
-                static const std::map<std::string, std::string> nice{{"a", "Abajo (A / Cruz)"}, {"b", "Derecha (B / Círculo)"}, {"x", "Izquierda (X / Cuadrado)"},
-                                                                     {"y", "Arriba (Y / Triángulo)"}, {"back", "Select / Back"}, {"start", "Start"},
-                                                                     {"dpup", "Cruceta arriba"}, {"dpdown", "Cruceta abajo"},
-                                                                     {"dpleft", "Cruceta izquierda"}, {"dpright", "Cruceta derecha"},
-                                                                     {"leftshoulder", "L1 / LB"}, {"rightshoulder", "R1 / RB"}};
-                label = n ? (nice.count(n) ? nice.at(n) : std::string(n)) : "—";
-            } else {
-                const SDL_Scancode sc = input_.keys[b.id];
-                label = sc == SDL_SCANCODE_UNKNOWN ? "—" : KeyName(sc);
-            }
-            label += gamepad ? "##p" : "##k";
-            if (capturing) {
-                const float pulse = 0.5f + 0.5f * static_cast<float>(std::sin(t * 6));
-                ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Accent, 0.6f + 0.4f * pulse));
-            }
-            FontScope f(GetFonts().medium, 14);
-            if (Button(label.c_str(), capturing ? ButtonKind::Ghost : ButtonKind::Secondary, {colw, S(38)})) {
-                input_.capture_button = b.id;
-                input_.capture_gamepad = gamepad;
-            }
-            if (capturing) ImGui::PopStyleColor();
-        };
-        cell(false, col1);
-        cell(true, col1 + colw + S(16));
-        ImGui::SetCursorScreenPos({p.x, p.y + S(46)});
-        ImGui::Dummy({0, 0});
-        ImGui::PopID();
-    }
-    if (input_.capture_button < 0) {
-        static int saved_marker = 0;
-        (void)saved_marker;
-    }
-    ImGui::Dummy({0, S(6)});
-    if (Button("Guardar controles", ButtonKind::Primary)) {
-        SaveConfig();
-        Toast("Controles guardados", GuideId::Samy, 2);
-    }
-    ImGui::SameLine();
-    if (Button("Restablecer", ButtonKind::Ghost)) {
-        input_.ResetDefaults();
-        SaveConfig();
-    }
-    ImGui::Dummy({0, S(18)});
-
-    Heading("Atajos", 17);
-    ImGui::Dummy({0, S(2)});
-    static const std::pair<const char*, const char*> hotkeys[] = {
-        {"Esc  ·  Guía o Select+Start", "Abrir el menú del juego"},
-        {"F5  /  F9", "Guardar / cargar estado en la ranura actual"},
-        {"F6  /  F7", "Cambiar de ranura"},
-        {"Tab  ·  Gatillo derecho (mantener)", "Avance rápido"},
-        {"Retroceso  ·  Gatillo izquierdo (mantener)", "Rebobinar"},
-        {"P", "Pausa"},
-        {"Ctrl+R", "Reiniciar el juego"},
-        {"F3", "Mostrar u ocultar el medidor"},
-        {"F12", "Captura de pantalla"},
-        {"F11  ·  Alt+Enter", "Pantalla completa"},
-    };
-    for (const auto& [k, d] : hotkeys) {
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        {
-            FontScope f(GetFonts().mono, 13);
-            ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Gold));
-            ImGui::TextUnformatted(k);
-            ImGui::PopStyleColor();
-        }
-        ImGui::SetCursorScreenPos({p.x + S(330), p.y});
-        FontScope f(GetFonts().regular, 14);
-        ImGui::TextUnformatted(d);
-    }
-    ImGui::Dummy({0, S(10)});
-    RowBegin("Zona muerta del stick", "Cuánto hay que mover el stick para que cuente como cruceta.");
-    if (SliderPercent("##dz", &input_.deadzone, S(320))) SaveConfig();
-    RowEnd();
-}
-
 void App::DrawSettingsPerformance() {
     GuideSays(GuideId::Nono,
               "El adelanto de cuadros hace que los controles respondan más rápido que en la consola original. "
@@ -1029,14 +925,33 @@ void App::DrawSettingsMeter() {
 }
 
 void App::DrawSettingsCore() {
-    if (!core_ok_) {
-        IconText(Icon::Info, "El núcleo de Satronho Octa no está cargado.", U32(Color::Red));
+    // Elegir de qué emulador se ven las opciones.
+    std::vector<const char*> names;
+    int cur = 0;
+    for (size_t i = 0; i < Systems().size(); ++i) {
+        names.push_back(Systems()[i].name.c_str());
+        if (Systems()[i].id == core_tab_system_) cur = static_cast<int>(i);
+    }
+    if (in_game_) {
+        for (size_t i = 0; i < Systems().size(); ++i)
+            if (&Systems()[i] == sys_) cur = static_cast<int>(i);
+    }
+    ImGui::BeginDisabled(in_game_);
+    if (Segmented("##nucleo_sis", &cur, names, S(420))) core_tab_system_ = Systems()[cur].id;
+    ImGui::EndDisabled();
+    ImGui::Dummy({0, S(10)});
+    const SystemDef& tsys = Systems()[cur];
+    std::string err;
+    if (!in_game_ && !EnsureCore(tsys, &err)) {
+        IconText(Icon::Info, ("No se pudo cargar el núcleo de " + tsys.full + ".").c_str(), U32(Color::Red));
         return;
     }
+    if (!core_ok_) return;
     const auto& si = core_.SystemInfo();
     GuideSays(GuideId::Samy,
-              Fmt("El corazón de Satronho Octa es %s %s. Estas opciones son suyas; la mayoría se nota al momento y otras al reiniciar el juego.",
-                  si.library_name, si.library_version).c_str());
+              Fmt("El corazón de %s es %s %s. Estas opciones son suyas; la mayoría se nota al momento y otras al reiniciar el juego.%s",
+                  tsys.full.c_str(), si.library_name, si.library_version,
+                  tsys.core == "mgba" ? " Bolsillo y Bolsillo Plus comparten el mismo núcleo y sus opciones." : "").c_str());
     ImGui::Dummy({0, S(16)});
     bool changed = false;
     auto& opts = core_.Options();
@@ -1160,6 +1075,368 @@ void App::DrawSettingsGuides() {
     if (changed) SaveConfig();
 }
 
+
+// ---------------------------------------------------------------- controles
+
+int App::BindingChip(const char* id, bool keyboard, const std::string& text, bool capturing, bool pressed, float width) {
+    const float h = S(28);
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    ImGui::InvisibleButton(id, {width, h});
+    const bool hovered = ImGui::IsItemHovered();
+    int result = 0;
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) result = 1;
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) result = 2;
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const float pulse = 0.5f + 0.5f * static_cast<float>(std::sin(ImGui::GetTime() * 7));
+    unsigned bg = hovered ? Color::Surface3 : Color::Surface2;
+    dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(bg), S(8));
+    if (pressed) dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(Color::Gold, 0.22f), S(8));
+    if (capturing) dl->AddRect(p, {p.x + width, p.y + h}, U32(Color::Accent, 0.4f + 0.6f * pulse), S(8), S(2));
+    DrawIcon(dl, keyboard ? Icon::Keyboard : Icon::Gamepad, {p.x + S(14), p.y + h * 0.5f}, S(13), U32(capturing ? Color::Accent : Color::Dim));
+    const std::string t = capturing ? (keyboard ? std::string("Presiona una tecla…") : std::string("Presiona un botón…")) : text;
+    Ellipsize(dl, GetFonts().medium, S(12.5f), {p.x + S(28), p.y + (h - S(12.5f)) * 0.5f - S(1)},
+              U32(capturing ? Color::Accent : (t == "—" ? Color::Dim : Color::Text)), t, width - S(34), 1);
+    if (hovered && !capturing) HelpTooltip(keyboard ? "Clic: asignar una tecla · Clic derecho: quitar" : "Clic: asignar un botón del mando · Clic derecho: quitar");
+    return result;
+}
+
+void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
+    ImGui::PushID(sys.id.c_str());
+    ImGui::PushID(player);
+    PlayerConfig& pc = input_.players[player];
+    const auto pads = input_.Gamepads();
+    const PadFamily family = input_.FamilyOfSlot(pc.pad);
+    bool changed = false;
+
+    // Barra: dispositivo y perfil.
+    {
+        FontScope f(GetFonts().medium, 13.5f);
+        const ImVec2 bar = ImGui::GetCursorScreenPos();
+        if (Toggle("##teclado", &pc.keyboard)) changed = true;
+        ImGui::SameLine(0, S(8));
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(3));
+        ImGui::TextUnformatted("Teclado");
+        ImGui::SameLine(0, S(18));
+        ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, bar.y - S(5)});
+        std::vector<std::string> pad_names{"Sin mando"};
+        for (int i = 0; i < 4; ++i) {
+            if (i < static_cast<int>(pads.size())) pad_names.push_back(Fmt("Mando %d · %s", i + 1, pads[i].name.c_str()));
+            else pad_names.push_back(Fmt("Mando %d (no conectado)", i + 1));
+        }
+        int pad_sel = pc.pad + 1;
+        if (ComboStyled("##mando", &pad_sel, pad_names, compact ? S(250) : S(280))) {
+            pc.pad = pad_sel - 1;
+            changed = true;
+        }
+        ImGui::SameLine(0, S(14));
+        const std::vector<std::string> profs = input_.Profiles(sys.id);
+        const std::string& current = input_.PlayerProfile(player, sys);
+        int prof_sel = 0;
+        for (size_t i = 0; i < profs.size(); ++i)
+            if (profs[i] == current) prof_sel = static_cast<int>(i);
+        std::vector<std::string> prof_labels;
+        for (const auto& n : profs) prof_labels.push_back("Perfil: " + n);
+        if (ComboStyled("##perfil", &prof_sel, prof_labels, compact ? S(190) : S(220))) {
+            input_.SetPlayerProfile(player, sys, profs[prof_sel]);
+            changed = true;
+        }
+        ImGui::SameLine(0, S(4));
+        if (IconButton("##nuevo", Icon::Plus, S(36), U32(Color::Muted), "Nuevo perfil (copia del actual)")) {
+            profile_popup_ = 1;
+            profile_player_ = player;
+            ctrl_system_ = sys.id;
+            std::snprintf(profile_name_, sizeof profile_name_, "Mi perfil");
+        }
+        ImGui::SameLine(0, S(2));
+        ImGui::BeginDisabled(current == Input::kDefaultProfile);
+        if (IconButton("##renombrar", Icon::File, S(36), U32(Color::Muted), "Renombrar perfil")) {
+            profile_popup_ = 2;
+            profile_player_ = player;
+            ctrl_system_ = sys.id;
+            std::snprintf(profile_name_, sizeof profile_name_, "%s", current.c_str());
+        }
+        ImGui::SameLine(0, S(2));
+        if (IconButton("##borrar", Icon::Close, S(36), U32(Color::Muted), "Borrar perfil")) {
+            input_.DeleteProfile(sys, current);
+            changed = true;
+        }
+        ImGui::EndDisabled();
+    }
+    ImGui::Dummy({0, S(4)});
+    {
+        FontScope f(GetFonts().medium, 13.5f);
+        if (Button("Asignación automática", ButtonKind::Secondary, {0, S(34)}, Icon::Sparkle, true)) {
+            input_.AutoMapPad(player, sys);
+            changed = true;
+            Toast("Mando asignado con la distribución de " + sys.name, GuideId::Samy, 2.5);
+        }
+        if (ImGui::IsItemHovered()) HelpTooltip("Pone los botones del mando en su lugar natural para esta consola.");
+        ImGui::SameLine(0, S(8));
+        const bool has_pad = pc.pad >= 0 && pc.pad < static_cast<int>(pads.size());
+        if (Button("Uno por uno", ButtonKind::Secondary, {0, S(34)}, Icon::ChevronRight, true)) input_.StartWizard(player, sys, has_pad && !pc.keyboard ? true : has_pad);
+        if (ImGui::IsItemHovered()) HelpTooltip(has_pad ? "Te pide cada botón en orden. Se asignan los del mando." : "Te pide cada botón en orden. Se asignan teclas.");
+        ImGui::SameLine(0, S(8));
+        if (Button("Restablecer", ButtonKind::Ghost, {0, S(34)}, Icon::Refresh, true)) {
+            input_.ResetProfile(player, sys);
+            changed = true;
+        }
+        ImGui::SameLine(0, S(4));
+        if (Button("Borrar todo", ButtonKind::Ghost, {0, S(34)}, Icon::Close, true)) {
+            input_.ClearProfile(player, sys);
+            changed = true;
+        }
+    }
+    ImGui::Dummy({0, S(6)});
+
+    // Aviso mientras se espera una tecla o botón.
+    const bool cap_here = input_.Capturing() && !input_.capture.hotkey && input_.capture.sys == sys.id && input_.capture.player == player;
+    if (cap_here) {
+        const char* name = "?";
+        for (const auto& [id, label] : sys.buttons)
+            if (id == input_.capture.button) name = label;
+        const std::string what = input_.capture.any ? "una tecla o un botón del mando" : input_.capture.pad ? "un botón del mando" : "una tecla";
+        IconText(Icon::Keyboard, Fmt("Presiona %s para «%s»…  (Esc cancela)", what.c_str(), name).c_str(), U32(Color::Accent));
+    } else {
+        const double age = SDL_GetTicks() / 1000.0 - input_.last_input_time;
+        FontScope f(GetFonts().regular, 13);
+        ImGui::PushStyleColor(ImGuiCol_Text, V4(age < 1.5 ? Color::Gold : Color::Dim));
+        ImGui::TextUnformatted(input_.last_input.empty() ? "Presiona cualquier botón para verlo en vivo." : ("Último: " + input_.last_input).c_str());
+        ImGui::PopStyleColor();
+    }
+    ImGui::Dummy({0, S(4)});
+
+    // Disposición: cruceta a la izquierda, botones a la derecha, dibujo al centro.
+    Mapping& m = input_.Edit(player, sys);
+    const uint16_t live = input_.LiveButtons(player, sys);
+    const float W = ImGui::GetContentRegionAvail().x;
+    const float box_w = compact ? S(140) : S(160), gap = S(8);
+    const ImVec2 o = ImGui::GetCursorScreenPos();
+    auto label_of = [&](int id) {
+        for (const auto& [bid, label] : sys.buttons)
+            if (bid == id) return label;
+        return "?";
+    };
+    auto has = [&](int id) {
+        for (const auto& [bid, label] : sys.buttons)
+            if (bid == id) return true;
+        return false;
+    };
+    // Cada casilla: nombre del botón, su tecla y su botón de mando.
+    const float bh = S(96);
+    auto box2 = [&](int id, ImVec2 pos) {
+        ImGui::PushID(id);
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const bool down = (live >> id) & 1;
+        const bool cap = cap_here && input_.capture.button == id;
+        dl->AddRectFilled(pos, {pos.x + box_w, pos.y + bh}, U32(Color::Bg, 0.6f), S(12));
+        if (down) dl->AddRectFilled(pos, {pos.x + box_w, pos.y + bh}, U32(Color::Gold, 0.10f), S(12));
+        dl->AddRect(pos, {pos.x + box_w, pos.y + bh}, U32(down ? Color::Gold : cap ? Color::Accent : Color::Border), S(12), down || cap ? S(1.6f) : 1.0f);
+        {
+            FontScope f(GetFonts().semibold, 12.5f);
+            dl->AddText({pos.x + S(10), pos.y + S(7)}, U32(down ? Color::Gold : Color::Muted), label_of(id));
+        }
+        const float cw = box_w - S(16);
+        ImGui::SetCursorScreenPos({pos.x + S(8), pos.y + S(29)});
+        const int rk = BindingChip("##k", true, Input::KeyLabel(m.keys[id]), cap && !input_.capture.pad && !input_.capture.any, down, cw);
+        if (rk == 1) input_.StartCapture(player, sys, id, false);
+        if (rk == 2) { m.keys[id] = SDL_SCANCODE_UNKNOWN; changed = true; }
+        ImGui::SetCursorScreenPos({pos.x + S(8), pos.y + S(61)});
+        const int rp = BindingChip("##p", false, Input::PadCodeLabel(m.pad[id], family), cap && (input_.capture.pad || input_.capture.any), down, cw);
+        if (rp == 1) input_.StartCapture(player, sys, id, true);
+        if (rp == 2) { m.pad[id] = kPadNone; changed = true; }
+        ImGui::PopID();
+    };
+
+    const int left_ids[] = {RETRO_DEVICE_ID_JOYPAD_UP, RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_RIGHT};
+    const int right_ids[] = {RETRO_DEVICE_ID_JOYPAD_A, RETRO_DEVICE_ID_JOYPAD_B, RETRO_DEVICE_ID_JOYPAD_X, RETRO_DEVICE_ID_JOYPAD_Y};
+    const bool shoulders = has(RETRO_DEVICE_ID_JOYPAD_L);
+    const float col_h = 4 * bh + 3 * gap;
+    const float center_x0 = o.x + box_w + S(16), center_x1 = o.x + W - box_w - S(16);
+    const float center_w = center_x1 - center_x0;
+    const float top_h = shoulders ? bh + gap : 0;
+    const float bottom_h = bh + gap;
+    const float aspect = ControllerAspect(sys.layout);
+    float draw_h = std::clamp(center_w / aspect, S(150), compact ? S(260) : S(330));
+    const float total_h = std::max(col_h, top_h + draw_h + bottom_h);
+    draw_h = total_h - top_h - bottom_h;
+    const float col_y = o.y + (total_h - col_h) * 0.5f;
+    for (int i = 0; i < 4; ++i) box2(left_ids[i], {o.x, col_y + i * (bh + gap)});
+    for (int i = 0; i < 4; ++i) box2(right_ids[i], {o.x + W - box_w, col_y + i * (bh + gap)});
+    if (shoulders) {
+        box2(RETRO_DEVICE_ID_JOYPAD_L, {center_x0, o.y});
+        box2(RETRO_DEVICE_ID_JOYPAD_R, {center_x1 - box_w, o.y});
+    }
+    const float mid = (center_x0 + center_x1) * 0.5f;
+    box2(RETRO_DEVICE_ID_JOYPAD_SELECT, {mid - box_w - gap * 0.5f, o.y + total_h - bh});
+    box2(RETRO_DEVICE_ID_JOYPAD_START, {mid + gap * 0.5f, o.y + total_h - bh});
+
+    // Dibujo del control con los botones en vivo. Al hacer clic se asigna con lo que llegue primero.
+    const ImVec2 dp(center_x0, o.y + top_h);
+    const ImVec2 ds(center_w, draw_h - gap);
+    ImGui::SetCursorScreenPos(dp);
+    ImGui::InvisibleButton("##dibujo", ds);
+    const bool clicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+    const int cap_btn = cap_here ? input_.capture.button : -1;
+    const int hov = DrawController(ImGui::GetWindowDrawList(), sys.layout, dp, ds, live, cap_btn,
+                                   ImGui::IsItemHovered() ? ImGui::GetIO().MousePos : ImVec2(-1e5f, -1e5f));
+    if (clicked && hov >= 0) input_.StartCapture(player, sys, hov, pc.pad >= 0, true);
+    if (hov >= 0 && !cap_here) HelpTooltip(Fmt("%s · clic para asignar", label_of(hov)).c_str());
+
+    ImGui::SetCursorScreenPos({o.x, o.y + total_h + S(10)});
+    Muted(Fmt("Nombres de botones como en un mando %s. Clic derecho en una casilla la deja vacía.",
+              family == PadFamily::PlayStation ? "PlayStation" : family == PadFamily::Switch ? "de Switch" : "Xbox")
+              .c_str(),
+          12.5f);
+    if (changed) SaveConfig();
+    ImGui::PopID();
+    ImGui::PopID();
+}
+
+void App::DrawHotkeys() {
+    GuideSays(GuideId::Samy, "Los atajos sirven en cualquier consola. Haz clic en una casilla y presiona la tecla o el botón del mando. "
+                             "Select+Start en el mando siempre abre el menú, y Alt+Enter cambia a pantalla completa.");
+    ImGui::Dummy({0, S(12)});
+    const PadFamily family = input_.FamilyOfSlot(0);
+    bool changed = false;
+    for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i) {
+        ImGui::PushID(i);
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        {
+            FontScope f(GetFonts().semibold, 14.5f);
+            ImGui::SetCursorScreenPos({p.x, p.y + S(4)});
+            ImGui::TextUnformatted(HotkeyInfo(static_cast<Hotkey>(i)).name);
+        }
+        const bool cap = input_.Capturing() && input_.capture.hotkey && input_.capture.button == i;
+        const float avail_w = ImGui::GetContentRegionAvail().x;
+        const float chip_w = std::min(S(200), (avail_w - S(250)) * 0.5f - S(10));
+        ImGui::SetCursorScreenPos({p.x + avail_w - chip_w * 2 - S(10), p.y});
+        const int rk = BindingChip("##k", true, Input::KeyLabel(input_.hk_keys[i]), cap && !input_.capture.pad, false, chip_w);
+        if (rk == 1) input_.StartHotkeyCapture(static_cast<Hotkey>(i), false);
+        if (rk == 2) { input_.hk_keys[i] = SDL_SCANCODE_UNKNOWN; changed = true; }
+        ImGui::SetCursorScreenPos({p.x + avail_w - chip_w, p.y});
+        const int rp = BindingChip("##p", false, Input::PadCodeLabel(input_.hk_pad[i], family), cap && input_.capture.pad, false, chip_w);
+        if (rp == 1) input_.StartHotkeyCapture(static_cast<Hotkey>(i), true);
+        if (rp == 2) { input_.hk_pad[i] = kPadNone; changed = true; }
+        ImGui::SetCursorScreenPos({p.x, p.y + S(38)});
+        ImGui::Dummy({0, 0});
+        ImGui::PopID();
+    }
+    ImGui::Dummy({0, S(8)});
+    if (Button("Restablecer atajos", ButtonKind::Ghost, {0, 0}, Icon::Refresh, true)) {
+        input_.ResetHotkeys();
+        changed = true;
+    }
+    static bool was_capturing = false;
+    if (was_capturing && !input_.Capturing()) changed = true;
+    was_capturing = input_.Capturing();
+    if (changed) SaveConfig();
+}
+
+void App::DrawProfilePopup() {
+    if (profile_popup_ == 0) return;
+    ImGui::OpenPopup("##perfil_nombre");
+    ImGui::SetNextWindowSize({S(420), 0});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(24), S(22)});
+    if (ImGui::BeginPopupModal("##perfil_nombre", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
+        Heading(profile_popup_ == 1 ? "Nuevo perfil" : "Renombrar perfil", 18);
+        Muted(profile_popup_ == 1 ? "Se crea como copia de las asignaciones actuales." : "El perfil Predeterminado no se puede renombrar.", 13);
+        ImGui::Dummy({0, S(6)});
+        if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+        ImGui::SetNextItemWidth(-1);
+        const bool enter = ImGui::InputText("##nombre", profile_name_, sizeof profile_name_, ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::Dummy({0, S(8)});
+        const SystemDef* sys = SystemById(ctrl_system_);
+        if ((Button("Guardar", ButtonKind::Primary) || enter) && sys) {
+            std::string name = profile_name_;
+            while (!name.empty() && name.back() == ' ') name.pop_back();
+            bool ok;
+            if (profile_popup_ == 1) ok = input_.NewProfile(*sys, name, profile_player_);
+            else ok = input_.RenameProfile(*sys, input_.PlayerProfile(profile_player_, *sys), name);
+            if (ok) {
+                SaveConfig();
+                profile_popup_ = 0;
+                ImGui::CloseCurrentPopup();
+            } else {
+                Toast("Ese nombre ya existe o no es válido (sin «.» ni «|»).", GuideId::Samy, 3);
+            }
+        }
+        ImGui::SameLine();
+        if (Button("Cancelar", ButtonKind::Ghost)) {
+            profile_popup_ = 0;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar();
+}
+
+void App::DrawControls() {
+    Title("Controles", "Asigna los botones de cada consola y míralos en vivo");
+    ImGui::Dummy({0, S(6)});
+    std::vector<const char*> names;
+    int cur = 0;
+    for (size_t i = 0; i < Systems().size(); ++i) {
+        names.push_back(Systems()[i].name.c_str());
+        if (Systems()[i].id == ctrl_system_) cur = static_cast<int>(i);
+    }
+    if (Segmented("##ctrl_sis", &cur, names, S(420))) ctrl_system_ = Systems()[cur].id;
+    const SystemDef& sys = Systems()[cur];
+    ImGui::Dummy({0, S(8)});
+
+    const auto pads = input_.Gamepads();
+    auto device = [&](int pl) {
+        const PlayerConfig& pc = input_.players[pl];
+        std::string d;
+        if (pc.keyboard) d = "Teclado";
+        if (pc.pad >= 0) d += std::string(d.empty() ? "" : " + ") + (pc.pad < static_cast<int>(pads.size()) ? "Mando " + std::to_string(pc.pad + 1) : "sin conectar");
+        return d.empty() ? std::string("Sin dispositivo") : d;
+    };
+    const std::string d1 = device(0), d2 = device(1);
+    ImGui::BeginChild("##ctrl_tabs", {S(220), 0}, 0, ImGuiWindowFlags_NoScrollbar);
+    if (NavItem("General", Icon::Gear, ctrl_tab_ == 0)) ctrl_tab_ = 0;
+    if (NavItem("Jugador 1", Icon::Gamepad, ctrl_tab_ == 1, nullptr, false, Color::Amber, d1.c_str())) ctrl_tab_ = 1;
+    if (NavItem("Jugador 2", Icon::Gamepad, ctrl_tab_ == 2, nullptr, false, Color::Amber, d2.c_str())) ctrl_tab_ = 2;
+    if (NavItem("Atajos", Icon::Keyboard, ctrl_tab_ == 3)) ctrl_tab_ = 3;
+    ImGui::Dummy({0, S(14)});
+    SectionLabel("   MANDOS CONECTADOS");
+    ImGui::Dummy({0, S(2)});
+    if (pads.empty()) Muted("   Ninguno por ahora.", 13);
+    for (const auto& pd : pads) {
+        FontScope f(GetFonts().medium, 13);
+        ImGui::TextUnformatted(Fmt("   %d · %s", pd.slot + 1, pd.family_name.c_str()).c_str());
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(8));
+        Muted(("   " + pd.name).c_str(), 12);
+    }
+    ImGui::EndChild();
+    ImGui::SameLine(0, S(24));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(24), S(20)});
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Surface));
+    ImGui::BeginChild("##ctrl_panel", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
+    if (ctrl_tab_ == 0) {
+        bool changed = false;
+        RowBegin("Zona muerta del stick", "Cuánto hay que mover el stick para que cuente.");
+        changed |= SliderPercent("##dz", &input_.deadzone, S(320));
+        RowEnd();
+        RowBegin("El stick izquierdo también mueve la cruceta", nullptr);
+        changed |= Toggle("##stick", &input_.stick_dpad);
+        RowEnd();
+        RowBegin("Registro de botones", "Anota en satronho.log cada botón que llega al juego. Sirve para revisar si algún botón se pierde.");
+        changed |= Toggle("##registro", &input_.log_buttons);
+        RowEnd();
+        Muted(input_.last_input.empty() ? "Presiona cualquier botón para verlo aquí." : ("Último botón: " + input_.last_input).c_str(), 13.5f);
+        if (changed) SaveConfig();
+    } else if (ctrl_tab_ == 3) {
+        DrawHotkeys();
+    } else {
+        DrawControllerEditor(sys, ctrl_tab_ - 1, false);
+    }
+    ImGui::EndChild();
+    DrawProfilePopup();
+}
+
 // ---------------------------------------------------------------- acerca de
 
 void App::DrawAbout() {
@@ -1178,7 +1455,7 @@ void App::DrawAbout() {
         ImGui::TextUnformatted("por Ridds");
         ImGui::PopStyleColor();
     }
-    Muted(build_ > 0 ? Fmt("Build %d · Satronho Octa, para juegos de NES", build_).c_str() : "Versión de desarrollo · Satronho Octa, para juegos de NES", 14);
+    Muted(build_ > 0 ? Fmt("Build %d", build_).c_str() : "Versión de desarrollo", 14);
     ImGui::EndGroup();
     ImGui::SetCursorScreenPos({p.x, p.y + S(170)});
 
@@ -1187,14 +1464,14 @@ void App::DrawAbout() {
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + std::min(ImGui::GetContentRegionAvail().x, S(820)));
         ImGui::TextWrapped("La casa de los emuladores de la familia Satronho. Un solo lugar para tus consolas, con una imagen cuidada, "
                            "controles que responden al instante, un medidor en vivo y configuraciones sugeridas para tu equipo. "
-                           "Empezamos con Satronho Octa, para juegos de NES; pronto llegan más consolas.");
+                           "Ya están Satronho Octa (NES), Bolsillo (Game Boy y Game Boy Color) y Bolsillo Plus (Game Boy Advance); pronto llegan más consolas.");
         ImGui::PopTextWrapPos();
     }
     ImGui::Dummy({0, S(14)});
 
     Muted("Logo, guías (Samy, Troya, Ñoño, Juana y MechaRidds), interfaz y diseño: Ridds. "
           "Software libre bajo GPL 3.0; las licencias de los componentes van en la carpeta «licencias».", 13);
-    Muted("NES es una marca de Nintendo. Este proyecto no está afiliado a Nintendo y no incluye juegos.", 12.5f);
+    Muted("NES, Game Boy y Game Boy Advance son marcas de Nintendo, usadas solo para describir. Este proyecto no está afiliado a Nintendo y no incluye juegos.", 12.5f);
     ImGui::Dummy({0, S(14)});
     if (Button("Código fuente", ButtonKind::Secondary, {0, 0}, Icon::File, true)) SDL_OpenURL("https://github.com/Riddsc/Satronho-Emulation");
     ImGui::SameLine();
@@ -1241,6 +1518,7 @@ void App::DrawGameLayer() {
 }
 
 void App::DrawPauseMenu() {
+    DrawProfilePopup();
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     ImGui::GetBackgroundDrawList()->AddRectFilled(vp->Pos, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y}, IM_COL32(8, 6, 14, 190));
 
@@ -1267,7 +1545,8 @@ void App::DrawPauseMenu() {
     {
         const ImVec2 p = ImGui::GetCursorScreenPos();
         const float w = ImGui::GetContentRegionAvail().x;
-        DrawCartridge(ImGui::GetWindowDrawList(), p, {p.x + w, p.y + S(150)}, current_.hue, current_.title, S(14), false);
+        DrawCartridge(ImGui::GetWindowDrawList(), p, {p.x + w, p.y + S(150)}, current_.hue, current_.title, S(14), false, sys_->layout,
+                      sys_->label.c_str());
         ImGui::Dummy({w, S(156)});
         Ellipsize(ImGui::GetWindowDrawList(), GetFonts().bold, S(18), ImGui::GetCursorScreenPos(), U32(Color::Text), current_.title, w, 2);
         ImGui::Dummy({w, S(24) * (ImGui::CalcTextSize(current_.title.c_str()).x > w ? 2 : 1)});
@@ -1360,7 +1639,7 @@ void App::DrawPauseMenu() {
         ImGui::Dummy({0, S(8)});
         bool changed = false;
         RowBegin("Efecto de pantalla", nullptr);
-        changed |= Segmented("##qe", &settings_.effect, {"Ninguno", "Líneas", "CRT"}, S(300));
+        changed |= Segmented("##qe", &settings_.effect, {"Ninguno", "Líneas", "CRT", "LCD", "Auto"}, S(320));
         RowEnd();
         RowBegin("Filtro", nullptr);
         changed |= Segmented("##qf", &settings_.filter, {"Píxel", "Nítido", "Suave"}, S(300));
@@ -1382,24 +1661,12 @@ void App::DrawPauseMenu() {
         RowEnd();
         if (changed) SaveConfig();
     } else {
-        Title("Controles", "Cómo se juega con teclado y mando");
+        Title("Controles", "Toca un botón del dibujo y presiona la tecla o el botón que quieras");
+        ImGui::Dummy({0, S(4)});
+        static int player = 0;
+        Segmented("##jug_menu", &player, {"Jugador 1", "Jugador 2"}, S(260));
         ImGui::Dummy({0, S(6)});
-        for (const auto& b : NesButtons()) {
-            const ImVec2 p = ImGui::GetCursorScreenPos();
-            {
-                FontScope f(GetFonts().semibold, 14.5f);
-                ImGui::TextUnformatted(b.name);
-            }
-            ImGui::SetCursorScreenPos({p.x + S(150), p.y});
-            FontScope f(GetFonts().mono, 13.5f);
-            const SDL_Scancode sc = input_.keys[b.id];
-            const char* gp = SDL_GetGamepadStringForButton(input_.pad_buttons[b.id]);
-            ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Gold));
-            ImGui::TextUnformatted((std::string(sc == SDL_SCANCODE_UNKNOWN ? "—" : KeyName(sc)) + "   ·   " + (gp ? gp : "—")).c_str());
-            ImGui::PopStyleColor();
-        }
-        ImGui::Dummy({0, S(6)});
-        Muted("Puedes cambiarlos en Ajustes → Controles.", 13);
+        DrawControllerEditor(*sys_, player, true);
     }
     ImGui::EndChild();
     ImGui::End();
@@ -1631,7 +1898,7 @@ void App::DrawWelcome() {
             }
             ImGui::Dummy({0, S(6)});
             GuideSays(GuideId::MechaRidds,
-                      "¡Hola! Soy MechaRidds. Esta es la casa de los emuladores de la familia Satronho. Empezamos con Satronho Octa, para juegos de NES, y pronto "
+                      "¡Hola! Soy MechaRidds. Esta es la casa de los emuladores de la familia Satronho. Ya están Satronho Octa (NES), Bolsillo (Game Boy y Color) y Bolsillo Plus (Game Boy Advance), y pronto "
                       "llegan más consolas. Te presento a mi equipo en dos pasos.",
                       inner);
             ImGui::Dummy({0, S(14)});
@@ -1661,7 +1928,7 @@ void App::DrawWelcome() {
             Heading("Tus juegos", 22);
             ImGui::Dummy({0, S(2)});
             GuideSays(GuideId::Samy,
-                      "Dime en qué carpeta tienes tus juegos de NES y los acomodo en la biblioteca. Mientras juegas: Esc abre el menú, "
+                      "Dime en qué carpeta tienes tus juegos (NES, Game Boy, Game Boy Color o Game Boy Advance) y los acomodo en la biblioteca. Mientras juegas: Esc abre el menú, "
                       "F5 guarda, F9 carga y mantener Tab acelera.",
                       inner);
             ImGui::Dummy({0, S(14)});

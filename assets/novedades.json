@@ -1,6 +1,41 @@
 {
   "builds": [
     {
+      "version": "Build 3",
+      "fecha": "23 de noviembre de 2026",
+      "titulo": "Llegan Satronho Bolsillo y Bolsillo Plus, y controles nuevos",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Bolsillo, para juegos de Game Boy y Game Boy Color, y Satronho Bolsillo Plus, para juegos de Game Boy Advance, con el núcleo mGBA. La biblioteca ya separa cada consola: en la barra lateral eliges Octa, Bolsillo o Bolsillo Plus, y cada juego tiene la portada de su cartucho."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Pantalla de Controles nueva: el control de cada consola dibujado con su distribución original, con los botones iluminándose en vivo mientras los presionas. Se asigna haciendo clic en el dibujo o en cada casilla, con «Asignación automática» o «Uno por uno»."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Perfiles de controles por consola (crear, renombrar y borrar), Jugador 1 y Jugador 2 cada uno con su teclado o mando, y nombres de botones según tu mando: Xbox, PlayStation o Switch."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Atajos asignables a teclado o mando: menú, estados, ranuras, avance rápido, rebobinar, pausa, reiniciar, medidor, captura y pantalla completa."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Efecto de pantalla LCD para las portátiles y modo «Auto»: CRT en las consolas de casa y LCD en las portátiles."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "En pantallas de 120 o 144 Hz, la pantalla completa pasa a 60 Hz para que el movimiento quede perfectamente parejo (se puede apagar en Ajustes → Imagen)."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Registro de botones (Controles → General) para revisar si algún botón se pierde, y el registro de la sesión anterior se guarda como satronho.anterior.log."
+        }
+      ]
+    },
+    {
       "version": "Build 2",
       "fecha": "23 de noviembre de 2026",
       "titulo": "La NES ahora es Satronho Octa, y Juana trae las actualizaciones",

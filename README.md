@@ -14,8 +14,8 @@ Cada emulador de la familia tiene su nombre Satronho:
 | Emulador | Para juegos de | Estado |
 |---|---|---|
 | **Satronho Octa** | NES / Famicom | Disponible |
-| Satronho Bolsillo | Game Boy y Game Boy Color | Pronto |
-| Satronho Bolsillo Plus | Game Boy Advance | Pronto |
+| **Satronho Bolsillo** | Game Boy y Game Boy Color | Disponible |
+| **Satronho Bolsillo Plus** | Game Boy Advance | Disponible |
 | Satronho Mega | Genesis / Mega Drive | Pronto |
 | Satronho Hexa | Super Nintendo | Pronto |
 | Satronho CD | PlayStation | Pronto |
@@ -25,8 +25,8 @@ Cada emulador de la familia tiene su nombre Satronho:
 ## Lo que trae
 
 - **Biblioteca** con portadas de cartucho dibujadas para cada juego, búsqueda, favoritos, orden por recientes o más jugados, tiempo de juego y «Seguir jugando».
-- **Imagen**: filtro «Nítido suave» (píxeles cuadrados y sin temblores a cualquier tamaño), escala entera, líneas de barrido, pantalla CRT con máscara de fósforo y viñeta, y fondo ambiente con los colores del juego.
-- **Controles**: adelanto de cuadros (responden más rápido que en la consola original), rebobinar, avance rápido, turbo, mandos con conexión en caliente y asignación de botones con un clic.
+- **Imagen**: filtro «Nítido suave» (píxeles cuadrados y sin temblores a cualquier tamaño), escala entera, líneas de barrido, pantalla CRT con máscara de fósforo y viñeta, rejilla LCD para las portátiles, fondo ambiente con los colores del juego y pantalla completa a 60 Hz en monitores de 120/144 Hz.
+- **Controles**: el control de cada consola dibujado con sus botones iluminándose en vivo, perfiles por consola, Jugador 1 y 2, asignación automática o uno por uno, atajos asignables y nombres de botones según tu mando (Xbox, PlayStation o Switch). Además: adelanto de cuadros, rebobinar, avance rápido y turbo.
 - **Estados**: 8 ranuras con miniatura y fecha. Las partidas de batería se guardan solas.
 - **Medidor Satronho** (compacto o detallado): FPS, velocidad, tiempo del núcleo, gráfica de cuadros, tirones, CPU, RAM y sonido.
 - **Configuración sugerida**: Ñoño revisa tu procesador, memoria, tarjeta gráfica y pantalla, y con «Aplícalo por mí» deja todo listo.
@@ -63,6 +63,7 @@ Las builds oficiales las hace GitHub Actions desde Linux con [llvm-mingw](https:
 ```bash
 export LLVM_MINGW=/ruta/a/llvm-mingw
 scripts/build-core-nestopia.sh build/cores
+scripts/build-core-mgba.sh build/cores
 cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw.cmake
 cmake --build build
 ```
@@ -77,7 +78,8 @@ Satronho Emulation es software libre bajo la licencia **GPL 3.0 o posterior** (v
 
 | Proyecto | Para qué | Licencia |
 |---|---|---|
-| [Nestopia UE](https://github.com/libretro/nestopia) | Núcleo de NES | GPL 2.0 o posterior |
+| [Nestopia UE](https://github.com/libretro/nestopia) | Núcleo de Satronho Octa | GPL 2.0 o posterior |
+| [mGBA](https://github.com/mgba-emu/mgba) | Núcleo de Satronho Bolsillo y Bolsillo Plus | MPL 2.0 |
 | [SDL 3](https://github.com/libsdl-org/SDL) | Ventana, sonido, mandos y dibujo | zlib |
 | [Dear ImGui](https://github.com/ocornut/imgui) | Base de la interfaz | MIT |
 | [libretro API](https://github.com/libretro/libretro-common) | Conexión con los núcleos | MIT |

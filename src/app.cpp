@@ -45,16 +45,6 @@ void FileDialogCallback(void* user, const char* const* list, int) {
     for (; *list; ++list) app->pending_roms_.push_back(*list);
 }
 
-static std::string CoreFileName() {
-#ifdef _WIN32
-    return "nestopia_libretro.dll";
-#elif defined(__APPLE__)
-    return "nestopia_libretro.dylib";
-#else
-    return "nestopia_libretro.so";
-#endif
-}
-
 // ---------------------------------------------------------------- inicio y cierre
 
 int App::Run(int argc, char** argv) {
@@ -150,24 +140,19 @@ bool App::Init() {
 
     core_.on_audio = [this](const int16_t* data, size_t frames) { audio_.Push(data, frames); };
     core_.on_message = [this](const std::string& text, int ms) { Toast(text, GuideId::MechaRidds, std::clamp(ms / 1000.0, 1.5, 6.0)); };
-    const fs::path core_path = Paths::Cores() / CoreFileName();
-    core_ok_ = core_.LoadCore(core_path, &core_error_);
-    if (core_ok_) {
-        core_name_ = core_.SystemInfo().library_name ? core_.SystemInfo().library_name : "núcleo";
-        const std::string prefix = "nucleo." + Paths::SafeName(core_name_) + ".";
-        // Por defecto la imagen sale nítida: el filtro NTSC de Nestopia la suaviza mucho y los
-        // efectos de pantalla de Satronho ya dan el aspecto de televisor cuando se quiere.
-        core_.OverrideDefault("nestopia_blargg_ntsc_filter", "disabled");
-        core_.ApplySavedOptions([&](const std::string& key) { return ini_.Get(prefix + key); });
-    } else {
-        Log::Error("%s (%s)", core_error_.c_str(), Paths::ToUtf8(core_path).c_str());
+    for (const auto& sys : Systems()) {
+        std::error_code ec;
+        if (!fs::exists(Paths::Cores() / CoreFile(sys), ec)) {
+            missing_cores_.push_back(sys.full);
+            Log::Error("Falta el núcleo %s de %s", CoreFile(sys).c_str(), sys.full.c_str());
+        }
     }
 
     library_.Load();
     Rescan();
 
     if (!settings_.first_run_done || qa_.count("welcome")) show_welcome_ = true;
-    if (settings_.fullscreen) SDL_SetWindowFullscreen(window_, true);
+    if (settings_.fullscreen) SetFullscreen(true);
 
     // Juana avisa si hay una build nueva desde la última vez.
     if (build_ > 0 && settings_.last_seen_build > 0 && build_ > settings_.last_seen_build)
@@ -181,9 +166,14 @@ bool App::Init() {
 
     if (qa_.count("page")) {
         const std::string pg = qa_["page"];
-        page_ = pg == "sugerida" ? Page::Suggested : pg == "novedades" ? Page::News : pg == "ajustes" ? Page::Settings
+        page_ = pg == "controles" ? Page::Controls : pg == "sugerida" ? Page::Suggested : pg == "novedades" ? Page::News : pg == "ajustes" ? Page::Settings
               : pg == "acerca" ? Page::About : Page::Library;
     }
+    if (qa_.count("sistema")) {
+        lib_system_ = qa_["sistema"];
+        ctrl_system_ = qa_["sistema"];
+    }
+    if (qa_.count("ctrl")) ctrl_tab_ = std::atoi(qa_["ctrl"].c_str());
     if (qa_.count("tab")) tab_ = static_cast<SettingsTab>(std::clamp(std::atoi(qa_["tab"].c_str()), 0, 7));
     if (qa_.count("rom")) StartGame(Paths::FromUtf8(qa_["rom"]));
     return true;
@@ -252,7 +242,7 @@ void App::Shutdown() {
 void App::SaveConfig() {
     settings_.Save(ini_);
     input_.Save(ini_);
-    if (core_ok_) {
+    if (core_.CoreLoaded()) {
         const std::string prefix = "nucleo." + Paths::SafeName(core_name_) + ".";
         for (const auto& o : core_.Options()) {
             if (o.current != o.def) ini_.Set(prefix + o.key, o.current);
@@ -277,9 +267,54 @@ void App::ApplySuggestion() {
     Toast("Configuración " + s.tier + " aplicada. ¡Listo para jugar!", GuideId::Nono, 4.5);
 }
 
-void App::Rescan() {
-    if (!core_ok_) return;
-    library_.Rescan(settings_.folders, core_.Extensions());
+void App::Rescan() { library_.Rescan(settings_.folders); }
+
+bool App::EnsureCore(const SystemDef& sys, std::string* error) {
+    const std::string file = CoreFile(sys);
+    if (core_.CoreLoaded() && core_file_ == file) return true;
+    if (core_.CoreLoaded()) SaveConfig(); // guarda las opciones del núcleo anterior
+    core_ok_ = core_.LoadCore(Paths::Cores() / file, error);
+    core_file_ = core_ok_ ? file : std::string();
+    if (!core_ok_) return false;
+    core_name_ = core_.SystemInfo().library_name ? core_.SystemInfo().library_name : "núcleo";
+    for (const auto& [key, value] : sys.core_defaults) core_.OverrideDefault(key, value);
+    const std::string prefix = "nucleo." + Paths::SafeName(core_name_) + ".";
+    core_.ApplySavedOptions([&](const std::string& key) { return ini_.Get(prefix + key); });
+    return true;
+}
+
+void App::UpdateRefresh() {
+    float hz = 0;
+    if (SDL_GetWindowFlags(window_) & SDL_WINDOW_FULLSCREEN) {
+        if (const SDL_DisplayMode* m = SDL_GetWindowFullscreenMode(window_)) hz = m->refresh_rate;
+    }
+    if (hz <= 1) {
+        if (const SDL_DisplayMode* m = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(window_))) hz = m->refresh_rate;
+    }
+    if (hz > 1 && std::fabs(hz - hw_.refresh) > 0.5f) Log::Info("La pantalla va ahora a %.2f Hz", hz);
+    if (hz > 1) hw_.refresh = hz;
+    core_.target_refresh = hw_.refresh;
+}
+
+void App::SetFullscreen(bool on) {
+    settings_.fullscreen = on;
+    const SDL_DisplayID display = SDL_GetDisplayForWindow(window_);
+    if (on && settings_.fullscreen_60hz) {
+        // En pantallas de 120/144 Hz, la NES (60 Hz) se ve perfectamente pareja si la pantalla
+        // pasa a 60 Hz mientras se juega en pantalla completa.
+        const SDL_DisplayMode* desk = SDL_GetDesktopDisplayMode(display);
+        SDL_DisplayMode mode{};
+        if (desk && desk->refresh_rate > 75 && SDL_GetClosestFullscreenDisplayMode(display, desk->w, desk->h, 60.0f, true, &mode) &&
+            mode.refresh_rate < 75) {
+            SDL_SetWindowFullscreenMode(window_, &mode);
+            Log::Info("Pantalla completa a %dx%d a %.2f Hz", mode.w, mode.h, mode.refresh_rate);
+        } else {
+            SDL_SetWindowFullscreenMode(window_, nullptr);
+        }
+    } else {
+        SDL_SetWindowFullscreenMode(window_, nullptr);
+    }
+    SDL_SetWindowFullscreen(window_, on);
 }
 
 void App::Toast(const std::string& text, GuideId guide, double seconds) {
@@ -319,8 +354,13 @@ void App::Frame() {
         else SDL_ShowCursor();
     }
 
-    // Menú desde el mando (Guía o Select+Start).
-    if (in_game_ && input_.MenuComboPressed()) SetMenuOpen(!menu_open_);
+    // Atajos (teclado y mando). Select+Start en el mando también abre el menú.
+    {
+        const bool typing = ImGui::GetIO().WantTextInput;
+        for (Hotkey h : input_.TakeHotkeyPresses())
+            if (!typing) DoHotkey(h);
+        if (in_game_ && input_.MenuComboPressed()) SetMenuOpen(!menu_open_);
+    }
 
     ImGuiIO& io = ImGui::GetIO();
     // Mientras se juega, el mando es del juego; la interfaz solo lo usa con el menú abierto.
@@ -349,7 +389,7 @@ void App::Frame() {
     if (in_game_) {
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderClear(renderer_);
-        video_.Draw(core_, settings_, pw, ph);
+        video_.Draw(core_, settings_, pw, ph, sys_->handheld);
     }
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
     QaTick();
@@ -390,7 +430,10 @@ void App::QaTick() {
     if (qa_.empty()) return;
     ++qa_frames_;
     const int wanted = qa_.count("frames") ? std::atoi(qa_["frames"].c_str()) : 30;
-    if (qa_frames_ == wanted / 2 && qa_.count("menu")) SetMenuOpen(true);
+    if (qa_frames_ == wanted / 2 && qa_.count("menu")) {
+        SetMenuOpen(true);
+        if (qa_.count("seccion")) menu_section_ = std::atoi(qa_["seccion"].c_str());
+    }
     if (qa_.count("estados") && in_game_) {
         if (qa_frames_ == wanted / 3) SaveSlot(2);
         if (qa_frames_ == wanted * 2 / 3) LoadSlot(2);
@@ -433,13 +476,18 @@ void App::AddFolderDialog() {
 }
 
 void App::OpenRomDialog() {
-    static const SDL_DialogFileFilter filters[] = {{"Juegos de NES", "nes;fds;unf;unif"}, {"Todos los archivos", "*"}};
-    SDL_ShowOpenFileDialog(&FileDialogCallback, this, window_, filters, 2, nullptr, false);
+    static const SDL_DialogFileFilter filters[] = {
+        {"Juegos de todas las consolas", "nes;fds;unf;unif;gb;gbc;sgb;gba"},
+        {"Satronho Octa (NES)", "nes;fds;unf;unif"},
+        {"Satronho Bolsillo (Game Boy y Game Boy Color)", "gb;gbc;sgb"},
+        {"Satronho Bolsillo Plus (Game Boy Advance)", "gba"},
+        {"Todos los archivos", "*"}};
+    SDL_ShowOpenFileDialog(&FileDialogCallback, this, window_, filters, 5, nullptr, false);
 }
 
 void App::HandleEvent(const SDL_Event& e) {
     // Si se está asignando un botón, esa tecla no cuenta como atajo.
-    const bool was_capturing = input_.capture_button >= 0;
+    const bool was_capturing = input_.Capturing();
     ImGui_ImplSDL3_ProcessEvent(&e);
     input_.HandleEvent(e);
     switch (e.type) {
@@ -451,6 +499,11 @@ void App::HandleEvent(const SDL_Event& e) {
         break;
     case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
         UpdateScale();
+        break;
+    case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
+    case SDL_EVENT_WINDOW_ENTER_FULLSCREEN:
+    case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN:
+        UpdateRefresh();
         break;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         if (in_game_ && !menu_open_) audio_.Clear();
@@ -471,79 +524,76 @@ void App::HandleEvent(const SDL_Event& e) {
         }
         break;
     case SDL_EVENT_KEY_DOWN:
-        if (!e.key.repeat && !was_capturing) HandleHotkey(e.key);
+        // Alt+Enter siempre cambia a pantalla completa.
+        if (!e.key.repeat && !was_capturing && (e.key.mod & SDL_KMOD_ALT) && e.key.scancode == SDL_SCANCODE_RETURN) {
+            SetFullscreen(!settings_.fullscreen);
+            SaveConfig();
+        }
         break;
     default:
         break;
     }
 }
 
-void App::HandleHotkey(const SDL_KeyboardEvent& k) {
-    const bool ctrl = k.mod & SDL_KMOD_CTRL;
-    const bool alt = k.mod & SDL_KMOD_ALT;
-    if (k.scancode == SDL_SCANCODE_F11 || (alt && k.scancode == SDL_SCANCODE_RETURN)) {
-        settings_.fullscreen = !settings_.fullscreen;
-        SDL_SetWindowFullscreen(window_, settings_.fullscreen);
+void App::DoHotkey(Hotkey h) {
+    if (h == Hotkey::Fullscreen) {
+        SetFullscreen(!settings_.fullscreen);
         SaveConfig();
         return;
     }
-    if (ImGui::GetIO().WantTextInput) return;
     if (!in_game_) {
-        if (k.scancode == SDL_SCANCODE_ESCAPE && page_ != Page::Library && !show_welcome_) page_ = Page::Library;
+        if (h == Hotkey::Menu && page_ != Page::Library && !show_welcome_ && !input_.Capturing()) page_ = Page::Library;
         return;
     }
-    switch (k.scancode) {
-    case SDL_SCANCODE_ESCAPE:
-        SetMenuOpen(!menu_open_);
-        break;
-    case SDL_SCANCODE_F5:
-        SaveSlot(slot_);
-        break;
-    case SDL_SCANCODE_F9:
-        LoadSlot(slot_);
-        break;
-    case SDL_SCANCODE_F6:
+    switch (h) {
+    case Hotkey::Menu: SetMenuOpen(!menu_open_); break;
+    case Hotkey::SaveState: SaveSlot(slot_); break;
+    case Hotkey::LoadState: LoadSlot(slot_); break;
+    case Hotkey::PrevSlot:
         slot_ = slot_ <= 1 ? 8 : slot_ - 1;
         Toast("Ranura " + std::to_string(slot_), GuideId::Samy, 1.5);
         break;
-    case SDL_SCANCODE_F7:
+    case Hotkey::NextSlot:
         slot_ = slot_ >= 8 ? 1 : slot_ + 1;
         Toast("Ranura " + std::to_string(slot_), GuideId::Samy, 1.5);
         break;
-    case SDL_SCANCODE_F12:
-        Screenshot();
-        break;
-    case SDL_SCANCODE_F3:
+    case Hotkey::Screenshot: Screenshot(); break;
+    case Hotkey::Meter:
         settings_.meter = (settings_.meter + 1) % 3;
         SaveConfig();
         break;
-    case SDL_SCANCODE_P:
+    case Hotkey::Pause:
         if (!menu_open_) {
             paused_ = !paused_;
             audio_.SetPaused(paused_);
-            Toast(paused_ ? "En pausa (P para seguir)" : "¡Seguimos!", GuideId::Samy, 1.5);
+            Toast(paused_ ? "En pausa" : "¡Seguimos!", GuideId::Samy, 1.5);
         }
         break;
-    case SDL_SCANCODE_R:
-        if (ctrl) {
-            core_.Reset();
-            Toast("Juego reiniciado", GuideId::Samy, 2.0);
-        }
+    case Hotkey::Reset:
+        core_.Reset();
+        Toast("Juego reiniciado", GuideId::Samy, 2.0);
         break;
-    default:
-        break;
+    default: break;
     }
 }
 
 // ---------------------------------------------------------------- juego
 
 bool App::StartGame(const fs::path& rom) {
-    if (!core_ok_) {
-        Toast("Falta el núcleo de Satronho Octa. Reinstala Satronho Emulation.", GuideId::MechaRidds, 5);
+    if (in_game_) StopGame();
+    Game probe = Library::MakeGame(rom);
+    const SystemDef* sys = SystemById(probe.system);
+    if (!sys) {
+        Toast("Este archivo no es de ninguna consola de Satronho Emulation.", GuideId::MechaRidds, 5);
         return false;
     }
-    if (in_game_) StopGame();
     std::string err;
+    if (!EnsureCore(*sys, &err)) {
+        Toast("Falta el núcleo de " + sys->full + ". Vuelve a descargar Satronho Emulation.", GuideId::MechaRidds, 6);
+        Log::Error("%s", err.c_str());
+        return false;
+    }
+    sys_ = sys;
     if (!core_.LoadGame(rom, &err)) {
         Toast(err, GuideId::MechaRidds, 6);
         return false;
@@ -616,8 +666,9 @@ void App::EmulateTick(double dt) {
     const double fps = core_.Fps();
     const bool* ks = SDL_GetKeyboardState(nullptr);
     const bool typing = ImGui::GetIO().WantTextInput;
-    fast_forward_ = !typing && (ks[SDL_SCANCODE_TAB] || input_.FastForwardHeld());
-    rewinding_ = settings_.rewind && !typing && (ks[SDL_SCANCODE_BACKSPACE] || input_.RewindHeld());
+    (void)ks;
+    fast_forward_ = !typing && input_.HotkeyHeld(Hotkey::FastForward);
+    rewinding_ = settings_.rewind && !typing && input_.HotkeyHeld(Hotkey::Rewind);
     core_.fast_forwarding = fast_forward_;
 
     // Si la pantalla va casi a la misma velocidad que la consola, se corre un cuadro por
@@ -670,7 +721,7 @@ void App::EmulateTick(double dt) {
 }
 
 void App::Step(bool rewinding, bool fast_forward) {
-    input_.Update(core_, !ImGui::GetIO().WantTextInput);
+    input_.Update(core_, *sys_, !ImGui::GetIO().WantTextInput);
     perf_.emu_times.push_back(SDL_GetTicks() / 1000.0);
     if (rewinding) {
         if (!rewind_.empty()) {

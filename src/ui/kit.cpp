@@ -843,7 +843,8 @@ std::string Initials(const std::string& title) {
     return out;
 }
 
-void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std::string& title, float rounding, bool hovered) {
+void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std::string& title, float rounding, bool hovered, Layout layout,
+                   const char* label) {
     const float w = p1.x - p0.x, h = p1.y - p0.y;
     const float hf = static_cast<float>(hue);
     // Fondo con brillo del color del juego.
@@ -862,39 +863,69 @@ void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std
     }
     dl->PopClipRect();
 
-    // Cartucho.
     const float lift = hovered ? S(5) : 0;
-    const float cw = w * 0.60f, ch = h * 0.80f;
-    const ImVec2 c0(p0.x + (w - cw) * 0.5f, p0.y + (h - ch) * 0.58f - lift);
-    const ImVec2 c1(c0.x + cw, c0.y + ch);
-    dl->AddRectFilled({c0.x + 3, c0.y + 6}, {c1.x + 3, c1.y + 6}, IM_COL32(0, 0, 0, 70), cw * 0.05f);
-    dl->AddRectFilled(c0, c1, IM_COL32(150, 147, 158, 255), cw * 0.05f);
-    dl->AddRectFilled(c0, {c1.x, c0.y + ch * 0.06f}, IM_COL32(172, 169, 180, 255), cw * 0.05f, ImDrawFlags_RoundTop);
-    // Ranuras de la parte de abajo.
-    for (int i = 0; i < 5; ++i) {
-        const float y = c0.y + ch * (0.80f + i * 0.035f);
-        dl->AddLine({c0.x + cw * 0.12f, y}, {c1.x - cw * 0.12f, y}, IM_COL32(110, 107, 118, 255), std::max(1.0f, ch * 0.012f));
-    }
-    // Etiqueta.
-    const ImVec2 l0(c0.x + cw * 0.09f, c0.y + ch * 0.11f);
-    const ImVec2 l1(c1.x - cw * 0.09f, c0.y + ch * 0.72f);
-    dl->AddRectFilledMultiColor(l0, l1, Hsv(hf, 0.62f, 0.95f), Hsv(hf + 25, 0.62f, 0.95f), Hsv(hf + 25, 0.72f, 0.62f), Hsv(hf, 0.72f, 0.62f));
-    dl->AddRect(l0, l1, IM_COL32(0, 0, 0, 60), 0, 1.0f);
-    // Iniciales grandes.
-    const std::string ini = Initials(title);
     ImFont* bold = GetFonts().bold;
-    const float fs = (l1.y - l0.y) * 0.42f;
-    const ImVec2 ts = bold->CalcTextSizeA(fs, FLT_MAX, 0, ini.c_str());
-    const ImVec2 tp(l0.x + (l1.x - l0.x - ts.x) * 0.5f, l0.y + (l1.y - l0.y) * 0.40f - ts.y * 0.5f);
-    dl->AddText(bold, fs, {tp.x + 2, tp.y + 2}, IM_COL32(0, 0, 0, 90), ini.c_str());
-    dl->AddText(bold, fs, tp, IM_COL32(255, 255, 255, 245), ini.c_str());
-    // Franja inferior de la etiqueta con "NES".
-    const float band = (l1.y - l0.y) * 0.2f;
-    dl->AddRectFilled({l0.x, l1.y - band}, l1, IM_COL32(20, 16, 31, 200));
     ImFont* semi = GetFonts().semibold;
-    const float fs2 = band * 0.62f;
-    const ImVec2 ts2 = semi->CalcTextSizeA(fs2, FLT_MAX, 0, "OCTA");
-    dl->AddText(semi, fs2, {l0.x + (l1.x - l0.x - ts2.x) * 0.5f, l1.y - band + (band - ts2.y) * 0.5f}, U32(Color::Gold), "OCTA");
+    const std::string ini = Initials(title);
+    // Etiqueta común: degradado del color del juego, iniciales grandes y franja con el nombre Satronho.
+    auto draw_label = [&](ImVec2 l0, ImVec2 l1, float band_k) {
+        dl->AddRectFilledMultiColor(l0, l1, Hsv(hf, 0.62f, 0.95f), Hsv(hf + 25, 0.62f, 0.95f), Hsv(hf + 25, 0.72f, 0.62f), Hsv(hf, 0.72f, 0.62f));
+        dl->AddRect(l0, l1, IM_COL32(0, 0, 0, 60), 0, 1.0f);
+        const float lh = l1.y - l0.y, lw = l1.x - l0.x;
+        const float fs = std::min(lh * 0.42f, lw * 0.36f);
+        const ImVec2 ts = bold->CalcTextSizeA(fs, FLT_MAX, 0, ini.c_str());
+        const ImVec2 tp(l0.x + (lw - ts.x) * 0.5f, l0.y + lh * 0.40f - ts.y * 0.5f);
+        dl->AddText(bold, fs, {tp.x + 2, tp.y + 2}, IM_COL32(0, 0, 0, 90), ini.c_str());
+        dl->AddText(bold, fs, tp, IM_COL32(255, 255, 255, 245), ini.c_str());
+        const float band = lh * band_k;
+        dl->AddRectFilled({l0.x, l1.y - band}, l1, IM_COL32(20, 16, 31, 200));
+        float fs2 = band * 0.62f;
+        ImVec2 ts2 = semi->CalcTextSizeA(fs2, FLT_MAX, 0, label);
+        if (ts2.x > lw * 0.9f) {
+            fs2 *= lw * 0.9f / ts2.x;
+            ts2 = semi->CalcTextSizeA(fs2, FLT_MAX, 0, label);
+        }
+        dl->AddText(semi, fs2, {l0.x + (lw - ts2.x) * 0.5f, l1.y - band + (band - ts2.y) * 0.5f}, U32(Color::Gold), label);
+    };
+
+    if (layout == Layout::GameBoy) {
+        // Cartucho de bolsillo: gris claro, esquina superior derecha cortada y estrías arriba.
+        const float cw = w * 0.56f, ch = cw * 1.12f;
+        const ImVec2 c0(p0.x + (w - cw) * 0.5f, p0.y + (h - ch) * 0.55f - lift), c1(c0.x + cw, c0.y + ch);
+        const float cut = cw * 0.14f;
+        ImVec2 shape[5] = {c0, {c1.x - cut, c0.y}, {c1.x, c0.y + cut}, c1, {c0.x, c1.y}};
+        ImVec2 shadow[5];
+        for (int i = 0; i < 5; ++i) shadow[i] = {shape[i].x + 3, shape[i].y + 6};
+        dl->AddConvexPolyFilled(shadow, 5, IM_COL32(0, 0, 0, 70));
+        dl->AddConvexPolyFilled(shape, 5, IM_COL32(168, 166, 172, 255));
+        for (int i = 0; i < 4; ++i) {
+            const float y = c0.y + ch * (0.05f + i * 0.03f);
+            dl->AddLine({c0.x + cw * 0.08f, y}, {c1.x - cut - cw * 0.02f, y}, IM_COL32(130, 128, 136, 255), std::max(1.0f, ch * 0.012f));
+        }
+        draw_label({c0.x + cw * 0.1f, c0.y + ch * 0.2f}, {c1.x - cw * 0.1f, c0.y + ch * 0.86f}, 0.2f);
+    } else if (layout == Layout::GameBoyAdvance) {
+        // Cartucho ancho y oscuro, con la pestaña arriba.
+        const float cw = w * 0.74f, ch = cw * 0.66f;
+        const ImVec2 c0(p0.x + (w - cw) * 0.5f, p0.y + (h - ch) * 0.55f - lift), c1(c0.x + cw, c0.y + ch);
+        dl->AddRectFilled({c0.x + 3, c0.y + 6}, {c1.x + 3, c1.y + 6}, IM_COL32(0, 0, 0, 70), cw * 0.05f);
+        dl->AddRectFilled({c0.x + cw * 0.32f, c0.y - ch * 0.06f}, {c1.x - cw * 0.32f, c0.y + ch * 0.05f}, IM_COL32(70, 68, 78, 255), cw * 0.03f);
+        dl->AddRectFilled(c0, c1, IM_COL32(86, 84, 96, 255), cw * 0.05f);
+        draw_label({c0.x + cw * 0.08f, c0.y + ch * 0.12f}, {c1.x - cw * 0.08f, c0.y + ch * 0.80f}, 0.22f);
+        dl->AddRectFilled({c0.x + cw * 0.3f, c1.y - ch * 0.12f}, {c1.x - cw * 0.3f, c1.y - ch * 0.05f}, IM_COL32(60, 58, 68, 255), 2);
+    } else {
+        // Cartucho de NES.
+        const float cw = w * 0.60f, ch = h * 0.80f;
+        const ImVec2 c0(p0.x + (w - cw) * 0.5f, p0.y + (h - ch) * 0.58f - lift);
+        const ImVec2 c1(c0.x + cw, c0.y + ch);
+        dl->AddRectFilled({c0.x + 3, c0.y + 6}, {c1.x + 3, c1.y + 6}, IM_COL32(0, 0, 0, 70), cw * 0.05f);
+        dl->AddRectFilled(c0, c1, IM_COL32(150, 147, 158, 255), cw * 0.05f);
+        dl->AddRectFilled(c0, {c1.x, c0.y + ch * 0.06f}, IM_COL32(172, 169, 180, 255), cw * 0.05f, ImDrawFlags_RoundTop);
+        for (int i = 0; i < 5; ++i) {
+            const float y = c0.y + ch * (0.80f + i * 0.035f);
+            dl->AddLine({c0.x + cw * 0.12f, y}, {c1.x - cw * 0.12f, y}, IM_COL32(110, 107, 118, 255), std::max(1.0f, ch * 0.012f));
+        }
+        draw_label({c0.x + cw * 0.09f, c0.y + ch * 0.11f}, {c1.x - cw * 0.09f, c0.y + ch * 0.72f}, 0.2f);
+    }
 }
 
 void Ellipsize(ImDrawList* dl, ImFont* font, float size, ImVec2 pos, ImU32 color, const std::string& text, float max_w, int max_lines) {
