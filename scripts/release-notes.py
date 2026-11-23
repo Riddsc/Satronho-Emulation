@@ -20,3 +20,9 @@ lines += [
     "¿Quieres todo en una sola carpeta (por ejemplo en una memoria USB)? Crea un archivo vacío llamado `portable.txt` junto al programa.",
 ]
 open("release-notes.md", "w", encoding="utf-8").write("\n".join(lines) + "\n")
+
+# La primera entrada de las novedades del paquete lleva el número real de la build.
+if len(sys.argv) > 2:
+    pkg = sys.argv[2]
+    data["builds"][0]["version"] = f"Build {build}"
+    json.dump(data, open(pkg, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
