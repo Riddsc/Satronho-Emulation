@@ -9,7 +9,18 @@
 
 Un solo lugar para tus consolas, con una imagen cuidada, controles que responden al instante, un medidor en vivo y configuraciones sugeridas para tu equipo. Te acompañan los guías de la familia Satronho: **Samy**, **Troya**, **Ñoño**, **Juana** y **MechaRidds**.
 
-Empezamos con la **NES**. Pronto llegan más consolas.
+Cada emulador de la familia tiene su nombre Satronho:
+
+| Emulador | Para juegos de | Estado |
+|---|---|---|
+| **Satronho Octa** | NES / Famicom | Disponible |
+| Satronho Bolsillo | Game Boy y Game Boy Color | Pronto |
+| Satronho Bolsillo Plus | Game Boy Advance | Pronto |
+| Satronho Mega | Genesis / Mega Drive | Pronto |
+| Satronho Hexa | Super Nintendo | Pronto |
+| Satronho CD | PlayStation | Pronto |
+| Satronho 64, Cubo, Dual, Anillo, Sueño, CD2, Portátil | Nintendo 64, GameCube/Wii, DS/3DS, Saturn, Dreamcast, PlayStation 2, PSP | Más adelante |
+| [Satronho NX](https://github.com/Riddsc/satronho-nx) | Switch | App aparte |
 
 ## Lo que trae
 
@@ -20,6 +31,7 @@ Empezamos con la **NES**. Pronto llegan más consolas.
 - **Medidor Satronho** (compacto o detallado): FPS, velocidad, tiempo del núcleo, gráfica de cuadros, tirones, CPU, RAM y sonido.
 - **Configuración sugerida**: Ñoño revisa tu procesador, memoria, tarjeta gráfica y pantalla, y con «Aplícalo por mí» deja todo listo.
 - **Sonido** con control dinámico de velocidad, para que no se corte ni se atrase.
+- **Actualizaciones** desde la app: Juana avisa cuando sale una build nueva y la instala con un clic.
 
 ## Descargar
 
@@ -75,4 +87,4 @@ Satronho Emulation es software libre bajo la licencia **GPL 3.0 o posterior** (v
 
 Los textos completos de las licencias están en la carpeta `licencias/`.
 
-NES es una marca de Nintendo. Este proyecto no está afiliado a Nintendo.
+Los nombres de las consolas se usan solo para describir con qué juegos funciona cada emulador. NES, Super Nintendo, Game Boy, Nintendo 64, GameCube, Wii, DS y Switch son marcas de Nintendo; Genesis, Mega Drive, Saturn y Dreamcast, de Sega; PlayStation, de Sony. Este proyecto no está afiliado a ninguna de ellas.

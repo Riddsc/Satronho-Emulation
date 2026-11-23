@@ -174,6 +174,8 @@ bool App::Init() {
         Toast("¡Build " + std::to_string(build_) + " instalada! Mira las novedades.", GuideId::Juana, 6.0);
     if (build_ > 0) settings_.last_seen_build = build_;
 
+    if (settings_.auto_update && build_ > 0 && !qa_.count("fresh")) updater_.Check(build_);
+
     SDL_ShowWindow(window_);
     last_ns_ = SDL_GetTicksNS();
 
@@ -307,6 +309,7 @@ void App::Frame() {
     ProcessPendingPaths();
 
     if (library_.TakeChanged()) games_dirty_ = true;
+    PollUpdater();
 
     // El cursor se esconde mientras se juega.
     const bool want_hidden = in_game_ && !menu_open_ && SDL_GetTicks() - last_mouse_move_ > 2000;
@@ -356,6 +359,30 @@ void App::Frame() {
         // Sin sincronización vertical se descansa un poco para no gastar CPU de más.
         if (!in_game_ || (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)) SDL_Delay(8);
         else SDL_DelayPrecise(1000000);
+    }
+}
+
+void App::PollUpdater() {
+    const Updater::State st = updater_.GetState();
+    if (st == last_update_state_) return;
+    last_update_state_ = st;
+    switch (st) {
+    case Updater::State::Available:
+        Toast("¡Salió la build " + std::to_string(updater_.LatestBuild()) + "! Ve a Novedades para actualizar.", GuideId::Juana, 7);
+        break;
+    case Updater::State::Ready:
+        if (updater_.LaunchInstaller()) {
+            Log::Info("Instalando la build %d…", updater_.LatestBuild());
+            running_ = false;
+        } else {
+            Toast("No se pudo abrir el instalador. Descárgala desde GitHub.", GuideId::Juana, 6);
+        }
+        break;
+    case Updater::State::Failed:
+        Log::Warn("Actualizaciones: %s", updater_.Error().c_str());
+        break;
+    default:
+        break;
     }
 }
 
@@ -512,7 +539,7 @@ void App::HandleHotkey(const SDL_KeyboardEvent& k) {
 
 bool App::StartGame(const fs::path& rom) {
     if (!core_ok_) {
-        Toast("Falta el núcleo de NES. Reinstala Satronho Emulation.", GuideId::MechaRidds, 5);
+        Toast("Falta el núcleo de Satronho Octa. Reinstala Satronho Emulation.", GuideId::MechaRidds, 5);
         return false;
     }
     if (in_game_) StopGame();

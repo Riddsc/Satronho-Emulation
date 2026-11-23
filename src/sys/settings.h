@@ -52,6 +52,9 @@ struct Settings {
     int sort = 0;                  // 0 A-Z, 1 recientes, 2 más jugados
     bool favorites_only = false;
 
+    // Actualizaciones
+    bool auto_update = true;
+
     // Estado
     bool first_run_done = false;
     std::string preset;            // última configuración sugerida aplicada

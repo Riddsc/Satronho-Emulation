@@ -46,6 +46,7 @@ void Settings::Load(const Ini& ini) {
     sort = std::clamp(ini.GetInt("biblioteca.orden", sort), 0, 2);
     favorites_only = ini.GetBool("biblioteca.solo_favoritos", favorites_only);
 
+    auto_update = ini.GetBool("actualizaciones.buscar", auto_update);
     first_run_done = ini.GetBool("estado.bienvenida", first_run_done);
     preset = ini.Get("estado.sugerida", preset);
     last_seen_build = ini.GetInt("estado.ultima_build", last_seen_build);
@@ -85,6 +86,7 @@ void Settings::Save(Ini& ini) const {
     ini.SetInt("biblioteca.orden", sort);
     ini.SetBool("biblioteca.solo_favoritos", favorites_only);
 
+    ini.SetBool("actualizaciones.buscar", auto_update);
     ini.SetBool("estado.bienvenida", first_run_done);
     ini.Set("estado.sugerida", preset);
     ini.SetInt("estado.ultima_build", last_seen_build);
