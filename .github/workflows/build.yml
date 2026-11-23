@@ -1,0 +1,95 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "assets/**"
+      - "external/**"
+      - "dist/**"
+      - "licencias/**"
+      - "cmake/**"
+      - "scripts/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  LLVM_MINGW_VERSION: "20251104"
+  NESTOPIA_COMMIT: 39e4b456cea6f5e962ce3e65bcdcd7313711a905
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Herramientas
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build zip
+
+      - name: Caché de llvm-mingw
+        id: cache-mingw
+        uses: actions/cache@v4
+        with:
+          path: ~/llvm-mingw
+          key: llvm-mingw-${{ env.LLVM_MINGW_VERSION }}
+
+      - name: Descargar llvm-mingw
+        if: steps.cache-mingw.outputs.cache-hit != 'true'
+        run: |
+          curl -sSfL -o /tmp/llvm-mingw.tar.xz \
+            "https://github.com/mstorsjo/llvm-mingw/releases/download/${LLVM_MINGW_VERSION}/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-22.04-x86_64.tar.xz"
+          tar xf /tmp/llvm-mingw.tar.xz -C ~
+          mv ~/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-22.04-x86_64 ~/llvm-mingw
+
+      - name: Núcleo de NES (Nestopia UE)
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: scripts/build-core-nestopia.sh build/cores
+
+      - name: Satronho Emulation
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw.cmake \
+            -DSATRONHO_BUILD=${{ github.run_number }}
+          cmake --build build -j"$(nproc)"
+          ~/llvm-mingw/bin/x86_64-w64-mingw32-strip -s build/satronho-emulation.exe
+
+      - name: Empaquetar
+        id: pack
+        run: |
+          N=${{ github.run_number }}
+          PKG=SatronhoEmulation
+          mkdir -p "$PKG/cores"
+          cp build/satronho-emulation.exe "$PKG/"
+          cp -r build/assets "$PKG/assets"
+          cp build/cores/nestopia_libretro.dll "$PKG/cores/"
+          cp -r licencias "$PKG/licencias"
+          cp LICENSE "$PKG/licencias/SatronhoEmulation-GPL-3.0.txt"
+          cp CREDITOS.md "$PKG/CREDITOS.md"
+          ZIP="SatronhoEmulation-build-$N-windows-x64.zip"
+          zip -qr9 "$ZIP" "$PKG"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          ls -la "$ZIP"
+
+      - name: Publicar Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N=${{ github.run_number }}
+          python3 scripts/release-notes.py "$N"
+          gh release create "build-$N" "${{ steps.pack.outputs.zip }}" \
+            --target "${{ github.sha }}" \
+            --title "Satronho Emulation · build $N" \
+            --notes-file release-notes.md

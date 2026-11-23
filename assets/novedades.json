@@ -1,0 +1,19 @@
+{
+  "builds": [
+    {
+      "version": "Primera build",
+      "fecha": "Noviembre de 2026",
+      "titulo": "Nace Satronho Emulation, con la NES",
+      "cambios": [
+        { "tipo": "nuevo", "texto": "La casa de los emuladores Satronho: una biblioteca con portadas de cartucho dibujadas para cada juego, búsqueda, favoritos, orden por recientes o más jugados, tiempo de juego y «Seguir jugando»." },
+        { "tipo": "nuevo", "texto": "NES con el núcleo Nestopia UE: más de 200 tipos de cartucho, partidas de batería que se guardan solas cada 30 segundos y al salir." },
+        { "tipo": "nuevo", "texto": "Imagen cuidada por Troya: filtro «Nítido suave» (píxeles cuadrados sin temblores a cualquier tamaño), escala entera, líneas de barrido, pantalla CRT con máscara de fósforo y viñeta, y fondo ambiente con los colores del juego." },
+        { "tipo": "nuevo", "texto": "Controles que responden más rápido que en la consola original gracias al adelanto de cuadros, más rebobinar, avance rápido y 8 ranuras de estado con miniatura." },
+        { "tipo": "nuevo", "texto": "Medidor Satronho en vivo (compacto o detallado): cuadros por segundo, velocidad, tiempo del núcleo, gráfica de cuadros, tirones, CPU, RAM y sonido." },
+        { "tipo": "nuevo", "texto": "Configuración sugerida: Ñoño revisa tu procesador, memoria, tarjeta gráfica y pantalla, y con «Aplícalo por mí» deja todo listo." },
+        { "tipo": "nuevo", "texto": "Sonido con control dinámico de velocidad, para que no se corte ni se atrase aunque tu pantalla no vaya exactamente a la velocidad de la NES." },
+        { "tipo": "nuevo", "texto": "Mandos con conexión en caliente, asignación de botones con un clic, turbo para A y B, y menú con el botón Guía o Select+Start." }
+      ]
+    }
+  ]
+}
