@@ -527,7 +527,7 @@ bool NavItem(const char* label, Icon icon, bool selected, const char* badge, boo
         dl->AddRectFilled(p, {p.x + w, p.y + hgt}, U32(Color::Surface2, 0.8f * hv), S(12));
     }
     const unsigned fg = disabled ? Color::Dim : (selected ? Color::Text : Mix(Color::Muted, Color::Text, hv));
-    DrawIcon(dl, icon, {p.x + S(24), p.y + hgt * 0.5f}, S(17), U32(selected ? accent : fg));
+    if (icon != Icon::None) DrawIcon(dl, icon, {p.x + S(24), p.y + hgt * 0.5f}, S(17), U32(selected ? accent : fg));
     {
         FontScope f(selected ? GetFonts().semibold : GetFonts().medium, 15);
         const float th = ImGui::GetFontSize();
@@ -674,9 +674,35 @@ bool SliderIntStyled(const char* id, int* value, int min, int max, const char* f
 bool ComboStyled(const char* id, int* current, const std::vector<std::string>& items, float width) {
     ImGui::SetNextItemWidth(width);
     bool changed = false;
-    const char* preview = *current >= 0 && *current < static_cast<int>(items.size()) ? items[*current].c_str() : "";
+    std::string preview = *current >= 0 && *current < static_cast<int>(items.size()) ? items[*current] : "";
+    // El texto no pisa la flecha: si no cabe, se corta con «…».
+    const float max_w = width - S(12) - S(40);
+    if (ImGui::CalcTextSize(preview.c_str()).x > max_w) {
+        while (!preview.empty() && ImGui::CalcTextSize((preview + "…").c_str()).x > max_w) {
+            preview.pop_back();
+            while (!preview.empty() && (static_cast<unsigned char>(preview.back()) & 0xC0) == 0x80) preview.pop_back();
+        }
+        preview += "…";
+    }
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {S(12), S(8)});
-    if (ImGui::BeginCombo(id, preview, ImGuiComboFlags_HeightLarge)) {
+    // Flecha propia (un chevron dibujado) en vez del triángulo de ImGui.
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    const float fh = ImGui::GetFrameHeight();
+    ImDrawList* host = ImGui::GetWindowDrawList();
+    {
+        const ImVec2 c(p.x + width - S(20), p.y + fh * 0.5f);
+        const float a = S(5);
+        const bool hov = ImGui::IsMouseHoveringRect(p, {p.x + width, p.y + fh});
+        const ImVec2 pts[3] = {{c.x - a, c.y - a * 0.5f}, {c.x, c.y + a * 0.5f}, {c.x + a, c.y - a * 0.5f}};
+        // Se dibuja después del marco: se encola en un canal de arriba.
+        host->ChannelsSplit(2);
+        host->ChannelsSetCurrent(1);
+        host->AddPolyline(pts, 3, U32(hov ? Color::Text : Color::Muted), S(2), 0);
+        host->ChannelsSetCurrent(0);
+    }
+    const bool open = ImGui::BeginCombo(id, preview.c_str(), ImGuiComboFlags_HeightLarge | ImGuiComboFlags_NoArrowButton);
+    host->ChannelsMerge();
+    if (open) {
         for (int i = 0; i < static_cast<int>(items.size()); ++i) {
             const bool sel = i == *current;
             if (ImGui::Selectable(items[i].c_str(), sel, 0, {0, S(26)})) {
@@ -912,6 +938,34 @@ void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std
         dl->AddRectFilled(c0, c1, IM_COL32(86, 84, 96, 255), cw * 0.05f);
         draw_label({c0.x + cw * 0.08f, c0.y + ch * 0.12f}, {c1.x - cw * 0.08f, c0.y + ch * 0.80f}, 0.22f);
         dl->AddRectFilled({c0.x + cw * 0.3f, c1.y - ch * 0.12f}, {c1.x - cw * 0.3f, c1.y - ch * 0.05f}, IM_COL32(60, 58, 68, 255), 2);
+    } else if (layout == Layout::Genesis) {
+        // Cartucho negro, casi cuadrado, con agarre de estrías a los lados y etiqueta grande.
+        const float cw = w * 0.64f, ch = std::min(h * 0.78f, cw * 1.08f);
+        const ImVec2 c0(p0.x + (w - cw) * 0.5f, p0.y + (h - ch) * 0.55f - lift), c1(c0.x + cw, c0.y + ch);
+        dl->AddRectFilled({c0.x + 3, c0.y + 6}, {c1.x + 3, c1.y + 6}, IM_COL32(0, 0, 0, 80), cw * 0.04f);
+        dl->AddRectFilled(c0, c1, IM_COL32(34, 33, 38, 255), cw * 0.04f);
+        dl->AddRectFilled(c0, {c1.x, c0.y + ch * 0.07f}, IM_COL32(48, 47, 54, 255), cw * 0.04f, ImDrawFlags_RoundTop);
+        for (int i = 0; i < 6; ++i) {
+            const float y = c0.y + ch * (0.18f + i * 0.1f);
+            const float t = std::max(1.0f, ch * 0.014f);
+            dl->AddLine({c0.x + cw * 0.025f, y}, {c0.x + cw * 0.07f, y}, IM_COL32(70, 68, 78, 255), t);
+            dl->AddLine({c1.x - cw * 0.07f, y}, {c1.x - cw * 0.025f, y}, IM_COL32(70, 68, 78, 255), t);
+        }
+        draw_label({c0.x + cw * 0.11f, c0.y + ch * 0.12f}, {c1.x - cw * 0.11f, c0.y + ch * 0.86f}, 0.18f);
+    } else if (layout == Layout::Snes) {
+        // Cartucho gris claro y ancho, con los hombros redondeados arriba y estrías abajo.
+        const float cw = w * 0.74f, ch = cw * 0.72f;
+        const ImVec2 c0(p0.x + (w - cw) * 0.5f, p0.y + (h - ch) * 0.55f - lift), c1(c0.x + cw, c0.y + ch);
+        dl->AddRectFilled({c0.x + 3, c0.y + 6}, {c1.x + 3, c1.y + 6}, IM_COL32(0, 0, 0, 70), cw * 0.08f);
+        dl->AddRectFilled(c0, c1, IM_COL32(176, 175, 184, 255), cw * 0.08f, ImDrawFlags_RoundTop);
+        // Las dos muescas de arriba.
+        dl->AddRectFilled({c0.x + cw * 0.12f, c0.y}, {c0.x + cw * 0.2f, c0.y + ch * 0.07f}, IM_COL32(150, 149, 158, 255), 2);
+        dl->AddRectFilled({c1.x - cw * 0.2f, c0.y}, {c1.x - cw * 0.12f, c0.y + ch * 0.07f}, IM_COL32(150, 149, 158, 255), 2);
+        for (int i = 0; i < 3; ++i) {
+            const float y = c1.y - ch * (0.06f + i * 0.045f);
+            dl->AddLine({c0.x + cw * 0.06f, y}, {c1.x - cw * 0.06f, y}, IM_COL32(140, 139, 150, 255), std::max(1.0f, ch * 0.014f));
+        }
+        draw_label({c0.x + cw * 0.14f, c0.y + ch * 0.12f}, {c1.x - cw * 0.14f, c0.y + ch * 0.74f}, 0.22f);
     } else {
         // Cartucho de NES.
         const float cw = w * 0.60f, ch = h * 0.80f;

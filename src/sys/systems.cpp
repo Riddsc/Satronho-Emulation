@@ -8,50 +8,125 @@
 
 namespace Satronho {
 
+namespace {
+
+using B = std::vector<std::pair<int, const char*>>;
+
+const B kDpad{{RETRO_DEVICE_ID_JOYPAD_UP, "Arriba"},
+              {RETRO_DEVICE_ID_JOYPAD_DOWN, "Abajo"},
+              {RETRO_DEVICE_ID_JOYPAD_LEFT, "Izquierda"},
+              {RETRO_DEVICE_ID_JOYPAD_RIGHT, "Derecha"}};
+
+B With(B extra) {
+    B b = kDpad;
+    b.insert(b.end(), extra.begin(), extra.end());
+    return b;
+}
+
+SystemDef Make(const char* id, const char* name, const char* games, const char* hint, const char* core,
+               std::vector<std::string> ext, const char* label, unsigned color, Layout layout, bool handheld) {
+    SystemDef s;
+    s.id = id;
+    s.name = name;
+    s.full = std::string("Satronho ") + name;
+    s.games = games;
+    s.hint = hint;
+    s.core = core;
+    s.extensions = std::move(ext);
+    s.label = label;
+    s.color = color;
+    s.layout = layout;
+    s.handheld = handheld;
+    s.runahead_ok = true;
+    s.tilt = false;
+    return s;
+}
+
+std::vector<SystemDef> Build() {
+    using namespace std;
+    vector<SystemDef> v;
+    const B nintendo8{{RETRO_DEVICE_ID_JOYPAD_A, "A"},          {RETRO_DEVICE_ID_JOYPAD_B, "B"},
+                      {RETRO_DEVICE_ID_JOYPAD_X, "A turbo"},    {RETRO_DEVICE_ID_JOYPAD_Y, "B turbo"},
+                      {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"}, {RETRO_DEVICE_ID_JOYPAD_START, "Start"}};
+    const vector<vector<int>> ab_turbo{{RETRO_DEVICE_ID_JOYPAD_B, RETRO_DEVICE_ID_JOYPAD_A},
+                                       {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_X}};
+
+    SystemDef octa = Make("octa", "Octa", "juegos de NES", "NES", "nestopia", {"nes", "fds", "unf", "unif"}, "OCTA", 0xFFD166,
+                          Layout::Nes, false);
+    octa.buttons = With(nintendo8);
+    octa.turbo = true;
+    octa.face = ab_turbo;
+    octa.core_defaults = {{"nestopia_blargg_ntsc_filter", "disabled"}};
+    v.push_back(octa);
+
+    // Mega Drive / Genesis con el mando de 6 botones. BlastEm lee A en el B del RetroPad, B en A,
+    // C en R, X en Y, Y en X, Z en L y Mode en Select.
+    SystemDef mega = Make("mega", "Mega", "juegos de Genesis y Mega Drive", "Genesis", "blastem", {"md", "gen", "smd", "bin"},
+                          "MEGA", 0xE5484D, Layout::Genesis, false);
+    mega.buttons = With({{RETRO_DEVICE_ID_JOYPAD_B, "A"},
+                         {RETRO_DEVICE_ID_JOYPAD_A, "B"},
+                         {RETRO_DEVICE_ID_JOYPAD_R, "C"},
+                         {RETRO_DEVICE_ID_JOYPAD_Y, "X"},
+                         {RETRO_DEVICE_ID_JOYPAD_X, "Y"},
+                         {RETRO_DEVICE_ID_JOYPAD_L, "Z"},
+                         {RETRO_DEVICE_ID_JOYPAD_SELECT, "Mode"},
+                         {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    mega.face = {{RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_X, RETRO_DEVICE_ID_JOYPAD_L},
+                 {RETRO_DEVICE_ID_JOYPAD_B, RETRO_DEVICE_ID_JOYPAD_A, RETRO_DEVICE_ID_JOYPAD_R}};
+    mega.center_title = "MODE Y START";
+    mega.runahead_ok = false;
+    v.push_back(mega);
+
+    SystemDef hexa = Make("hexa", "Hexa", "juegos de SNES y Super Famicom", "SNES", "bsnes", {"sfc", "smc", "bs", "st"}, "HEXA",
+                          0x5AA9FF, Layout::Snes, false);
+    hexa.buttons = With({{RETRO_DEVICE_ID_JOYPAD_A, "A"},
+                         {RETRO_DEVICE_ID_JOYPAD_B, "B"},
+                         {RETRO_DEVICE_ID_JOYPAD_X, "X"},
+                         {RETRO_DEVICE_ID_JOYPAD_Y, "Y"},
+                         {RETRO_DEVICE_ID_JOYPAD_L, "L"},
+                         {RETRO_DEVICE_ID_JOYPAD_R, "R"},
+                         {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"},
+                         {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    // En rombo, como en el mando: X arriba, Y y A al medio, B abajo.
+    hexa.face = {{RETRO_DEVICE_ID_JOYPAD_X}, {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_A}, {RETRO_DEVICE_ID_JOYPAD_B}};
+    hexa.shoulders = {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R};
+    v.push_back(hexa);
+
+    SystemDef gb = Make("bolsillo", "Bolsillo", "juegos de Game Boy y Game Boy Color", "GB · GBC", "mgba", {"gb", "gbc", "sgb"},
+                        "BOLSILLO", 0x9BBC0F, Layout::GameBoy, true);
+    gb.buttons = With(nintendo8);
+    gb.turbo = true;
+    gb.face = ab_turbo;
+    gb.runahead_ok = false; // mGBA guarda el sonido fuera del estado: con adelanto suena raro
+    gb.tilt = true;
+    gb.core_defaults = {{"mgba_skip_bios", "ON"}, {"mgba_sgb_borders", "OFF"}};
+    v.push_back(gb);
+
+    SystemDef gba = Make("bolsillo_plus", "Bolsillo Plus", "juegos de Game Boy Advance", "GBA", "mgba", {"gba"}, "PLUS", 0x6D5BD0,
+                         Layout::GameBoyAdvance, true);
+    gba.buttons = With({{RETRO_DEVICE_ID_JOYPAD_A, "A"},
+                        {RETRO_DEVICE_ID_JOYPAD_B, "B"},
+                        {RETRO_DEVICE_ID_JOYPAD_L, "L"},
+                        {RETRO_DEVICE_ID_JOYPAD_R, "R"},
+                        {RETRO_DEVICE_ID_JOYPAD_X, "A turbo"},
+                        {RETRO_DEVICE_ID_JOYPAD_Y, "B turbo"},
+                        {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"},
+                        {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    gba.turbo = true;
+    gba.face = ab_turbo;
+    gba.shoulders = {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R};
+    gba.runahead_ok = false;
+    gba.tilt = true;
+    // El sonido de la GBA es áspero de fábrica; un filtro suave lo deja más limpio.
+    gba.core_defaults = {{"mgba_skip_bios", "ON"}, {"mgba_audio_low_pass_filter", "enabled"}, {"mgba_audio_low_pass_range", "60"}};
+    v.push_back(gba);
+    return v;
+}
+
+} // namespace
+
 const std::vector<SystemDef>& Systems() {
-    static const std::vector<SystemDef> systems{
-        {"octa", "Octa", "Satronho Octa", "juegos de NES", "NES", "nestopia", {"nes", "fds", "unf", "unif"}, "OCTA", 0xFFD166,
-         Layout::Nes, false, true, false,
-         {{RETRO_DEVICE_ID_JOYPAD_UP, "Arriba"},
-          {RETRO_DEVICE_ID_JOYPAD_DOWN, "Abajo"},
-          {RETRO_DEVICE_ID_JOYPAD_LEFT, "Izquierda"},
-          {RETRO_DEVICE_ID_JOYPAD_RIGHT, "Derecha"},
-          {RETRO_DEVICE_ID_JOYPAD_A, "A"},
-          {RETRO_DEVICE_ID_JOYPAD_B, "B"},
-          {RETRO_DEVICE_ID_JOYPAD_X, "A turbo"},
-          {RETRO_DEVICE_ID_JOYPAD_Y, "B turbo"},
-          {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"},
-          {RETRO_DEVICE_ID_JOYPAD_START, "Start"}},
-         {{"nestopia_blargg_ntsc_filter", "disabled"}}},
-        {"bolsillo", "Bolsillo", "Satronho Bolsillo", "juegos de Game Boy y Game Boy Color", "GB · GBC", "mgba", {"gb", "gbc", "sgb"},
-         "BOLSILLO", 0x9BBC0F, Layout::GameBoy, true, false, true,
-         {{RETRO_DEVICE_ID_JOYPAD_UP, "Arriba"},
-          {RETRO_DEVICE_ID_JOYPAD_DOWN, "Abajo"},
-          {RETRO_DEVICE_ID_JOYPAD_LEFT, "Izquierda"},
-          {RETRO_DEVICE_ID_JOYPAD_RIGHT, "Derecha"},
-          {RETRO_DEVICE_ID_JOYPAD_A, "A"},
-          {RETRO_DEVICE_ID_JOYPAD_B, "B"},
-          {RETRO_DEVICE_ID_JOYPAD_X, "A turbo"},
-          {RETRO_DEVICE_ID_JOYPAD_Y, "B turbo"},
-          {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"},
-          {RETRO_DEVICE_ID_JOYPAD_START, "Start"}},
-         {{"mgba_skip_bios", "ON"}, {"mgba_sgb_borders", "OFF"}}},
-        {"bolsillo_plus", "Bolsillo Plus", "Satronho Bolsillo Plus", "juegos de Game Boy Advance", "GBA", "mgba", {"gba"}, "PLUS",
-         0x6D5BD0, Layout::GameBoyAdvance, true, false, true,
-         {{RETRO_DEVICE_ID_JOYPAD_UP, "Arriba"},
-          {RETRO_DEVICE_ID_JOYPAD_DOWN, "Abajo"},
-          {RETRO_DEVICE_ID_JOYPAD_LEFT, "Izquierda"},
-          {RETRO_DEVICE_ID_JOYPAD_RIGHT, "Derecha"},
-          {RETRO_DEVICE_ID_JOYPAD_A, "A"},
-          {RETRO_DEVICE_ID_JOYPAD_B, "B"},
-          {RETRO_DEVICE_ID_JOYPAD_L, "L"},
-          {RETRO_DEVICE_ID_JOYPAD_R, "R"},
-          {RETRO_DEVICE_ID_JOYPAD_X, "A turbo"},
-          {RETRO_DEVICE_ID_JOYPAD_Y, "B turbo"},
-          {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"},
-          {RETRO_DEVICE_ID_JOYPAD_START, "Start"}},
-         {{"mgba_skip_bios", "ON"}}},
-    };
+    static const std::vector<SystemDef> systems = Build();
     return systems;
 }
 
@@ -83,9 +158,19 @@ std::string CoreFile(const SystemDef& s) {
 #endif
 }
 
+std::string SystemsSentence() {
+    std::string out;
+    const auto& all = Systems();
+    for (size_t i = 0; i < all.size(); ++i) {
+        if (i) out += i + 1 == all.size() ? " y " : ", ";
+        out += (i == 0 ? all[i].full : all[i].name) + " (" + all[i].hint + ")";
+    }
+    return out;
+}
+
 const std::vector<SoonSystem>& SoonSystems() {
     static const std::vector<SoonSystem> soon{
-        {"Mega", "Genesis"}, {"Hexa", "SNES"}, {"CD", "PS1"}, {"64", "N64"}, {"Dual", "DS · 3DS"}, {"Cubo", "GC · Wii"},
+        {"CD", "PS1"}, {"64", "N64"}, {"Dual", "DS · 3DS"}, {"Cubo", "GC · Wii"},
     };
     return soon;
 }

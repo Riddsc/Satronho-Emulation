@@ -79,6 +79,7 @@ enum class Icon {
     Clock, ChevronRight, ChevronLeft, Close, Pause, Save, Load, Restart, Camera, Exit, Meter,
     Volume, Rewind, Forward, Check, Cpu, Memory, Monitor, Chip, Keyboard, Heart, Refresh, File,
     Grid, Palette,
+    None, // no dibuja ícono (quien llama dibuja el suyo)
 };
 void DrawIcon(ImDrawList* dl, Icon icon, ImVec2 center, float size, ImU32 color);
 void IconText(Icon icon, const char* text, ImU32 color);

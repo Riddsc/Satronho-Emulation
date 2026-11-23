@@ -14,6 +14,9 @@ namespace Satronho::Ui {
 // asignación (parpadea). Devuelve el botón sobre el que está el mouse, o -1.
 int DrawController(ImDrawList* dl, Layout layout, ImVec2 pos, ImVec2 size, uint16_t pressed, int capturing, ImVec2 mouse);
 
+// Versión en miniatura, sin textos: ícono de cada consola en la barra lateral.
+void DrawControllerMini(ImDrawList* dl, Layout layout, ImVec2 center, float width, float alpha);
+
 // Proporción ancho/alto del dibujo de cada control.
 float ControllerAspect(Layout layout);
 

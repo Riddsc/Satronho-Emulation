@@ -77,3 +77,21 @@ descarga el zip y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre
 2. Entrada en la barra lateral (hoy «Pronto»), extensiones, botones del mando y valores por
    defecto del núcleo.
 3. Novedades en `assets/novedades.json` (la primera entrada son las notas del Release).
+
+### Núcleos ya integrados (cómo se compilan)
+
+- **Mega (BlastEm)**: `Makefile.libretro core` con `MSYSTEM=MINGW64` para que elija Windows x86_64
+  (JIT de 68K y Z80). En Android usará los núcleos generados (`NEW_CORE=1`). Adelanto apagado
+  (`runahead_ok = false`) hasta probar si su sonido vive dentro del estado.
+- **Hexa (bsnes)**: `platform=win` con `SHARED` propio (lld no acepta `--version-script`) y
+  `EXTRA_INCLUDES="-Wno-invalid-specialization -D_GNU_SOURCE"` (clang nuevo + `vasprintf`).
+- Cada consola declara en `SystemDef` sus filas de botones (`face`), gatillos (`shoulders`) y si
+  X/Y son turbos (`turbo`); la pantalla de Controles se arma sola con eso.
+- Juegos libres para probar: muestras de SGDK (`sample/*/out/release/rom.bin`) y los demos de
+  PeterLemon/SNES (`*.sfc`).
+
+### Sonido
+
+`App::EmulateTick` corre un cuadro de más o de menos cuando el búfer de sonido se aleja mucho de la
+latencia elegida (pantallas de 120/144 Hz), y `AudioOut` ajusta la velocidad ±1 %. Cada minuto de
+juego anota en el registro: cortes, descartes, búfer y tirones.
