@@ -1,18 +1,76 @@
 {
   "consejos": [
-    { "guia": "samy", "texto": "Mantén Tab (o el gatillo derecho) para avanzar rápido por las partes lentas." },
-    { "guia": "samy", "texto": "F5 guarda tu partida al instante y F9 la carga. En el menú (Esc) ves las 8 ranuras con su foto." },
-    { "guia": "samy", "texto": "¿Te equivocaste de salto? Mantén Retroceso (o el gatillo izquierdo) y rebobina unos segundos." },
-    { "guia": "samy", "texto": "Haz clic derecho en un juego para marcarlo como favorito o abrir su carpeta." },
-    { "guia": "samy", "texto": "Puedes arrastrar un juego o una carpeta a la ventana: el juego se abre y la carpeta se agrega a la biblioteca." },
-    { "guia": "troya", "texto": "Prueba el efecto «CRT» en Ajustes → Imagen: líneas de barrido, máscara de fósforo y viñeta, como el televisor de antes." },
-    { "guia": "troya", "texto": "Con «Entero» los píxeles quedan perfectos, a cambio de unos bordes. Con «Nítido suave» llenas la pantalla sin perder nitidez." },
-    { "guia": "troya", "texto": "F12 guarda una captura del juego en su tamaño original. La encuentras en Ajustes → Biblioteca → Capturas." },
-    { "guia": "nono", "texto": "En «Configuración sugerida» reviso tu equipo y con un clic dejo todo listo para jugar." },
-    { "guia": "nono", "texto": "El adelanto de 1 cuadro hace que los saltos respondan antes. Si un juego hace algo raro, apágalo en el menú del juego." },
-    { "guia": "nono", "texto": "F3 muestra el medidor mientras juegas. Si la velocidad baja de 100 %, cuéntamelo y lo revisamos." },
-    { "guia": "juana", "texto": "En «Novedades» te cuento qué trae cada build nueva de Satronho Emulation." },
-    { "guia": "mecharidds", "texto": "Esto apenas empieza: después de la NES vienen más consolas a esta misma casa." },
-    { "guia": "mecharidds", "texto": "Satronho Emulation no trae juegos. Usa copias de los cartuchos que tienes." }
+    {
+      "guia": "samy",
+      "texto": "Mantén Tab (o el gatillo derecho) para avanzar rápido por las partes lentas."
+    },
+    {
+      "guia": "samy",
+      "texto": "F5 guarda tu partida al instante y F9 la carga. En el menú (Esc) ves las 8 ranuras con su foto."
+    },
+    {
+      "guia": "samy",
+      "texto": "¿Te equivocaste de salto? Mantén Retroceso (o el gatillo izquierdo) y rebobina unos segundos."
+    },
+    {
+      "guia": "samy",
+      "texto": "Haz clic derecho en un juego para marcarlo como favorito o abrir su carpeta."
+    },
+    {
+      "guia": "samy",
+      "texto": "Puedes arrastrar un juego o una carpeta a la ventana: el juego se abre y la carpeta se agrega a la biblioteca."
+    },
+    {
+      "guia": "troya",
+      "texto": "Prueba el efecto «CRT» en Ajustes → Imagen: líneas de barrido, máscara de fósforo y viñeta, como el televisor de antes."
+    },
+    {
+      "guia": "troya",
+      "texto": "Con «Entero» los píxeles quedan perfectos, a cambio de unos bordes. Con «Nítido suave» llenas la pantalla sin perder nitidez."
+    },
+    {
+      "guia": "troya",
+      "texto": "F12 guarda una captura del juego en su tamaño original. La encuentras en Ajustes → Biblioteca → Capturas."
+    },
+    {
+      "guia": "nono",
+      "texto": "En «Configuración sugerida» reviso tu equipo y con un clic dejo todo listo para jugar."
+    },
+    {
+      "guia": "nono",
+      "texto": "El adelanto de 1 cuadro hace que los saltos respondan antes. Si un juego hace algo raro, apágalo en el menú del juego."
+    },
+    {
+      "guia": "nono",
+      "texto": "F3 muestra el medidor mientras juegas. Si la velocidad baja de 100 %, cuéntamelo y lo revisamos."
+    },
+    {
+      "guia": "juana",
+      "texto": "En «Novedades» te cuento qué trae cada build nueva de Satronho Emulation."
+    },
+    {
+      "guia": "mecharidds",
+      "texto": "Esto apenas empieza: después de la NES vienen más consolas a esta misma casa."
+    },
+    {
+      "guia": "mecharidds",
+      "texto": "Satronho Emulation no trae juegos. Usa copias de los cartuchos que tienes."
+    },
+    {
+      "guia": "samy",
+      "texto": "En Controles ves tu mando dibujado: cada botón se ilumina cuando lo presionas. Haz clic en uno para cambiarlo."
+    },
+    {
+      "guia": "samy",
+      "texto": "Crea un perfil de controles por consola, por ejemplo uno para jugar con el mando de PS4 y otro con el de Xbox."
+    },
+    {
+      "guia": "troya",
+      "texto": "Con el efecto «Auto», las consolas de casa se ven como en un televisor CRT y las portátiles con su rejilla de LCD."
+    },
+    {
+      "guia": "nono",
+      "texto": "Si tu pantalla es de 144 Hz, juega en pantalla completa: la cambio a 60 Hz y el movimiento queda perfecto."
+    }
   ]
 }

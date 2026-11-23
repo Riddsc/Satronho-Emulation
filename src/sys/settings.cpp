@@ -14,10 +14,11 @@ void Settings::Load(const Ini& ini) {
     fullscreen = ini.GetBool("video.pantalla_completa", fullscreen);
     scale_mode = std::clamp(ini.GetInt("video.escala", scale_mode), 0, 2);
     filter = std::clamp(ini.GetInt("video.filtro", filter), 0, 2);
-    effect = std::clamp(ini.GetInt("video.efecto", effect), 0, 2);
+    effect = std::clamp(ini.GetInt("video.efecto", effect), 0, 4);
     effect_strength = std::clamp(ini.GetFloat("video.intensidad", effect_strength), 0.0f, 1.0f);
     ambient = ini.GetBool("video.fondo_ambiente", ambient);
     vsync = ini.GetBool("video.vsync", vsync);
+    fullscreen_60hz = ini.GetBool("video.completa_60hz", fullscreen_60hz);
     renderer = ini.Get("video.motor", renderer);
 
     volume = std::clamp(ini.GetFloat("audio.volumen", volume), 0.0f, 1.0f);
@@ -60,6 +61,7 @@ void Settings::Save(Ini& ini) const {
     ini.SetFloat("video.intensidad", effect_strength);
     ini.SetBool("video.fondo_ambiente", ambient);
     ini.SetBool("video.vsync", vsync);
+    ini.SetBool("video.completa_60hz", fullscreen_60hz);
     ini.Set("video.motor", renderer);
 
     ini.SetFloat("audio.volumen", volume);
@@ -107,7 +109,8 @@ Suggestion Suggest(const HardwareInfo& hw, const Settings& current) {
         s.reasons.push_back("Se está dibujando sin tarjeta gráfica (modo software), así que los efectos se quedan apagados.");
     else
         s.reasons.push_back("Tarjeta gráfica: " + hw.gpu + " con " + (hw.renderer.empty() ? std::string("el motor automático") : hw.renderer) + ".");
-    std::snprintf(buf, sizeof buf, "Pantalla a %.0f Hz.", hw.refresh);
+    std::snprintf(buf, sizeof buf, "Pantalla a %.0f Hz%s.", hw.refresh,
+                  hw.refresh > 75 ? ": en pantalla completa la cambio a 60 Hz para que el movimiento sea perfectamente parejo" : "");
     s.reasons.push_back(buf);
 
     if (hw.software || hw.threads <= 2 || ram_gb < 3.5) {
@@ -122,7 +125,7 @@ Suggestion Suggest(const HardwareInfo& hw, const Settings& current) {
     } else if (hw.threads >= 6 && ram_gb >= 7.5) {
         s.tier = "Alto";
         s.summary = "¡Tu equipo le sobra a la NES! Activé lo mejor: efecto CRT, adelanto de un cuadro y rebobinado largo.";
-        r.effect = static_cast<int>(Effect::Crt);
+        r.effect = static_cast<int>(Effect::Auto);
         r.effect_strength = 0.5f;
         r.filter = static_cast<int>(Filter::SharpSmooth);
         r.runahead = 1;
@@ -133,8 +136,8 @@ Suggestion Suggest(const HardwareInfo& hw, const Settings& current) {
     } else {
         s.tier = "Equilibrado";
         s.summary = "Tu equipo va muy bien. Dejé un equilibrio entre buena imagen y respuesta rápida.";
-        r.effect = static_cast<int>(Effect::Scanlines);
-        r.effect_strength = 0.4f;
+        r.effect = static_cast<int>(Effect::Auto);
+        r.effect_strength = 0.35f;
         r.filter = static_cast<int>(Filter::SharpSmooth);
         r.runahead = 1;
         r.rewind = true;
@@ -143,8 +146,9 @@ Suggestion Suggest(const HardwareInfo& hw, const Settings& current) {
         r.ambient = true;
     }
     r.vsync = true;
+    r.fullscreen_60hz = true;
 
-    static const char* effects[] = {"Ninguno", "Líneas de barrido", "Pantalla CRT"};
+    static const char* effects[] = {"Ninguno", "Líneas de barrido", "Pantalla CRT", "Pantalla LCD", "Según la consola (CRT en TV, LCD en portátiles)"};
     static const char* filters[] = {"Píxel exacto", "Nítido suave", "Suave"};
     s.changes.push_back(std::string("Efecto de pantalla: ") + effects[r.effect]);
     s.changes.push_back(std::string("Filtro: ") + filters[r.filter]);

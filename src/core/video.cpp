@@ -30,6 +30,7 @@ void VideoOut::Shutdown() {
     Destroy(scan_);
     Destroy(mask_);
     Destroy(vignette_);
+    Destroy(lcd_);
 }
 
 void VideoOut::Invalidate() {
@@ -153,7 +154,30 @@ void VideoOut::EnsureEffects(int src_h, float strength, int effect) {
     }
 }
 
-void VideoOut::Draw(const CoreHost& core, const Settings& s, int win_w, int win_h) {
+void VideoOut::EnsureLcd(int src_w, int src_h, float strength) {
+    if (lcd_ && src_w == lcd_w_ && src_h == lcd_h_ && std::fabs(strength - lcd_strength_) < 0.001f) return;
+    Destroy(lcd_);
+    lcd_w_ = src_w;
+    lcd_h_ = src_h;
+    lcd_strength_ = strength;
+    // Rejilla de LCD: cada píxel del juego son 4×4 celdas y la última fila y columna se
+    // oscurecen, como el espacio entre los puntos de la pantalla de una portátil.
+    constexpr int K = 4;
+    const int w = src_w * K, h = src_h * K;
+    std::vector<uint8_t> px(static_cast<size_t>(w) * h * 4, 0);
+    const uint8_t a = static_cast<uint8_t>(std::clamp(strength, 0.0f, 1.0f) * 150);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+            if (x % K == K - 1 || y % K == K - 1) px[(static_cast<size_t>(y) * w + x) * 4 + 3] = a;
+    lcd_ = SDL_CreateTexture(r_, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
+    if (lcd_) {
+        SDL_UpdateTexture(lcd_, nullptr, px.data(), w * 4);
+        SDL_SetTextureBlendMode(lcd_, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureScaleMode(lcd_, SDL_SCALEMODE_LINEAR);
+    }
+}
+
+void VideoOut::Draw(const CoreHost& core, const Settings& s, int win_w, int win_h, bool handheld) {
     if (!tex_ || !tex_w_ || !tex_h_) return;
     const float aspect = core.AspectRatio();
     const float W = static_cast<float>(win_w), H = static_cast<float>(win_h);
@@ -227,8 +251,15 @@ void VideoOut::Draw(const CoreHost& core, const Settings& s, int win_w, int win_
     }
 
     // Efectos de pantalla.
-    const int effect = s.effect;
-    if (effect != static_cast<int>(Effect::None) && s.effect_strength > 0.01f) {
+    int effect = s.effect;
+    if (effect == static_cast<int>(Effect::Auto)) effect = static_cast<int>(handheld ? Effect::Lcd : Effect::Crt);
+    if (effect == static_cast<int>(Effect::Lcd) && s.effect_strength > 0.01f) {
+        // La rejilla solo se ve bien con al menos 3 píxeles de pantalla por píxel del juego.
+        if (dh / tex_h_ >= 3.0f) {
+            EnsureLcd(tex_w_, tex_h_, s.effect_strength);
+            if (lcd_) SDL_RenderTexture(r_, lcd_, nullptr, &dest_);
+        }
+    } else if (effect != static_cast<int>(Effect::None) && s.effect_strength > 0.01f) {
         EnsureEffects(tex_h_, s.effect_strength, effect);
         // Con menos de 2 píxeles por línea las líneas de barrido hacen moiré: se omiten.
         if (scan_ && dh / tex_h_ >= 2.0f) SDL_RenderTexture(r_, scan_, nullptr, &dest_);

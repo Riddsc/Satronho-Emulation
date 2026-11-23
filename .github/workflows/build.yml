@@ -56,6 +56,11 @@ jobs:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-nestopia.sh build/cores
 
+      - name: Núcleo de Game Boy y Game Boy Advance (mGBA)
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: scripts/build-core-mgba.sh build/cores
+
       - name: Satronho Emulation
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
@@ -74,7 +79,7 @@ jobs:
           mkdir -p "$PKG/cores"
           cp build/satronho-emulation.exe "$PKG/"
           cp -r build/assets "$PKG/assets"
-          cp build/cores/nestopia_libretro.dll "$PKG/cores/"
+          cp build/cores/*.dll "$PKG/cores/"
           cp -r licencias "$PKG/licencias"
           cp LICENSE "$PKG/licencias/SatronhoEmulation-GPL-3.0.txt"
           cp CREDITOS.md "$PKG/CREDITOS.md"

@@ -38,6 +38,16 @@ void Write(const char* level, const char* fmt, va_list args) {
 
 void Open() {
     std::lock_guard lock(g_mutex);
+    // El registro de la sesión anterior se guarda como satronho.anterior.log.
+    {
+        std::error_code ec;
+        fs::path prev = Paths::LogFile();
+        prev.replace_filename("satronho.anterior.log");
+        if (fs::exists(Paths::LogFile(), ec)) {
+            fs::remove(prev, ec);
+            fs::rename(Paths::LogFile(), prev, ec);
+        }
+    }
 #ifdef _WIN32
     g_file = _wfopen(Paths::LogFile().c_str(), L"w");
 #else

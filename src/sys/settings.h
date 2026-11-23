@@ -13,7 +13,7 @@ class Ini;
 
 enum class ScaleMode { Fit = 0, Integer = 1, Stretch = 2 };
 enum class Filter { Pixel = 0, SharpSmooth = 1, Smooth = 2 };
-enum class Effect { None = 0, Scanlines = 1, Crt = 2 };
+enum class Effect { None = 0, Scanlines = 1, Crt = 2, Lcd = 3, Auto = 4 };
 
 struct Settings {
     // Video
@@ -24,6 +24,7 @@ struct Settings {
     float effect_strength = 0.45f;
     bool ambient = true;           // fondo con los colores del juego
     bool vsync = true;
+    bool fullscreen_60hz = true;  // en pantalla completa, cambiar la pantalla a 60 Hz
     std::string renderer = "auto"; // motor gráfico (se aplica al reiniciar)
 
     // Audio

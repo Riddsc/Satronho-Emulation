@@ -17,6 +17,7 @@
 #include "sys/hardware.h"
 #include "sys/library.h"
 #include "sys/settings.h"
+#include "sys/systems.h"
 #include "sys/updater.h"
 #include "ui/kit.h"
 #include "util/ini.h"
@@ -24,7 +25,7 @@
 
 namespace Satronho {
 
-enum class Page { Library, Suggested, News, Settings, About };
+enum class Page { Library, Controls, Suggested, News, Settings, About };
 enum class SettingsTab { Video, Audio, Controls, Performance, Meter, Core, Library, Guides, Count };
 enum class GuideId { MechaRidds = 0, Samy, Troya, Nono, Juana, Count };
 
@@ -46,7 +47,10 @@ private:
     void Shutdown();
     void Frame();
     void HandleEvent(const SDL_Event& e);
-    void HandleHotkey(const SDL_KeyboardEvent& k);
+    void DoHotkey(Hotkey h);
+    void SetFullscreen(bool on);
+    void UpdateRefresh();
+    bool EnsureCore(const SystemDef& sys, std::string* error);
     void UpdateScale();
     void ProcessPendingPaths();
 
@@ -79,7 +83,11 @@ private:
     void DrawSettings();
     void DrawSettingsVideo();
     void DrawSettingsAudio();
-    void DrawSettingsControls();
+    void DrawControls();
+    void DrawControllerEditor(const SystemDef& sys, int player, bool compact);
+    void DrawHotkeys();
+    int BindingChip(const char* id, bool keyboard, const std::string& text, bool capturing, bool pressed, float width);
+    void DrawProfilePopup();
     void DrawSettingsPerformance();
     void DrawSettingsMeter();
     void DrawSettingsCore();
@@ -128,9 +136,19 @@ private:
     UsageSampler usage_;
     ProcessUsage proc_;
     double usage_timer_ = 0;
-    bool core_ok_ = false;
+    bool core_ok_ = false;          // hay un núcleo cargado ahora
     std::string core_error_;
-    std::string core_name_;
+    std::string core_name_;         // nombre que reporta el núcleo (Nestopia, mGBA)
+    std::string core_file_;         // archivo del núcleo cargado
+    std::vector<std::string> missing_cores_; // consolas sin su núcleo instalado
+    const SystemDef* sys_ = &Systems().front(); // consola del juego en curso
+    std::string lib_system_;        // consola elegida en la biblioteca ("" = todas)
+    std::string ctrl_system_ = "octa";
+    int ctrl_tab_ = 1;              // 0 general, 1 jugador 1, 2 jugador 2, 3 atajos
+    std::string core_tab_system_ = "octa";
+    int profile_popup_ = 0;         // 0 cerrado, 1 nuevo, 2 renombrar
+    int profile_player_ = 0;
+    char profile_name_[48] = {};
 
     // Imágenes
     Ui::Image logo_;
