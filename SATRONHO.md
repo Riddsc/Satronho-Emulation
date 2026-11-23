@@ -1,0 +1,53 @@
+# Satronho Emulation: cómo está hecho y cómo se mantiene
+
+Memoria técnica del proyecto. Léela antes de tocar algo.
+
+## Qué es
+
+Hub de emuladores de la familia Satronho (por Ridds). Un frontend propio que carga núcleos
+**libretro** (.dll) y les pone encima la capa Satronho: biblioteca, imagen, medidor, guías,
+configuración sugerida. Primera consola: NES con Nestopia UE. Todo GPL 3.0 o posterior.
+
+Decisiones de Ridds:
+- Repo público (Actions gratis). Las builds se publican como **Releases `build-N`**, sin artifacts.
+- Los créditos de terceros van en el README, `CREDITOS.md` y `licencias/` (no en la interfaz).
+  En la app el crédito visible es «por Ridds».
+- Mismo diseño en PC y Android, adaptado. Primero PC (Windows).
+- Consolas pesadas (Switch, PS3…) irán como apps aparte que el hub abre (como Satronho NX).
+
+## Estructura
+
+- `src/core/` — `core_host` (carga del núcleo, entorno libretro, estados, SRAM, opciones),
+  `audio` (SDL_AudioStream con control dinámico de velocidad ±0.5 %), `input` (teclado, mandos,
+  turbo, asignación), `video` (escala, filtro nítido suave, fondo ambiente, líneas, CRT).
+- `src/sys/` — `hardware` (CPU, RAM, GPU por DXGI, pantalla; uso del proceso), `settings`
+  (ajustes y la configuración sugerida de Ñoño), `library` (escaneo en segundo plano, tiempo de
+  juego, favoritos).
+- `src/ui/kit` — colores, tipografías, íconos dibujados, botones, interruptores, segmentados,
+  deslizadores, filas de ajustes, banner de guía y portada de cartucho.
+- `src/app.cpp` — ciclo principal, emulación (sincronía con la pantalla o por tiempo), adelanto
+  de cuadros, rebobinar, estados, atajos. `src/app_ui.cpp` — todas las pantallas.
+- `assets/` — logo, fuentes, guías (`guias/*.png`, los mismos de Satronho NX), `novedades.json`,
+  `consejos.json`, `system/NstDatabase.xml`.
+- Valores por defecto propios del núcleo: `OverrideDefault` en `App::Init` (por ahora, Nestopia
+  sin filtro NTSC para que la imagen salga nítida).
+
+## Compilar y probar
+
+- CI: `.github/workflows/build.yml`, Linux + llvm-mingw → `satronho-emulation.exe` estático (solo
+  DLL del sistema y UCRT) + `cores/nestopia_libretro.dll`. Push a `main` con cambios en código o
+  assets → Release `build-N` con las notas de la primera entrada de `assets/novedades.json`.
+- Local (entorno remoto): compila nativo en Linux con SDL3 de `release-3.4.20`, y para Windows con
+  llvm-mingw (`cmake/llvm-mingw.cmake`). Revisión visual con Xvfb y el modo de revisión:
+  `SATRONHO_QA="page=ajustes;tab=0;frames=50;shot=/tmp/x.png"` (también `rom=`, `menu=1`,
+  `welcome=1`, `estados=1`, `fresh=1`). Con `portable.txt` junto al ejecutable los datos quedan en
+  `user/`.
+- Dear ImGui 1.93.0: ojo, `AddRect`, `PathStroke` y `AddPolyline` llevan el grosor **antes** de las
+  banderas.
+
+## Al agregar una consola
+
+1. Script `scripts/build-core-<núcleo>.sh` y paso en el workflow.
+2. Entrada en la barra lateral (hoy «Pronto»), extensiones, botones del mando y valores por
+   defecto del núcleo.
+3. Novedades en `assets/novedades.json` (la primera entrada son las notas del Release).
