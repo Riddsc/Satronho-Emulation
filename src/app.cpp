@@ -90,8 +90,15 @@ bool App::Init() {
     if (qa_.count("fresh")) settings_ = Settings{};
 
     SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
-    const int ww = std::max(960, ini_.GetInt("ventana.ancho", 1320));
-    const int wh = std::max(620, ini_.GetInt("ventana.alto", 820));
+    int ww = 1320, wh = 820;
+    if (const SDL_DisplayMode* dm = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay())) {
+        if (dm->h >= 1350) {
+            ww = 1760;
+            wh = 1080;
+        }
+    }
+    ww = std::max(960, ini_.GetInt("ventana.ancho", ww));
+    wh = std::max(620, ini_.GetInt("ventana.alto", wh));
     window_ = SDL_CreateWindow("Satronho Emulation", ww, wh, flags);
     if (!window_) {
         Log::Error("No se pudo crear la ventana: %s", SDL_GetError());
@@ -139,6 +146,7 @@ bool App::Init() {
     LoadAssets();
 
     core_.on_audio = [this](const int16_t* data, size_t frames) { audio_.Push(data, frames); };
+    core_.on_sensor = [this](unsigned id) { return input_.Sensor(id); };
     core_.on_message = [this](const std::string& text, int ms) { Toast(text, GuideId::MechaRidds, std::clamp(ms / 1000.0, 1.5, 6.0)); };
     for (const auto& sys : Systems()) {
         std::error_code ec;
@@ -203,11 +211,25 @@ void App::LoadAssets() {
     if (!tips_.empty()) tip_index_ = static_cast<int>(SDL_GetTicks() / 1000) % static_cast<int>(tips_.size());
 }
 
+float App::AutoScale() const {
+    // Windows al 100 % en una pantalla 1440p o 4K deja todo muy pequeño: se agranda solo.
+    float k = 1.0f;
+    if (const SDL_DisplayMode* m = SDL_GetDesktopDisplayMode(SDL_GetDisplayForWindow(window_))) {
+        const float logical_h = m->h / std::max(1.0f, display_scale_);
+        if (logical_h >= 2000) k = 1.5f;
+        else if (logical_h >= 1350) k = 1.25f;
+    }
+    return k;
+}
+
 void App::UpdateScale() {
     display_scale_ = SDL_GetWindowDisplayScale(window_);
     if (display_scale_ <= 0.1f) display_scale_ = 1.0f;
-    Ui::SetScale(display_scale_ * settings_.ui_scale);
+    const float user = settings_.ui_scale > 0.0f ? settings_.ui_scale : AutoScale();
+    Ui::SetScale(display_scale_ * user);
     Ui::ApplyStyle();
+    Log::Info("Escala de la interfaz: %.2f (pantalla %.2f × %s %.2f)", display_scale_ * user, display_scale_,
+              settings_.ui_scale > 0.0f ? "elegida" : "automática", user);
 }
 
 void App::Shutdown() {
@@ -364,7 +386,7 @@ void App::Frame() {
 
     ImGuiIO& io = ImGui::GetIO();
     // Mientras se juega, el mando es del juego; la interfaz solo lo usa con el menú abierto.
-    if (in_game_ && !menu_open_) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
+    if ((in_game_ && !menu_open_) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
     if (in_game_ && !paused_ && !menu_open_) EmulateTick(dt);
@@ -734,7 +756,9 @@ void App::Step(bool rewinding, bool fast_forward) {
         }
         return;
     }
-    if (settings_.runahead > 0 && !fast_forward) RunAheadFrame(settings_.runahead);
+    // Con mGBA el adelanto hace sonar raro el audio (guarda el sonido fuera del estado), así que
+    // solo se usa en los núcleos que lo manejan bien.
+    if (settings_.runahead > 0 && !fast_forward && sys_->runahead_ok) RunAheadFrame(settings_.runahead);
     else core_.RunFrame();
     ++emu_frames_;
     if (settings_.rewind && emu_frames_ % 2 == 0) PushRewind();

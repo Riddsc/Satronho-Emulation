@@ -819,12 +819,12 @@ void App::DrawSettingsVideo() {
     }
     RowEnd();
 
-    static const float scales[] = {0.9f, 1.0f, 1.15f, 1.3f};
-    int si = 1;
-    for (int i = 0; i < 4; ++i)
+    static const float scales[] = {0.0f, 0.9f, 1.0f, 1.15f, 1.3f, 1.5f};
+    int si = 0;
+    for (int i = 0; i < 6; ++i)
         if (std::fabs(settings_.ui_scale - scales[i]) < 0.02f) si = i;
-    RowBegin("Tamaño de la interfaz", nullptr);
-    if (Segmented("##ui", &si, {"90 %", "100 %", "115 %", "130 %"}, S(320))) {
+    RowBegin("Tamaño de la interfaz", "«Auto» la agranda en pantallas 1440p y 4K para que todo se lea cómodo.");
+    if (Segmented("##ui", &si, {"Auto", "90 %", "100 %", "115 %", "130 %", "150 %"}, S(400))) {
         settings_.ui_scale = scales[si];
         UpdateScale();
         changed = true;
@@ -1079,7 +1079,7 @@ void App::DrawSettingsGuides() {
 // ---------------------------------------------------------------- controles
 
 int App::BindingChip(const char* id, bool keyboard, const std::string& text, bool capturing, bool pressed, float width) {
-    const float h = S(28);
+    const float h = S(32);
     const ImVec2 p = ImGui::GetCursorScreenPos();
     ImGui::InvisibleButton(id, {width, h});
     const bool hovered = ImGui::IsItemHovered();
@@ -1088,15 +1088,14 @@ int App::BindingChip(const char* id, bool keyboard, const std::string& text, boo
     if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) result = 2;
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const float pulse = 0.5f + 0.5f * static_cast<float>(std::sin(ImGui::GetTime() * 7));
-    unsigned bg = hovered ? Color::Surface3 : Color::Surface2;
-    dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(bg), S(8));
-    if (pressed) dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(Color::Gold, 0.22f), S(8));
-    if (capturing) dl->AddRect(p, {p.x + width, p.y + h}, U32(Color::Accent, 0.4f + 0.6f * pulse), S(8), S(2));
-    DrawIcon(dl, keyboard ? Icon::Keyboard : Icon::Gamepad, {p.x + S(14), p.y + h * 0.5f}, S(13), U32(capturing ? Color::Accent : Color::Dim));
-    const std::string t = capturing ? (keyboard ? std::string("Presiona una tecla…") : std::string("Presiona un botón…")) : text;
-    Ellipsize(dl, GetFonts().medium, S(12.5f), {p.x + S(28), p.y + (h - S(12.5f)) * 0.5f - S(1)},
-              U32(capturing ? Color::Accent : (t == "—" ? Color::Dim : Color::Text)), t, width - S(34), 1);
-    if (hovered && !capturing) HelpTooltip(keyboard ? "Clic: asignar una tecla · Clic derecho: quitar" : "Clic: asignar un botón del mando · Clic derecho: quitar");
+    dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(hovered ? Color::Surface3 : Color::Surface2), S(9));
+    if (pressed) dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(Color::Gold, 0.22f), S(9));
+    if (capturing) dl->AddRect(p, {p.x + width, p.y + h}, U32(Color::Accent, 0.4f + 0.6f * pulse), S(9), S(2));
+    DrawIcon(dl, keyboard ? Icon::Keyboard : Icon::Gamepad, {p.x + S(16), p.y + h * 0.5f}, S(15), U32(capturing ? Color::Accent : Color::Dim));
+    const std::string t = capturing ? std::string("Presiona…") : text;
+    Ellipsize(dl, GetFonts().medium, S(14), {p.x + S(32), p.y + (h - S(14)) * 0.5f - S(1)},
+              U32(capturing ? Color::Accent : (t == "—" ? Color::Dim : Color::Text)), t, width - S(38), 1);
+    if (hovered && !capturing) HelpTooltip("Clic: asignar (tecla o botón del mando, lo que presiones) · Clic derecho: dejar vacío");
     return result;
 }
 
@@ -1110,21 +1109,22 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
 
     // Barra: dispositivo y perfil.
     {
-        FontScope f(GetFonts().medium, 13.5f);
-        const ImVec2 bar = ImGui::GetCursorScreenPos();
+        FontScope f(GetFonts().medium, 14.5f);
+        const float y0 = ImGui::GetCursorPosY();
+        ImGui::SetCursorPosY(y0 + S(5));
         if (Toggle("##teclado", &pc.keyboard)) changed = true;
         ImGui::SameLine(0, S(8));
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(3));
+        ImGui::SetCursorPosY(y0 + S(8));
         ImGui::TextUnformatted("Teclado");
         ImGui::SameLine(0, S(18));
-        ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, bar.y - S(5)});
+        ImGui::SetCursorPosY(y0);
         std::vector<std::string> pad_names{"Sin mando"};
         for (int i = 0; i < 4; ++i) {
             if (i < static_cast<int>(pads.size())) pad_names.push_back(Fmt("Mando %d · %s", i + 1, pads[i].name.c_str()));
             else pad_names.push_back(Fmt("Mando %d (no conectado)", i + 1));
         }
         int pad_sel = pc.pad + 1;
-        if (ComboStyled("##mando", &pad_sel, pad_names, compact ? S(250) : S(280))) {
+        if (ComboStyled("##mando", &pad_sel, pad_names, compact ? S(250) : S(300))) {
             pc.pad = pad_sel - 1;
             changed = true;
         }
@@ -1136,12 +1136,12 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             if (profs[i] == current) prof_sel = static_cast<int>(i);
         std::vector<std::string> prof_labels;
         for (const auto& n : profs) prof_labels.push_back("Perfil: " + n);
-        if (ComboStyled("##perfil", &prof_sel, prof_labels, compact ? S(190) : S(220))) {
+        if (ComboStyled("##perfil", &prof_sel, prof_labels, compact ? S(200) : S(240))) {
             input_.SetPlayerProfile(player, sys, profs[prof_sel]);
             changed = true;
         }
-        ImGui::SameLine(0, S(4));
-        if (IconButton("##nuevo", Icon::Plus, S(36), U32(Color::Muted), "Nuevo perfil (copia del actual)")) {
+        ImGui::SameLine(0, S(6));
+        if (IconButton("##nuevo", Icon::Plus, S(38), U32(Color::Muted), "Nuevo perfil (copia del actual)")) {
             profile_popup_ = 1;
             profile_player_ = player;
             ctrl_system_ = sys.id;
@@ -1149,14 +1149,14 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         }
         ImGui::SameLine(0, S(2));
         ImGui::BeginDisabled(current == Input::kDefaultProfile);
-        if (IconButton("##renombrar", Icon::File, S(36), U32(Color::Muted), "Renombrar perfil")) {
+        if (IconButton("##renombrar", Icon::File, S(38), U32(Color::Muted), "Renombrar perfil")) {
             profile_popup_ = 2;
             profile_player_ = player;
             ctrl_system_ = sys.id;
             std::snprintf(profile_name_, sizeof profile_name_, "%s", current.c_str());
         }
         ImGui::SameLine(0, S(2));
-        if (IconButton("##borrar", Icon::Close, S(36), U32(Color::Muted), "Borrar perfil")) {
+        if (IconButton("##borrar", Icon::Close, S(38), U32(Color::Muted), "Borrar perfil")) {
             input_.DeleteProfile(sys, current);
             changed = true;
         }
@@ -1164,129 +1164,225 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     }
     ImGui::Dummy({0, S(4)});
     {
-        FontScope f(GetFonts().medium, 13.5f);
-        if (Button("Asignación automática", ButtonKind::Secondary, {0, S(34)}, Icon::Sparkle, true)) {
+        FontScope f(GetFonts().medium, 14);
+        if (Button("Asignación automática", ButtonKind::Secondary, {0, S(38)}, Icon::Sparkle, true)) {
             input_.AutoMapPad(player, sys);
             changed = true;
             Toast("Mando asignado con la distribución de " + sys.name, GuideId::Samy, 2.5);
         }
         if (ImGui::IsItemHovered()) HelpTooltip("Pone los botones del mando en su lugar natural para esta consola.");
         ImGui::SameLine(0, S(8));
-        const bool has_pad = pc.pad >= 0 && pc.pad < static_cast<int>(pads.size());
-        if (Button("Uno por uno", ButtonKind::Secondary, {0, S(34)}, Icon::ChevronRight, true)) input_.StartWizard(player, sys, has_pad && !pc.keyboard ? true : has_pad);
-        if (ImGui::IsItemHovered()) HelpTooltip(has_pad ? "Te pide cada botón en orden. Se asignan los del mando." : "Te pide cada botón en orden. Se asignan teclas.");
+        if (Button("Uno por uno", ButtonKind::Secondary, {0, S(38)}, Icon::ChevronRight, true)) input_.StartWizard(player, sys, true);
+        if (ImGui::IsItemHovered()) HelpTooltip("Te pide cada botón en orden. Presiona la tecla o el botón del mando que quieras para cada uno.");
         ImGui::SameLine(0, S(8));
-        if (Button("Restablecer", ButtonKind::Ghost, {0, S(34)}, Icon::Refresh, true)) {
+        if (Button("Restablecer", ButtonKind::Ghost, {0, S(38)}, Icon::Refresh, true)) {
             input_.ResetProfile(player, sys);
             changed = true;
         }
         ImGui::SameLine(0, S(4));
-        if (Button("Borrar todo", ButtonKind::Ghost, {0, S(34)}, Icon::Close, true)) {
+        if (Button("Borrar todo", ButtonKind::Ghost, {0, S(38)}, Icon::Close, true)) {
             input_.ClearProfile(player, sys);
             changed = true;
         }
     }
     ImGui::Dummy({0, S(6)});
 
-    // Aviso mientras se espera una tecla o botón.
+    // Aviso mientras se espera una tecla o botón, o el último botón que llegó.
     const bool cap_here = input_.Capturing() && !input_.capture.hotkey && input_.capture.sys == sys.id && input_.capture.player == player;
-    if (cap_here) {
-        const char* name = "?";
-        for (const auto& [id, label] : sys.buttons)
-            if (id == input_.capture.button) name = label;
-        const std::string what = input_.capture.any ? "una tecla o un botón del mando" : input_.capture.pad ? "un botón del mando" : "una tecla";
-        IconText(Icon::Keyboard, Fmt("Presiona %s para «%s»…  (Esc cancela)", what.c_str(), name).c_str(), U32(Color::Accent));
-    } else {
-        const double age = SDL_GetTicks() / 1000.0 - input_.last_input_time;
-        FontScope f(GetFonts().regular, 13);
-        ImGui::PushStyleColor(ImGuiCol_Text, V4(age < 1.5 ? Color::Gold : Color::Dim));
-        ImGui::TextUnformatted(input_.last_input.empty() ? "Presiona cualquier botón para verlo en vivo." : ("Último: " + input_.last_input).c_str());
-        ImGui::PopStyleColor();
-    }
-    ImGui::Dummy({0, S(4)});
-
-    // Disposición: cruceta a la izquierda, botones a la derecha, dibujo al centro.
-    Mapping& m = input_.Edit(player, sys);
-    const uint16_t live = input_.LiveButtons(player, sys);
-    const float W = ImGui::GetContentRegionAvail().x;
-    const float box_w = compact ? S(140) : S(160), gap = S(8);
-    const ImVec2 o = ImGui::GetCursorScreenPos();
     auto label_of = [&](int id) {
         for (const auto& [bid, label] : sys.buttons)
             if (bid == id) return label;
         return "?";
     };
+    {
+        FontScope f(GetFonts().semibold, 15);
+        if (cap_here) {
+            const float pulse = 0.6f + 0.4f * static_cast<float>(std::sin(ImGui::GetTime() * 7));
+            ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Accent, pulse));
+            ImGui::TextUnformatted(Fmt("Presiona la tecla o el botón del mando para «%s»   ·   Esc cancela", label_of(input_.capture.button)).c_str());
+            ImGui::PopStyleColor();
+        } else {
+            const double age = SDL_GetTicks() / 1000.0 - input_.last_input_time;
+            ImGui::PushStyleColor(ImGuiCol_Text, V4(age < 1.5 ? Color::Gold : Color::Dim));
+            ImGui::TextUnformatted(input_.last_input.empty() ? "Presiona cualquier botón para verlo en vivo." : ("Último botón: " + input_.last_input).c_str());
+            ImGui::PopStyleColor();
+        }
+    }
+    ImGui::Dummy({0, S(6)});
+
+    Mapping& m = input_.Edit(player, sys);
+    const uint16_t live = input_.LiveButtons(player, sys);
     auto has = [&](int id) {
         for (const auto& [bid, label] : sys.buttons)
             if (bid == id) return true;
         return false;
     };
-    // Cada casilla: nombre del botón, su tecla y su botón de mando.
-    const float bh = S(96);
-    auto box2 = [&](int id, ImVec2 pos) {
+
+    // Casilla de un botón: nombre, su tecla y su botón de mando.
+    const float gap = S(10);
+    const float W = ImGui::GetContentRegionAvail().x;
+    float cell_w = S(160);
+    const float cell_h = S(112);
+    auto cell = [&](int id, ImVec2 pos) {
         ImGui::PushID(id);
         ImDrawList* dl = ImGui::GetWindowDrawList();
         const bool down = (live >> id) & 1;
         const bool cap = cap_here && input_.capture.button == id;
-        dl->AddRectFilled(pos, {pos.x + box_w, pos.y + bh}, U32(Color::Bg, 0.6f), S(12));
-        if (down) dl->AddRectFilled(pos, {pos.x + box_w, pos.y + bh}, U32(Color::Gold, 0.10f), S(12));
-        dl->AddRect(pos, {pos.x + box_w, pos.y + bh}, U32(down ? Color::Gold : cap ? Color::Accent : Color::Border), S(12), down || cap ? S(1.6f) : 1.0f);
+        dl->AddRectFilled(pos, {pos.x + cell_w, pos.y + cell_h}, U32(Color::Bg, 0.65f), S(14));
+        if (down) dl->AddRectFilled(pos, {pos.x + cell_w, pos.y + cell_h}, U32(Color::Gold, 0.12f), S(14));
+        dl->AddRect(pos, {pos.x + cell_w, pos.y + cell_h}, U32(down ? Color::Gold : cap ? Color::Accent : Color::Border), S(14), down || cap ? S(2) : 1.0f);
         {
-            FontScope f(GetFonts().semibold, 12.5f);
-            dl->AddText({pos.x + S(10), pos.y + S(7)}, U32(down ? Color::Gold : Color::Muted), label_of(id));
+            FontScope f(GetFonts().semibold, 15);
+            dl->AddText({pos.x + S(12), pos.y + S(8)}, U32(down ? Color::Gold : Color::Text), label_of(id));
         }
-        const float cw = box_w - S(16);
-        ImGui::SetCursorScreenPos({pos.x + S(8), pos.y + S(29)});
-        const int rk = BindingChip("##k", true, Input::KeyLabel(m.keys[id]), cap && !input_.capture.pad && !input_.capture.any, down, cw);
-        if (rk == 1) input_.StartCapture(player, sys, id, false);
+        const float cw = cell_w - S(20);
+        ImGui::SetCursorScreenPos({pos.x + S(10), pos.y + S(36)});
+        const int rk = BindingChip("##k", true, Input::KeyLabel(m.keys[id]), cap, down, cw);
+        ImGui::SetCursorScreenPos({pos.x + S(10), pos.y + S(72)});
+        const int rp = BindingChip("##p", false, Input::PadCodeLabel(m.pad[id], family), cap, down, cw);
+        if (rk == 1 || rp == 1) input_.StartCapture(player, sys, id, rp == 1, true);
         if (rk == 2) { m.keys[id] = SDL_SCANCODE_UNKNOWN; changed = true; }
-        ImGui::SetCursorScreenPos({pos.x + S(8), pos.y + S(61)});
-        const int rp = BindingChip("##p", false, Input::PadCodeLabel(m.pad[id], family), cap && (input_.capture.pad || input_.capture.any), down, cw);
-        if (rp == 1) input_.StartCapture(player, sys, id, true);
         if (rp == 2) { m.pad[id] = kPadNone; changed = true; }
         ImGui::PopID();
     };
-
-    const int left_ids[] = {RETRO_DEVICE_ID_JOYPAD_UP, RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_RIGHT};
-    const int right_ids[] = {RETRO_DEVICE_ID_JOYPAD_A, RETRO_DEVICE_ID_JOYPAD_B, RETRO_DEVICE_ID_JOYPAD_X, RETRO_DEVICE_ID_JOYPAD_Y};
+    auto group_title = [&](const char* t, ImVec2 pos) {
+        FontScope f(GetFonts().semibold, 13);
+        ImGui::GetWindowDrawList()->AddText(pos, U32(Color::Dim), t);
+    };
+    const float title_h = S(24);
     const bool shoulders = has(RETRO_DEVICE_ID_JOYPAD_L);
-    const float col_h = 4 * bh + 3 * gap;
-    const float center_x0 = o.x + box_w + S(16), center_x1 = o.x + W - box_w - S(16);
-    const float center_w = center_x1 - center_x0;
-    const float top_h = shoulders ? bh + gap : 0;
-    const float bottom_h = bh + gap;
     const float aspect = ControllerAspect(sys.layout);
-    float draw_h = std::clamp(center_w / aspect, S(150), compact ? S(260) : S(330));
-    const float total_h = std::max(col_h, top_h + draw_h + bottom_h);
-    draw_h = total_h - top_h - bottom_h;
-    const float col_y = o.y + (total_h - col_h) * 0.5f;
-    for (int i = 0; i < 4; ++i) box2(left_ids[i], {o.x, col_y + i * (bh + gap)});
-    for (int i = 0; i < 4; ++i) box2(right_ids[i], {o.x + W - box_w, col_y + i * (bh + gap)});
-    if (shoulders) {
-        box2(RETRO_DEVICE_ID_JOYPAD_L, {center_x0, o.y});
-        box2(RETRO_DEVICE_ID_JOYPAD_R, {center_x1 - box_w, o.y});
-    }
-    const float mid = (center_x0 + center_x1) * 0.5f;
-    box2(RETRO_DEVICE_ID_JOYPAD_SELECT, {mid - box_w - gap * 0.5f, o.y + total_h - bh});
-    box2(RETRO_DEVICE_ID_JOYPAD_START, {mid + gap * 0.5f, o.y + total_h - bh});
-
-    // Dibujo del control con los botones en vivo. Al hacer clic se asigna con lo que llegue primero.
-    const ImVec2 dp(center_x0, o.y + top_h);
-    const ImVec2 ds(center_w, draw_h - gap);
-    ImGui::SetCursorScreenPos(dp);
-    ImGui::InvisibleButton("##dibujo", ds);
-    const bool clicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
     const int cap_btn = cap_here ? input_.capture.button : -1;
-    const int hov = DrawController(ImGui::GetWindowDrawList(), sys.layout, dp, ds, live, cap_btn,
-                                   ImGui::IsItemHovered() ? ImGui::GetIO().MousePos : ImVec2(-1e5f, -1e5f));
+    int hov = -1;
+    bool clicked = false;
+    auto drawing = [&](ImVec2 dp, ImVec2 ds) {
+        ImGui::SetCursorScreenPos(dp);
+        ImGui::InvisibleButton("##dibujo", ds);
+        clicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+        hov = DrawController(ImGui::GetWindowDrawList(), sys.layout, dp, ds, live, cap_btn,
+                             ImGui::IsItemHovered() ? ImGui::GetIO().MousePos : ImVec2(-1e5f, -1e5f));
+    };
+    // Grupos: cruceta en cruz; Select/Start (y gatillos); B, A y turbos.
+    auto dpad_group = [&](ImVec2 p) {
+        group_title("CRUCETA", p);
+        const float gw = cell_w * 2 + gap;
+        cell(RETRO_DEVICE_ID_JOYPAD_UP, {p.x + (gw - cell_w) * 0.5f, p.y + title_h});
+        cell(RETRO_DEVICE_ID_JOYPAD_LEFT, {p.x, p.y + title_h + cell_h + gap});
+        cell(RETRO_DEVICE_ID_JOYPAD_RIGHT, {p.x + cell_w + gap, p.y + title_h + cell_h + gap});
+        cell(RETRO_DEVICE_ID_JOYPAD_DOWN, {p.x + (gw - cell_w) * 0.5f, p.y + title_h + 2 * (cell_h + gap)});
+        return title_h + 3 * cell_h + 2 * gap;
+    };
+    auto buttons_group = [&](ImVec2 p) {
+        group_title("BOTONES", p);
+        cell(RETRO_DEVICE_ID_JOYPAD_B, {p.x, p.y + title_h});
+        cell(RETRO_DEVICE_ID_JOYPAD_A, {p.x + cell_w + gap, p.y + title_h});
+        cell(RETRO_DEVICE_ID_JOYPAD_Y, {p.x, p.y + title_h + cell_h + gap});
+        cell(RETRO_DEVICE_ID_JOYPAD_X, {p.x + cell_w + gap, p.y + title_h + cell_h + gap});
+        return title_h + 2 * cell_h + gap;
+    };
+    auto center_group = [&](ImVec2 p) {
+        group_title("SELECT Y START", p);
+        cell(RETRO_DEVICE_ID_JOYPAD_SELECT, {p.x, p.y + title_h});
+        cell(RETRO_DEVICE_ID_JOYPAD_START, {p.x + cell_w + gap, p.y + title_h});
+        float h = title_h + cell_h;
+        if (shoulders) {
+            const float y = p.y + h + gap * 1.5f;
+            group_title("GATILLOS", {p.x, y});
+            cell(RETRO_DEVICE_ID_JOYPAD_L, {p.x, y + title_h});
+            cell(RETRO_DEVICE_ID_JOYPAD_R, {p.x + cell_w + gap, y + title_h});
+            h = y - p.y + title_h + cell_h;
+        }
+        return h;
+    };
+
+    const ImVec2 o = ImGui::GetCursorScreenPos();
+    float total_h;
+    const float col_gap = S(24);
+    const float wide_cell = S(160);
+    const float wide_side = wide_cell * 2 + gap;
+    if (!compact && W >= wide_side * 2 + col_gap * 2 + S(420)) {
+        // Pantalla ancha: el control al centro y los grupos alrededor, como en DuckStation.
+        cell_w = wide_cell;
+        const float lh = dpad_group(o);
+        const float rx = o.x + W - wide_side;
+        const float rh = buttons_group({rx, o.y});
+        const float cx0 = o.x + wide_side + col_gap, cx1 = rx - col_gap;
+        const float ch = center_group({(cx0 + cx1) * 0.5f - cell_w - gap * 0.5f, o.y});
+        const float draw_y = o.y + ch + S(20);
+        float draw_h = std::clamp((cx1 - cx0) / aspect, S(200), S(440));
+        total_h = std::max({lh, rh, draw_y - o.y + draw_h});
+        draw_h = total_h - (draw_y - o.y);
+        drawing({cx0, draw_y}, {cx1 - cx0, draw_h});
+    } else {
+        // Más angosto: el control grande arriba y los tres grupos debajo.
+        const float draw_h = std::clamp(W / aspect, S(200), compact ? S(240) : S(320));
+        drawing({o.x, o.y}, {W, draw_h});
+        const float col_w = (W - col_gap * 2) / 3.0f;
+        cell_w = (col_w - gap) * 0.5f;
+        const float gy = o.y + draw_h + S(18);
+        const float h1 = dpad_group({o.x, gy});
+        const float h2 = center_group({o.x + col_w + col_gap, gy});
+        const float h3 = buttons_group({o.x + 2 * (col_w + col_gap), gy});
+        total_h = gy - o.y + std::max({h1, h2, h3});
+    }
     if (clicked && hov >= 0) input_.StartCapture(player, sys, hov, pc.pad >= 0, true);
     if (hov >= 0 && !cap_here) HelpTooltip(Fmt("%s · clic para asignar", label_of(hov)).c_str());
 
-    ImGui::SetCursorScreenPos({o.x, o.y + total_h + S(10)});
+    ImGui::SetCursorScreenPos({o.x, o.y + total_h + S(14)});
+
+    // Inclinación para los juegos con sensor en el cartucho (solo jugador 1).
+    if (sys.tilt && player == 0) {
+        PanelBegin("##inclinacion", {0, 0}, Color::Bg, 14, {16, 14});
+        float tx, ty, gz;
+        input_.TiltNow(&tx, &ty, &gz);
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        const float box = S(84);
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        dl->AddRectFilled(p, {p.x + box, p.y + box}, U32(Color::Surface2), S(12));
+        dl->AddLine({p.x + box * 0.5f, p.y + S(8)}, {p.x + box * 0.5f, p.y + box - S(8)}, U32(Color::Border));
+        dl->AddLine({p.x + S(8), p.y + box * 0.5f}, {p.x + box - S(8), p.y + box * 0.5f}, U32(Color::Border));
+        const bool moving = std::fabs(tx) > 0.05f || std::fabs(ty) > 0.05f;
+        dl->AddCircleFilled({p.x + box * 0.5f + tx * box * 0.38f, p.y + box * 0.5f + ty * box * 0.38f}, S(8), U32(moving ? Color::Gold : Color::Accent));
+        ImGui::SetCursorScreenPos({p.x + box + S(18), p.y});
+        ImGui::BeginGroup();
+        Heading("Inclinación", 16);
+        Muted("Para juegos con sensor en el cartucho, como Kirby Tilt 'n' Tumble o WarioWare Twisted. "
+              "Con el teclado: I, K, J y L.", 13.5f);
+        int src = input_.tilt_source;
+        const bool motion = input_.PadHasMotion(pc.pad);
+        if (Segmented("##fuente", &src, {"Stick derecho", "Sensor del mando"}, S(330))) {
+            input_.tilt_source = src;
+            changed = true;
+        }
+        if (src == 1 && !motion) {
+            ImGui::SameLine(0, S(12));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(9));
+            Muted("Tu mando no tiene sensor de movimiento (los de PS4, PS5 y Switch sí).", 13);
+        }
+        ImGui::SameLine(0, S(16));
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(5));
+        changed |= Toggle("##invx", &input_.tilt_invert_x);
+        ImGui::SameLine(0, S(6));
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(3));
+        Muted("Invertir horizontal", 13.5f);
+        ImGui::SameLine(0, S(14));
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(3));
+        changed |= Toggle("##invy", &input_.tilt_invert_y);
+        ImGui::SameLine(0, S(6));
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(3));
+        Muted("Invertir vertical", 13.5f);
+        ImGui::EndGroup();
+        PanelEnd();
+        ImGui::Dummy({0, S(8)});
+    }
+
     Muted(Fmt("Nombres de botones como en un mando %s. Clic derecho en una casilla la deja vacía.",
               family == PadFamily::PlayStation ? "PlayStation" : family == PadFamily::Switch ? "de Switch" : "Xbox")
               .c_str(),
-          12.5f);
+          13.5f);
+    static bool was_capturing = false;
+    if (was_capturing && !input_.Capturing()) changed = true; // se acaba de asignar algo
+    was_capturing = input_.Capturing();
     if (changed) SaveConfig();
     ImGui::PopID();
     ImGui::PopID();
@@ -1310,14 +1406,14 @@ void App::DrawHotkeys() {
         const float avail_w = ImGui::GetContentRegionAvail().x;
         const float chip_w = std::min(S(200), (avail_w - S(250)) * 0.5f - S(10));
         ImGui::SetCursorScreenPos({p.x + avail_w - chip_w * 2 - S(10), p.y});
-        const int rk = BindingChip("##k", true, Input::KeyLabel(input_.hk_keys[i]), cap && !input_.capture.pad, false, chip_w);
+        const int rk = BindingChip("##k", true, Input::KeyLabel(input_.hk_keys[i]), cap, false, chip_w);
         if (rk == 1) input_.StartHotkeyCapture(static_cast<Hotkey>(i), false);
         if (rk == 2) { input_.hk_keys[i] = SDL_SCANCODE_UNKNOWN; changed = true; }
         ImGui::SetCursorScreenPos({p.x + avail_w - chip_w, p.y});
-        const int rp = BindingChip("##p", false, Input::PadCodeLabel(input_.hk_pad[i], family), cap && input_.capture.pad, false, chip_w);
+        const int rp = BindingChip("##p", false, Input::PadCodeLabel(input_.hk_pad[i], family), cap, false, chip_w);
         if (rp == 1) input_.StartHotkeyCapture(static_cast<Hotkey>(i), true);
         if (rp == 2) { input_.hk_pad[i] = kPadNone; changed = true; }
-        ImGui::SetCursorScreenPos({p.x, p.y + S(38)});
+        ImGui::SetCursorScreenPos({p.x, p.y + S(42)});
         ImGui::Dummy({0, 0});
         ImGui::PopID();
     }
@@ -1381,34 +1477,10 @@ void App::DrawControls() {
     }
     if (Segmented("##ctrl_sis", &cur, names, S(420))) ctrl_system_ = Systems()[cur].id;
     const SystemDef& sys = Systems()[cur];
-    ImGui::Dummy({0, S(8)});
-
+    ImGui::SameLine(0, S(16));
+    Segmented("##ctrl_tab", &ctrl_tab_, {"General", "Jugador 1", "Jugador 2", "Atajos"}, S(480));
+    ImGui::Dummy({0, S(10)});
     const auto pads = input_.Gamepads();
-    auto device = [&](int pl) {
-        const PlayerConfig& pc = input_.players[pl];
-        std::string d;
-        if (pc.keyboard) d = "Teclado";
-        if (pc.pad >= 0) d += std::string(d.empty() ? "" : " + ") + (pc.pad < static_cast<int>(pads.size()) ? "Mando " + std::to_string(pc.pad + 1) : "sin conectar");
-        return d.empty() ? std::string("Sin dispositivo") : d;
-    };
-    const std::string d1 = device(0), d2 = device(1);
-    ImGui::BeginChild("##ctrl_tabs", {S(220), 0}, 0, ImGuiWindowFlags_NoScrollbar);
-    if (NavItem("General", Icon::Gear, ctrl_tab_ == 0)) ctrl_tab_ = 0;
-    if (NavItem("Jugador 1", Icon::Gamepad, ctrl_tab_ == 1, nullptr, false, Color::Amber, d1.c_str())) ctrl_tab_ = 1;
-    if (NavItem("Jugador 2", Icon::Gamepad, ctrl_tab_ == 2, nullptr, false, Color::Amber, d2.c_str())) ctrl_tab_ = 2;
-    if (NavItem("Atajos", Icon::Keyboard, ctrl_tab_ == 3)) ctrl_tab_ = 3;
-    ImGui::Dummy({0, S(14)});
-    SectionLabel("   MANDOS CONECTADOS");
-    ImGui::Dummy({0, S(2)});
-    if (pads.empty()) Muted("   Ninguno por ahora.", 13);
-    for (const auto& pd : pads) {
-        FontScope f(GetFonts().medium, 13);
-        ImGui::TextUnformatted(Fmt("   %d · %s", pd.slot + 1, pd.family_name.c_str()).c_str());
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(8));
-        Muted(("   " + pd.name).c_str(), 12);
-    }
-    ImGui::EndChild();
-    ImGui::SameLine(0, S(24));
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(24), S(20)});
     ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Surface));
@@ -1426,7 +1498,17 @@ void App::DrawControls() {
         RowBegin("Registro de botones", "Anota en satronho.log cada botón que llega al juego. Sirve para revisar si algún botón se pierde.");
         changed |= Toggle("##registro", &input_.log_buttons);
         RowEnd();
-        Muted(input_.last_input.empty() ? "Presiona cualquier botón para verlo aquí." : ("Último botón: " + input_.last_input).c_str(), 13.5f);
+        Muted(input_.last_input.empty() ? "Presiona cualquier botón para verlo aquí." : ("Último botón: " + input_.last_input).c_str(), 14);
+        ImGui::Dummy({0, S(10)});
+        Heading("Mandos conectados", 16);
+        if (pads.empty()) Muted("Ninguno por ahora. Puedes conectar uno en cualquier momento.", 14);
+        for (const auto& pd : pads) {
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            DrawIcon(ImGui::GetWindowDrawList(), Icon::Gamepad, {p.x + S(12), p.y + S(12)}, S(20), U32(Color::Green));
+            ImGui::SetCursorScreenPos({p.x + S(34), p.y});
+            FontScope f(GetFonts().medium, 15);
+            ImGui::TextUnformatted(Fmt("Mando %d · %s (%s)", pd.slot + 1, pd.name.c_str(), pd.family_name.c_str()).c_str());
+        }
         if (changed) SaveConfig();
     } else if (ctrl_tab_ == 3) {
         DrawHotkeys();

@@ -52,6 +52,7 @@ private:
     void UpdateRefresh();
     bool EnsureCore(const SystemDef& sys, std::string* error);
     void UpdateScale();
+    float AutoScale() const;
     void ProcessPendingPaths();
 
     // Juego

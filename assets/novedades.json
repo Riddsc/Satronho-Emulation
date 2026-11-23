@@ -3,6 +3,37 @@
     {
       "version": "Esta build",
       "fecha": "23 de noviembre de 2026",
+      "titulo": "Sonido limpio en Bolsillo, inclinación y controles más grandes",
+      "cambios": [
+        {
+          "tipo": "arreglo",
+          "texto": "El sonido de Satronho Bolsillo y Bolsillo Plus ya no suena apagado ni retumba. Lo causaba el adelanto de cuadros: mGBA guarda su sonido fuera del estado del juego, así que en esas consolas el adelanto queda apagado."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Inclinación para los juegos con sensor en el cartucho, como Kirby Tilt 'n' Tumble o WarioWare Twisted: con el stick derecho, con las teclas I, J, K y L, o inclinando de verdad un mando de PS4, PS5 o Switch."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Controles rediseñados: el control dibujado mucho más grande, la cruceta en cruz, letras más grandes y pestañas arriba (General, Jugador 1, Jugador 2 y Atajos). Al asignar, vale la tecla o el botón del mando que presiones primero, desde el dibujo o desde las casillas."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Los botones pequeños del dibujo (Start y Select de la GBA) ya se pueden tocar, y los gatillos L y R se iluminan al presionarlos."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Tamaño automático de la interfaz: en pantallas 1440p o 4K todo se agranda para leerse cómodo. Se puede cambiar en Ajustes → Imagen."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El registro ya no se llena de mensajes internos del núcleo (antes pesaba varios megas en una sesión)."
+        }
+      ]
+    },
+    {
+      "version": "Build 5",
+      "fecha": "23 de noviembre de 2026",
       "titulo": "Llegan Satronho Bolsillo y Bolsillo Plus, y controles nuevos",
       "cambios": [
         {

@@ -11,7 +11,7 @@ namespace Satronho {
 const std::vector<SystemDef>& Systems() {
     static const std::vector<SystemDef> systems{
         {"octa", "Octa", "Satronho Octa", "juegos de NES", "NES", "nestopia", {"nes", "fds", "unf", "unif"}, "OCTA", 0xFFD166,
-         Layout::Nes, false,
+         Layout::Nes, false, true, false,
          {{RETRO_DEVICE_ID_JOYPAD_UP, "Arriba"},
           {RETRO_DEVICE_ID_JOYPAD_DOWN, "Abajo"},
           {RETRO_DEVICE_ID_JOYPAD_LEFT, "Izquierda"},
@@ -24,7 +24,7 @@ const std::vector<SystemDef>& Systems() {
           {RETRO_DEVICE_ID_JOYPAD_START, "Start"}},
          {{"nestopia_blargg_ntsc_filter", "disabled"}}},
         {"bolsillo", "Bolsillo", "Satronho Bolsillo", "juegos de Game Boy y Game Boy Color", "GB · GBC", "mgba", {"gb", "gbc", "sgb"},
-         "BOLSILLO", 0x9BBC0F, Layout::GameBoy, true,
+         "BOLSILLO", 0x9BBC0F, Layout::GameBoy, true, false, true,
          {{RETRO_DEVICE_ID_JOYPAD_UP, "Arriba"},
           {RETRO_DEVICE_ID_JOYPAD_DOWN, "Abajo"},
           {RETRO_DEVICE_ID_JOYPAD_LEFT, "Izquierda"},
@@ -37,7 +37,7 @@ const std::vector<SystemDef>& Systems() {
           {RETRO_DEVICE_ID_JOYPAD_START, "Start"}},
          {{"mgba_skip_bios", "ON"}, {"mgba_sgb_borders", "OFF"}}},
         {"bolsillo_plus", "Bolsillo Plus", "Satronho Bolsillo Plus", "juegos de Game Boy Advance", "GBA", "mgba", {"gba"}, "PLUS",
-         0x6D5BD0, Layout::GameBoyAdvance, true,
+         0x6D5BD0, Layout::GameBoyAdvance, true, false, true,
          {{RETRO_DEVICE_ID_JOYPAD_UP, "Arriba"},
           {RETRO_DEVICE_ID_JOYPAD_DOWN, "Abajo"},
           {RETRO_DEVICE_ID_JOYPAD_LEFT, "Izquierda"},

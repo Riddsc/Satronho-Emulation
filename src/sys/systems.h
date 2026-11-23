@@ -24,6 +24,8 @@ struct SystemDef {
     unsigned color;
     Layout layout;
     bool handheld;
+    bool runahead_ok;          // el adelanto de cuadros funciona bien con este núcleo
+    bool tilt;                 // tiene juegos con sensor de inclinación
     std::vector<std::pair<int, const char*>> buttons; // botones del RetroPad que usa y su nombre
     // Valores por defecto de Satronho para opciones del núcleo.
     std::vector<std::pair<const char*, const char*>> core_defaults;
