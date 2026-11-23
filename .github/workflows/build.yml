@@ -79,6 +79,7 @@ jobs:
           mkdir -p "$PKG/cores"
           cp build/satronho-emulation.exe "$PKG/"
           cp -r build/assets "$PKG/assets"
+          python3 scripts/release-notes.py "$N" "$PKG/assets/novedades.json"
           cp build/cores/*.dll "$PKG/cores/"
           cp -r licencias "$PKG/licencias"
           cp LICENSE "$PKG/licencias/SatronhoEmulation-GPL-3.0.txt"
