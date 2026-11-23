@@ -42,6 +42,7 @@ add_executable(satronho-emulation WIN32
   src/sys/hardware.cpp
   src/sys/library.cpp
   src/sys/settings.cpp
+  src/sys/updater.cpp
   src/ui/kit.cpp
   src/util/ini.cpp
   src/util/json.cpp

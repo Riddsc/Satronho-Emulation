@@ -510,7 +510,7 @@ bool IconButton(const char* id, Icon icon, float size, ImU32 color, const char* 
     return pressed;
 }
 
-bool NavItem(const char* label, Icon icon, bool selected, const char* badge, bool disabled, unsigned accent) {
+bool NavItem(const char* label, Icon icon, bool selected, const char* badge, bool disabled, unsigned accent, const char* hint) {
     const float w = ImGui::GetContentRegionAvail().x;
     const float hgt = S(42);
     const ImVec2 p = ImGui::GetCursorScreenPos();
@@ -532,6 +532,11 @@ bool NavItem(const char* label, Icon icon, bool selected, const char* badge, boo
         FontScope f(selected ? GetFonts().semibold : GetFonts().medium, 15);
         const float th = ImGui::GetFontSize();
         dl->AddText({p.x + S(44), p.y + (hgt - th) * 0.5f - S(1)}, U32(fg), label);
+        if (hint && *hint) {
+            const float lw = ImGui::CalcTextSize(label).x;
+            FontScope f2(GetFonts().regular, 12);
+            dl->AddText({p.x + S(44) + lw + S(6), p.y + (hgt - ImGui::GetFontSize()) * 0.5f}, U32(Color::Dim), hint);
+        }
     }
     if (badge && *badge) {
         FontScope f(GetFonts().semibold, 11.5f);
@@ -888,8 +893,8 @@ void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std
     dl->AddRectFilled({l0.x, l1.y - band}, l1, IM_COL32(20, 16, 31, 200));
     ImFont* semi = GetFonts().semibold;
     const float fs2 = band * 0.62f;
-    const ImVec2 ts2 = semi->CalcTextSizeA(fs2, FLT_MAX, 0, "NES");
-    dl->AddText(semi, fs2, {l0.x + (l1.x - l0.x - ts2.x) * 0.5f, l1.y - band + (band - ts2.y) * 0.5f}, U32(Color::Gold), "NES");
+    const ImVec2 ts2 = semi->CalcTextSizeA(fs2, FLT_MAX, 0, "OCTA");
+    dl->AddText(semi, fs2, {l0.x + (l1.x - l0.x - ts2.x) * 0.5f, l1.y - band + (band - ts2.y) * 0.5f}, U32(Color::Gold), "OCTA");
 }
 
 void Ellipsize(ImDrawList* dl, ImFont* font, float size, ImVec2 pos, ImU32 color, const std::string& text, float max_w, int max_lines) {

@@ -15,6 +15,19 @@ Decisiones de Ridds:
 - Mismo diseño en PC y Android, adaptado. Primero PC (Windows).
 - Consolas pesadas (Switch, PS3…) irán como apps aparte que el hub abre (como Satronho NX).
 
+## Nombres (decididos por Ridds)
+
+Siempre «Satronho …», con un nombre que se entienda sin usar marcas, y la consola solo como
+descripción («Satronho Octa · para juegos de NES»): Octa (NES), Hexa (SNES), 64 (N64), Bolsillo
+(GB/GBC), Bolsillo Plus (GBA), Dual (DS/3DS), Cubo (GameCube/Wii), NX (Switch, app aparte),
+Mega (Genesis), Anillo (Saturn), Sueño (Dreamcast), CD (PS1), CD2 (PS2), Portátil (PSP).
+
+## Actualizaciones
+
+`src/sys/updater.cpp` (solo Windows): consulta `releases/latest` con urlmon, compara `build-N`,
+descarga el zip y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre la app, hace
+`Expand-Archive` + `Copy-Item` encima de la carpeta del programa y la vuelve a abrir.
+
 ## Estructura
 
 - `src/core/` — `core_host` (carga del núcleo, entorno libretro, estados, SRAM, opciones),

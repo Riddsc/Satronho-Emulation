@@ -17,6 +17,7 @@
 #include "sys/hardware.h"
 #include "sys/library.h"
 #include "sys/settings.h"
+#include "sys/updater.h"
 #include "ui/kit.h"
 #include "util/ini.h"
 #include "util/json.h"
@@ -73,6 +74,8 @@ private:
     void DrawEmptyLibrary();
     void DrawSuggested();
     void DrawNews();
+    void DrawUpdatePanel();
+    void PollUpdater();
     void DrawSettings();
     void DrawSettingsVideo();
     void DrawSettingsAudio();
@@ -119,6 +122,8 @@ private:
     Input input_;
     VideoOut video_;
     Library library_;
+    Updater updater_;
+    Updater::State last_update_state_ = Updater::State::Idle;
     HardwareInfo hw_;
     UsageSampler usage_;
     ProcessUsage proc_;

@@ -86,7 +86,8 @@ void IconText(Icon icon, const char* text, ImU32 color);
 enum class ButtonKind { Primary, Secondary, Ghost, Danger };
 bool Button(const char* label, ButtonKind kind = ButtonKind::Secondary, ImVec2 size = {0, 0}, Icon icon = Icon::Check, bool with_icon = false);
 bool IconButton(const char* id, Icon icon, float size, ImU32 color, const char* tooltip = nullptr, bool active = false);
-bool NavItem(const char* label, Icon icon, bool selected, const char* badge = nullptr, bool disabled = false, unsigned accent = Color::Accent);
+bool NavItem(const char* label, Icon icon, bool selected, const char* badge = nullptr, bool disabled = false, unsigned accent = Color::Accent,
+             const char* hint = nullptr);
 bool Toggle(const char* id, bool* value);
 bool Segmented(const char* id, int* value, const std::vector<const char*>& items, float width = 0);
 bool SliderPercent(const char* id, float* value, float width);

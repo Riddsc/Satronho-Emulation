@@ -189,13 +189,14 @@ void App::DrawSidebar(float width) {
     if (NavItem("Biblioteca", Icon::Library, page_ == Page::Library, games_.empty() ? nullptr : count)) page_ = Page::Library;
     ImGui::Dummy({0, S(10)});
     SectionLabel("   CONSOLAS");
-    if (NavItem("NES", Icon::Gamepad, false, "Lista", false, Color::Gold)) page_ = Page::Library;
-    for (const char* c : {"Super Nintendo", "Game Boy", "Game Boy Advance", "Sega Genesis", "PlayStation"})
-        NavItem(c, Icon::Gamepad, false, "Pronto", true);
+    if (NavItem("Octa", Icon::Gamepad, false, "Lista", false, Color::Gold, "NES")) page_ = Page::Library;
+    static const char* soon[][2] = {{"Bolsillo", "GB · GBC"}, {"Bolsillo Plus", "GBA"}, {"Mega", "Genesis"}, {"Hexa", "SNES"}, {"CD", "PS1"}};
+    for (const auto& c : soon) NavItem(c[0], Icon::Gamepad, false, "Pronto", true, Color::Accent, c[1]);
     ImGui::Dummy({0, S(10)});
     SectionLabel("   SATRONHO");
     if (NavItem("Configuración sugerida", Icon::Sparkle, page_ == Page::Suggested, nullptr, false, Color::Teal)) page_ = Page::Suggested;
-    if (NavItem("Novedades", Icon::Bell, page_ == Page::News, nullptr, false, Color::Pink)) page_ = Page::News;
+    const bool update = updater_.GetState() == Updater::State::Available;
+    if (NavItem("Novedades", Icon::Bell, page_ == Page::News, update ? "Nueva" : nullptr, false, Color::Pink)) page_ = Page::News;
     if (NavItem("Ajustes", Icon::Gear, page_ == Page::Settings)) page_ = Page::Settings;
     if (NavItem("Acerca de", Icon::Info, page_ == Page::About)) page_ = Page::About;
 
@@ -214,7 +215,7 @@ void App::DrawSidebar(float width) {
     }
     {
         FontScope f(GetFonts().regular, 12);
-        const std::string b = build_ > 0 ? Fmt("Build %d · NES", build_) : std::string("Versión de desarrollo");
+        const std::string b = build_ > 0 ? Fmt("Build %d · Octa", build_) : std::string("Versión de desarrollo");
         dl->AddText({p.x + S(58), p.y + S(30)}, U32(Color::Dim), b.c_str());
     }
     ImGui::Dummy({w, foot_h});
@@ -227,7 +228,7 @@ void App::DrawSidebar(float width) {
 
 void App::DrawCoreMissing() {
     PanelBegin("##sin_nucleo", {0, 0}, 0x2A1622);
-    IconText(Icon::Info, "No se encontró el núcleo de NES", U32(Color::Red));
+    IconText(Icon::Info, "No se encontró el núcleo de Satronho Octa", U32(Color::Red));
     Muted(Fmt("Satronho Emulation necesita el archivo «cores/%s» junto al programa. Vuelve a descargar la build completa desde los Releases. (%s)",
               "nestopia_libretro", core_error_.c_str()).c_str());
     PanelEnd();
@@ -244,7 +245,7 @@ void App::DrawLibrary() {
     // Encabezado.
     const float avail = ImGui::GetContentRegionAvail().x;
     const ImVec2 top = ImGui::GetCursorScreenPos();
-    Title("Biblioteca", Fmt("Nintendo Entertainment System · %zu %s", games_.size(), games_.size() == 1 ? "juego" : "juegos").c_str());
+    Title("Biblioteca", Fmt("Satronho Octa · para juegos de NES · %zu %s", games_.size(), games_.size() == 1 ? "juego" : "juegos").c_str());
     const float after_title = ImGui::GetCursorScreenPos().y;
 
     // Herramientas a la derecha.
@@ -600,6 +601,7 @@ void App::DrawNews() {
         : std::string("Esta es una versión de desarrollo. Aquí te cuento qué trae cada build.");
     GuideSays(GuideId::Juana, intro.c_str());
     ImGui::Dummy({0, S(14)});
+    DrawUpdatePanel();
 
     const Json& builds = news_["builds"];
     if (!builds.IsArray() || builds.size() == 0) {
@@ -636,6 +638,60 @@ void App::DrawNews() {
         ImGui::Dummy({0, S(12)});
         ImGui::PopID();
     }
+}
+
+void App::DrawUpdatePanel() {
+    const Updater::State st = updater_.GetState();
+    PanelBegin("##actualizar", {0, 0}, st == Updater::State::Available ? 0x2A1B2C : Color::Surface);
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    DrawIcon(ImGui::GetWindowDrawList(), Icon::Refresh, {p.x + S(12), p.y + S(13)}, S(18), U32(Color::Pink));
+    ImGui::SetCursorScreenPos({p.x + S(32), p.y});
+    ImGui::BeginGroup();
+    switch (st) {
+    case Updater::State::Available:
+        Heading(Fmt("¡Ya salió la build %d!", updater_.LatestBuild()).c_str(), 17);
+        Muted("Se descarga, se instala encima y Satronho Emulation se vuelve a abrir solo. Tus juegos, partidas y ajustes no se tocan.", 13.5f);
+        break;
+    case Updater::State::Checking: Heading("Buscando actualizaciones…", 16); break;
+    case Updater::State::Downloading: Heading("Descargando la build nueva…", 16); break;
+    case Updater::State::Ready: Heading("Instalando…", 16); break;
+    case Updater::State::UpToDate: Heading("Tienes la última build", 16); break;
+    case Updater::State::Failed: Heading("No se pudo revisar si hay builds nuevas", 16); Muted(updater_.Error().c_str(), 13); break;
+    default:
+        Heading("Actualizaciones", 16);
+        if (!updater_.Supported()) Muted("Las actualizaciones automáticas son para Windows.", 13);
+        break;
+    }
+    ImGui::Dummy({0, S(4)});
+    const float row_y = ImGui::GetCursorPosY();
+    if (st == Updater::State::Available) {
+        if (Button("Actualizar ahora", ButtonKind::Primary, {0, 0}, Icon::Load, true)) {
+            if (in_game_) StopGame();
+            updater_.Install();
+        }
+        ImGui::SameLine();
+    } else if (st == Updater::State::Checking || st == Updater::State::Downloading) {
+        Spinner(S(10), Color::Pink);
+        ImGui::SameLine();
+    } else if (updater_.Supported() && build_ > 0) {
+        if (Button("Buscar ahora", ButtonKind::Secondary, {0, 0}, Icon::Refresh, true)) updater_.Check(build_);
+        ImGui::SameLine();
+    }
+    if (Button("Ver en GitHub", ButtonKind::Ghost, {0, 0}, Icon::File, true)) SDL_OpenURL(updater_.ReleaseUrl().c_str());
+    ImGui::SameLine(0, S(18));
+    ImGui::SetCursorPosY(row_y + S(9));
+    if (Toggle("##auto", &settings_.auto_update)) SaveConfig();
+    ImGui::SameLine(0, S(10));
+    ImGui::SetCursorPosY(row_y + S(12));
+    {
+        FontScope f(GetFonts().medium, 13.5f);
+        ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
+        ImGui::TextUnformatted("Buscar al abrir");
+        ImGui::PopStyleColor();
+    }
+    ImGui::EndGroup();
+    PanelEnd();
+    ImGui::Dummy({0, S(14)});
 }
 
 // ---------------------------------------------------------------- ajustes
@@ -806,7 +862,7 @@ void App::DrawSettingsControls() {
         FontScope f(GetFonts().semibold, 12);
         ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Dim));
         const ImVec2 p = ImGui::GetCursorScreenPos();
-        ImGui::TextUnformatted("BOTÓN DE LA NES");
+        ImGui::TextUnformatted("BOTÓN");
         ImGui::SetCursorScreenPos({p.x + col1, p.y});
         ImGui::TextUnformatted("TECLADO");
         ImGui::SetCursorScreenPos({p.x + col1 + colw + S(16), p.y});
@@ -974,12 +1030,12 @@ void App::DrawSettingsMeter() {
 
 void App::DrawSettingsCore() {
     if (!core_ok_) {
-        IconText(Icon::Info, "El núcleo de NES no está cargado.", U32(Color::Red));
+        IconText(Icon::Info, "El núcleo de Satronho Octa no está cargado.", U32(Color::Red));
         return;
     }
     const auto& si = core_.SystemInfo();
     GuideSays(GuideId::Samy,
-              Fmt("El corazón de la NES es %s %s. Estas opciones son suyas; la mayoría se nota al momento y otras al reiniciar el juego.",
+              Fmt("El corazón de Satronho Octa es %s %s. Estas opciones son suyas; la mayoría se nota al momento y otras al reiniciar el juego.",
                   si.library_name, si.library_version).c_str());
     ImGui::Dummy({0, S(16)});
     bool changed = false;
@@ -1122,7 +1178,7 @@ void App::DrawAbout() {
         ImGui::TextUnformatted("por Ridds");
         ImGui::PopStyleColor();
     }
-    Muted(build_ > 0 ? Fmt("Build %d · NES", build_).c_str() : "Versión de desarrollo · NES", 14);
+    Muted(build_ > 0 ? Fmt("Build %d · Satronho Octa, para juegos de NES", build_).c_str() : "Versión de desarrollo · Satronho Octa, para juegos de NES", 14);
     ImGui::EndGroup();
     ImGui::SetCursorScreenPos({p.x, p.y + S(170)});
 
@@ -1131,7 +1187,7 @@ void App::DrawAbout() {
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + std::min(ImGui::GetContentRegionAvail().x, S(820)));
         ImGui::TextWrapped("La casa de los emuladores de la familia Satronho. Un solo lugar para tus consolas, con una imagen cuidada, "
                            "controles que responden al instante, un medidor en vivo y configuraciones sugeridas para tu equipo. "
-                           "Empezamos con la NES; pronto llegan más consolas.");
+                           "Empezamos con Satronho Octa, para juegos de NES; pronto llegan más consolas.");
         ImGui::PopTextWrapPos();
     }
     ImGui::Dummy({0, S(14)});
@@ -1575,7 +1631,7 @@ void App::DrawWelcome() {
             }
             ImGui::Dummy({0, S(6)});
             GuideSays(GuideId::MechaRidds,
-                      "¡Hola! Soy MechaRidds. Esta es la casa de los emuladores de la familia Satronho. Empezamos con la NES y pronto "
+                      "¡Hola! Soy MechaRidds. Esta es la casa de los emuladores de la familia Satronho. Empezamos con Satronho Octa, para juegos de NES, y pronto "
                       "llegan más consolas. Te presento a mi equipo en dos pasos.",
                       inner);
             ImGui::Dummy({0, S(14)});
