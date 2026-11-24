@@ -23,10 +23,13 @@ public:
     void Shutdown();
     void Upload(const CoreHost& core);
     void Draw(const CoreHost& core, const HwRender* hw, const Settings& s, int win_w, int win_h, bool handheld);
+    // Esquina (abajo a la izquierda, en píxeles) del área del juego: la barra de menús deja su espacio.
+    void SetArea(int x, int y) { area_x_ = x; area_y_ = y; }
     SDL_FRect LastRect() const { return dest_; }
     void Invalidate() { uploaded_serial_ = 0; }
 
 private:
+    int area_x_ = 0, area_y_ = 0;
     void EnsureSmall();
 
     GLuint prog_ = 0, amb_prog_ = 0, vao_ = 0;

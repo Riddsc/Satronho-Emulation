@@ -548,7 +548,10 @@ void Input::HandleEvent(const SDL_Event& e) {
         // es la pantalla completa.
         if (e.key.mod & SDL_KMOD_ALT) break;
         for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i)
-            if (hk_keys[i] == e.key.scancode && !HotkeyInfo(static_cast<Hotkey>(i)).hold) presses_.push_back(static_cast<Hotkey>(i));
+            if (hk_keys[i] == e.key.scancode && !HotkeyInfo(static_cast<Hotkey>(i)).hold) {
+                presses_.push_back(static_cast<Hotkey>(i));
+                if (static_cast<Hotkey>(i) == Hotkey::Menu) menu_from_keyboard = true;
+            }
         break;
     }
     case SDL_EVENT_GAMEPAD_BUTTON_DOWN: {
@@ -564,7 +567,10 @@ void Input::HandleEvent(const SDL_Event& e) {
         }
         if (GameUses(e.gbutton.button)) break;
         for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i)
-            if (hk_pad[i] == e.gbutton.button && !HotkeyInfo(static_cast<Hotkey>(i)).hold) presses_.push_back(static_cast<Hotkey>(i));
+            if (hk_pad[i] == e.gbutton.button && !HotkeyInfo(static_cast<Hotkey>(i)).hold) {
+                presses_.push_back(static_cast<Hotkey>(i));
+                if (static_cast<Hotkey>(i) == Hotkey::Menu) menu_from_keyboard = false;
+            }
         break;
     }
     case SDL_EVENT_GAMEPAD_AXIS_MOTION: {
@@ -583,7 +589,10 @@ void Input::HandleEvent(const SDL_Event& e) {
                 }
             } else if (!GameUses(code)) {
                 for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i)
-                    if (hk_pad[i] == code && !HotkeyInfo(static_cast<Hotkey>(i)).hold) presses_.push_back(static_cast<Hotkey>(i));
+                    if (hk_pad[i] == code && !HotkeyInfo(static_cast<Hotkey>(i)).hold) {
+                        presses_.push_back(static_cast<Hotkey>(i));
+                        if (static_cast<Hotkey>(i) == Hotkey::Menu) menu_from_keyboard = false;
+                    }
             }
         }
         pads_[s].trig[t] = down;
