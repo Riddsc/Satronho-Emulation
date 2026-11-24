@@ -1310,3 +1310,124 @@ void App::DrawSplash() {
 }
 
 } // namespace Satronho
+
+#include "util/chd.h"
+
+namespace Satronho {
+
+// ---------------------------------------------------------------- discos a .chd (opcional)
+
+void App::StartChdJob(const std::vector<fs::path>& cues, bool delete_originals) {
+    if (chd_running_ || cues.empty()) return;
+    if (chd_thread_.joinable()) chd_thread_.join();
+    chd_running_ = true;
+    chd_cancel_ = false;
+    chd_total_ = static_cast<int>(cues.size());
+    chd_index_ = 0;
+    chd_thread_ = std::thread([this, cues, delete_originals] {
+        uint64_t before = 0, after = 0;
+        int ok = 0;
+        std::string last_error;
+        for (size_t i = 0; i < cues.size() && !chd_cancel_; ++i) {
+            chd_index_ = static_cast<int>(i);
+            {
+                std::lock_guard lock(chd_mutex_);
+                chd_current_ = Paths::ToUtf8(cues[i].stem());
+            }
+            fs::path out = cues[i];
+            out.replace_extension(".chd");
+            const uint64_t size = Chd::DiscBytes(cues[i]);
+            std::string err;
+            if (Chd::FromCue(cues[i], out, &err, [this](float p) {
+                    chd_progress_ = p;
+                    return !chd_cancel_.load();
+                })) {
+                std::error_code ec;
+                before += size;
+                after += fs::file_size(out, ec);
+                ++ok;
+                if (delete_originals) {
+                    // Se borran el .cue y sus pistas solo si el .chd quedó bien.
+                    std::ifstream in(cues[i]);
+                    std::string line;
+                    std::vector<fs::path> parts;
+                    while (std::getline(in, line)) {
+                        const size_t a = line.find('"'), b = line.rfind('"');
+                        if (line.find("FILE") != std::string::npos && a != std::string::npos && b > a)
+                            parts.push_back(cues[i].parent_path() / Paths::FromUtf8(line.substr(a + 1, b - a - 1)));
+                    }
+                    in.close();
+                    for (const auto& p : parts) fs::remove(p, ec);
+                    fs::remove(cues[i], ec);
+                }
+            } else {
+                last_error = err;
+                Log::Warn("CHD: %s: %s", Paths::ToUtf8(cues[i]).c_str(), err.c_str());
+            }
+        }
+        std::lock_guard lock(chd_mutex_);
+        if (ok > 0)
+            chd_result_ = Fmt("Listo: %d disco%s en .chd. Ahorraste %.0f MB (%.0f %%).", ok, ok == 1 ? "" : "s", (before - after) / 1048576.0,
+                              before ? 100.0 * (before - after) / before : 0.0);
+        else
+            chd_result_ = last_error.empty() ? "No se convirtió ningún disco." : "No se pudo convertir: " + last_error;
+        chd_running_ = false;
+    });
+}
+
+void App::DrawChdPanel() {
+    if (!chd_result_.empty() && !chd_running_) {
+        std::lock_guard lock(chd_mutex_);
+        Toast(chd_result_, GuideId::Nono, 7);
+        chd_result_.clear();
+        if (chd_thread_.joinable()) chd_thread_.join();
+        Rescan();
+    }
+    // Discos .cue de CD y Anillo que todavía no tienen su .chd.
+    std::vector<const Game*> discs;
+    uint64_t total = 0;
+    for (const auto& g : games_) {
+        if (g.ext != "cue" || g.Archived() || (g.system != "cd" && g.system != "anillo")) continue;
+        discs.push_back(&g);
+    }
+    RowBegin("Discos a .chd (opcional)",
+             "El .chd es el mismo disco comprimido: ocupa menos y abre igual. Tus originales se quedan, salvo que marques borrarlos.");
+    if (chd_running_) {
+        std::string cur;
+        {
+            std::lock_guard lock(chd_mutex_);
+            cur = chd_current_;
+        }
+        Muted(Fmt("Convirtiendo %d de %d: %s", chd_index_.load() + 1, chd_total_.load(), cur.c_str()).c_str(), 13);
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        const float w = ImGui::GetContentRegionAvail().x;
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        dl->AddRectFilled(p, {p.x + w, p.y + S(8)}, U32(Color::Surface3), S(4));
+        dl->AddRectFilled(p, {p.x + w * chd_progress_.load(), p.y + S(8)}, U32(Color::Teal), S(4));
+        ImGui::Dummy({w, S(14)});
+        if (Button("Detener##chd", ButtonKind::Ghost, {0, 0})) chd_cancel_ = true;
+    } else if (discs.empty()) {
+        Muted("No hay discos .cue para convertir.", 13);
+    } else {
+        // El tamaño se calcula una vez (leer cada .cue en cada cuadro sería un desperdicio).
+        if (chd_cache_count_ != discs.size()) {
+            chd_cache_count_ = discs.size();
+            chd_cache_bytes_ = 0;
+            for (const Game* g : discs) chd_cache_bytes_ += Chd::DiscBytes(g->path);
+        }
+        total = chd_cache_bytes_;
+        Muted(Fmt("%zu disco%s (%.0f MB).", discs.size(), discs.size() == 1 ? "" : "s", total / 1048576.0).c_str(), 13);
+        if (Button("Convertir todos", ButtonKind::Secondary, {0, 0}, Icon::Sparkle, true)) {
+            std::vector<fs::path> cues;
+            for (const Game* g : discs) cues.push_back(g->path);
+            StartChdJob(cues, chd_delete_);
+        }
+        ImGui::Dummy({0, S(2)});
+        Toggle("##chd_borrar", &chd_delete_);
+        ImGui::SameLine(0, S(8));
+        Muted("Borrar los originales al terminar", 13);
+    }
+    RowEnd();
+}
+
+} // namespace Satronho

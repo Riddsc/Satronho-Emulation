@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include <atomic>
 #include <deque>
+#include <thread>
 #include <map>
 #include <mutex>
 #include <string>
@@ -196,6 +198,18 @@ private:
     bool PrepareArchived(const Game& g, fs::path& load_path, std::vector<uint8_t>& mem);
     void TrimArchiveCache();
     void DrawArchivePicker();
+    // Conversión opcional de discos .cue/.bin a .chd (Ajustes » Biblioteca).
+    void DrawChdPanel();
+    void StartChdJob(const std::vector<fs::path>& cues, bool delete_originals);
+    std::thread chd_thread_;
+    std::atomic<bool> chd_running_{false}, chd_cancel_{false};
+    std::atomic<float> chd_progress_{0};
+    std::atomic<int> chd_index_{0}, chd_total_{0};
+    std::mutex chd_mutex_;
+    std::string chd_current_, chd_result_;
+    bool chd_delete_ = false;
+    size_t chd_cache_count_ = static_cast<size_t>(-1);
+    uint64_t chd_cache_bytes_ = 0;
     Game archive_pick_;               // juego con varios archivos adentro (se pregunta cuál)
     std::string start_entry_;         // archivo de adentro elegido para el próximo inicio
     int NextTip();

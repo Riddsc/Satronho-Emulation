@@ -349,6 +349,16 @@ void Library::ScanLoop() {
                                        }),
                         found.end());
         }
+        // Un disco que ya se convirtió a .chd (mismo nombre, misma carpeta) no se muestra dos veces.
+        found.erase(std::remove_if(found.begin(), found.end(),
+                                   [](const Game& g) {
+                                       if (g.ext != "cue" || g.Archived()) return false;
+                                       fs::path chd = g.path;
+                                       chd.replace_extension(".chd");
+                                       std::error_code e2;
+                                       return fs::exists(chd, e2);
+                                   }),
+                    found.end());
         // Sin duplicados (la misma carpeta agregada dos veces).
         std::sort(found.begin(), found.end(), [](const Game& a, const Game& b) { return a.key < b.key; });
         found.erase(std::unique(found.begin(), found.end(), [](const Game& a, const Game& b) { return a.key == b.key; }), found.end());

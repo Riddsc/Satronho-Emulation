@@ -1394,6 +1394,7 @@ void App::DrawSettingsLibrary() {
         }
     }
     ImGui::Dummy({0, S(14)});
+    DrawChdPanel();
     RowBegin("Juegos comprimidos (.zip y .7z)", "Se juegan sin descomprimir. Los de disco se sacan una vez a una caché de hasta 4 GB que se limpia sola.");
     if (Button("Vaciar la caché", ButtonKind::Secondary, {0, 0}, Icon::Close, true)) {
         std::error_code ec;

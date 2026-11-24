@@ -420,6 +420,8 @@ void App::Shutdown() {
     for (auto& [k, img] : slot_thumbs_) Ui::FreeImage(img);
     Ui::FreeImage(logo_);
     for (auto& g : guides_) Ui::FreeImage(g);
+    chd_cancel_ = true;
+    if (chd_thread_.joinable()) chd_thread_.join();
     covers_.Shutdown();
     hw_render_.Shutdown();
     if (gl_) video_gl_.Shutdown();
