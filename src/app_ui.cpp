@@ -184,6 +184,7 @@ void App::DrawUi() {
     else if (show_whats_new_) DrawWhatsNew();
     if (!pending_start_.empty()) DrawLoading();
     DrawArchivePicker();
+    DrawUnpack();
     DrawBrowser();
     DrawImport();
     DrawConfirm();
@@ -817,6 +818,7 @@ bool App::DrawGameRow(const Game& g, float w, float h, bool selected) {
     const bool clicked = ImGui::InvisibleButton("##fila", {w, h});
     const bool hovered = ImGui::IsItemHovered();
     if (hovered) hover_key_next_ = g.key;
+    if (clicked && touch_mode_ && selected) play = true; // con el dedo: segundo toque abre
     if (clicked) selected_key_ = g.key;
     if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) play = true;
     if (ImGui::IsItemFocused() && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown))) play = true;
@@ -871,6 +873,8 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     const bool hovered = ImGui::IsItemHovered();
     if (hovered) hover_key_next_ = g.key;
     const bool focused = ImGui::IsItemFocused();
+    // Con el dedo no hay «pasar el mouse»: el primer toque elige el juego y el segundo lo abre.
+    if (clicked && touch_mode_ && selected) play = true;
     if (clicked) selected_key_ = g.key;
     if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) play = true;
     if (focused && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown))) play = true;
@@ -904,12 +908,19 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
         dl->AddText({b0.x + S(10) + icon_w + S(6), b0.y + (ph - ts.y) * 0.5f}, U32(gs->color), Tr(gs->name.c_str()));
     }
 
-    // Botón de jugar al pasar el mouse.
-    if (hv > 0.01f) {
-        const ImVec2 c(b.x - S(30), a.y + cover_h - S(30));
-        dl->AddCircleFilled({c.x, c.y + S(2)}, S(21) * hv, IM_COL32(0, 0, 0, 90));
-        dl->AddCircleFilled(c, S(21) * hv, U32(Color::Accent));
-        DrawIcon(dl, Icon::Play, {c.x + S(2), c.y}, S(15) * hv, U32(0x14101F));
+    // Botón de jugar: aparece al pasar el mouse (y con el dedo, en el juego elegido). Es un botón de
+    // verdad: tocarlo abre el juego (antes era solo un dibujo y no hacía nada).
+    {
+        const float k = touch_mode_ && selected ? 1.0f : hv;
+        if (k > 0.01f) {
+            const ImVec2 c(b.x - S(30), a.y + cover_h - S(30));
+            ImGui::SetCursorScreenPos({c.x - S(24), c.y - S(24)});
+            if (ImGui::InvisibleButton("##jugar", {S(48), S(48)})) play = true;
+            const float grow = ImGui::IsItemHovered() ? 1.08f : 1.0f;
+            dl->AddCircleFilled({c.x, c.y + S(2)}, S(21) * k * grow, IM_COL32(0, 0, 0, 90));
+            dl->AddCircleFilled(c, S(21) * k * grow, U32(Color::Accent));
+            DrawIcon(dl, Icon::Play, {c.x + S(2), c.y}, S(15) * k, U32(0x14101F));
+        }
     }
 
     // Estrella de favorito.

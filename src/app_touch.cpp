@@ -53,6 +53,12 @@ void App::UpdateTouchMode() {
 #ifdef __ANDROID__
     touch_mode_ = true;
 #endif
+    // Doble toque: con el dedo los dos toques nunca caen en el mismo punto. ImGui pide que estén a
+    // menos de 6 píxeles (en un celular eso es como 1 mm); con el dedo se aceptan ~6 mm y un poco
+    // más de tiempo.
+    ImGuiIO& io = ImGui::GetIO();
+    io.MouseDoubleClickMaxDist = touch_mode_ ? S(36) : 6.0f;
+    io.MouseDoubleClickTime = touch_mode_ ? 0.40f : 0.30f;
 }
 
 void App::TouchEvent(const SDL_Event& e) {

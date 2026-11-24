@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "util/i18n.h"
 
+#include <cstdarg>
+#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -126,3 +128,23 @@ std::string Tr(const std::string& es) {
 }
 
 } // namespace Satronho::I18n
+
+namespace Satronho {
+
+std::string TrFmt(const char* fmt, ...) {
+    char buf[1024];
+    va_list args;
+    va_start(args, fmt);
+    std::vsnprintf(buf, sizeof buf, Tr(fmt), args);
+    va_end(args);
+    return buf;
+}
+
+std::string HumanSize(uint64_t bytes) {
+    char b[32];
+    if (bytes >= (1ull << 30)) std::snprintf(b, sizeof b, "%.1f GB", bytes / 1073741824.0);
+    else std::snprintf(b, sizeof b, "%.0f MB", bytes / 1048576.0);
+    return b;
+}
+
+} // namespace Satronho

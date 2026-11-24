@@ -258,6 +258,22 @@ private:
     std::vector<std::pair<std::string, bool>> browser_items_;
     // Juegos en .zip / .7z: de cartucho van a la memoria; de disco se sacan a una caché.
     bool PrepareArchived(const Game& g, fs::path& load_path, std::vector<uint8_t>& mem);
+    // Discos dentro de .zip/.7z: se sacan a la caché en segundo plano, con barra de avance.
+    bool ArchiveNeedsUnpack(const Game& g) const;
+    void BeginUnpack(const Game& g, const fs::path& rom);
+    void PollUnpack();
+    void DrawUnpack();
+    std::thread unpack_thread_;
+    std::atomic<int> unpack_state_{0}; // 0 nada, 1 descomprimiendo, 2 listo, 3 falló, 4 cancelado
+    std::atomic<float> unpack_progress_{0};
+    std::atomic<bool> unpack_cancel_{false};
+    Game unpack_game_;
+    fs::path unpack_rom_;
+    bool unpack_resume_ = false;
+    bool start_resume_ = false; // el juego que se está abriendo debe seguir donde quedó
+    // Espacio: lo libre en esa carpeta (0 si no se sabe) y lo que siempre se deja libre.
+    static uint64_t FreeBytes(const fs::path& dir);
+    uint64_t MarginBytes() const;
     void TrimArchiveCache();
     void DrawArchivePicker();
     // Conversión opcional de discos .cue/.bin a .chd (Ajustes » Biblioteca).

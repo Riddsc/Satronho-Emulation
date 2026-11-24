@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "util/archive.h"
 
+#include <algorithm>
+
 #include <cstring>
 #include <fstream>
 
@@ -192,12 +194,25 @@ bool ExtractToMemory(const fs::path& archive, const std::string& name, std::vect
     return false;
 }
 
-bool ExtractAll(const fs::path& archive, const fs::path& dir, const std::function<void(float)>& progress) {
+bool ExtractAll(const fs::path& archive, const fs::path& dir, const std::function<bool(float)>& progress) {
     const std::string ext = Ext(archive);
     if (ext == "zip") {
         Zip z(archive);
         if (!z.ok) return false;
         const mz_uint n = mz_zip_reader_get_num_files(&z.z);
+        // El avance se mide en bytes (un disco suele ser un .cue chiquito y un .bin enorme).
+        uint64_t total = 0;
+        for (mz_uint i = 0; i < n; ++i) {
+            mz_zip_archive_file_stat st;
+            if (mz_zip_reader_file_stat(&z.z, i, &st) && !st.m_is_directory) total += st.m_uncomp_size;
+        }
+        struct Sink {
+            FILE* f;
+            uint64_t done, total;
+            const std::function<bool(float)>* progress;
+            bool cancelled;
+        };
+        Sink sink{nullptr, 0, std::max<uint64_t>(1, total), &progress, false};
         for (mz_uint i = 0; i < n; ++i) {
             mz_zip_archive_file_stat st;
             if (!mz_zip_reader_file_stat(&z.z, i, &st) || st.m_is_directory || !SafeName(st.m_filename)) continue;
@@ -205,16 +220,30 @@ bool ExtractAll(const fs::path& archive, const fs::path& dir, const std::functio
             std::error_code ec;
             fs::create_directories(target.parent_path(), ec);
 #ifdef _WIN32
-            FILE* f = _wfopen(target.c_str(), L"wb");
+            sink.f = _wfopen(target.c_str(), L"wb");
 #else
-            FILE* f = std::fopen(target.c_str(), "wb");
+            sink.f = std::fopen(target.c_str(), "wb");
 #endif
-            if (!f) return false;
-            const bool ok = mz_zip_reader_extract_to_cfile(&z.z, i, f, 0);
-            std::fclose(f);
-            if (!ok) return false;
-            if (progress) progress(static_cast<float>(i + 1) / n);
+            if (!sink.f) return false;
+            const bool ok = mz_zip_reader_extract_to_callback(
+                &z.z, i,
+                [](void* opaque, mz_uint64, const void* buf, size_t len) -> size_t {
+                    auto* k = static_cast<Sink*>(opaque);
+                    if (std::fwrite(buf, 1, len, k->f) != len) return 0;
+                    const uint64_t before = k->done;
+                    k->done += len;
+                    // Se avisa más o menos cada 4 MB para no gastar tiempo en eso.
+                    if (*k->progress && (before >> 22) != (k->done >> 22) && !(*k->progress)(static_cast<float>(k->done) / k->total)) {
+                        k->cancelled = true;
+                        return 0;
+                    }
+                    return len;
+                },
+                &sink, 0);
+            std::fclose(sink.f);
+            if (!ok || sink.cancelled) return false;
         }
+        if (progress) progress(1.0f);
         return true;
     }
     if (ext == "7z") {
@@ -235,7 +264,7 @@ bool ExtractAll(const fs::path& archive, const fs::path& dir, const std::functio
                 break;
             }
             ok = WriteFile(dir / Paths::FromUtf8(name), buf + offset, processed);
-            if (progress) progress(static_cast<float>(i + 1) / s.db.NumFiles);
+            if (progress && !progress(static_cast<float>(i + 1) / s.db.NumFiles)) ok = false;
         }
         ISzAlloc_Free(&s.alloc, buf);
         return ok;
