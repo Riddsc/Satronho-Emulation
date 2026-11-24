@@ -92,9 +92,10 @@ void Settings::Load(const Ini& ini) {
     sort = std::clamp(ini.GetInt("biblioteca.orden", sort), 0, 2);
     favorites_only = ini.GetBool("biblioteca.solo_favoritos", favorites_only);
     covers = ini.GetBool("biblioteca.caratulas", covers);
+    cover_size = std::clamp(ini.GetInt("biblioteca.tamano", cover_size), 0, 2);
     lib_view.clear();
     for (const auto& [k, v] : ini.Values())
-        if (k.rfind("biblioteca.vista.", 0) == 0) lib_view[k.substr(17)] = std::clamp(std::atoi(v.c_str()), 0, 1);
+        if (k.rfind("biblioteca.vista.", 0) == 0) lib_view[k.substr(17)] = std::clamp(std::atoi(v.c_str()), 0, 2);
 
     auto_update = ini.GetBool("actualizaciones.buscar", auto_update);
     first_run_done = ini.GetBool("estado.bienvenida", first_run_done);
@@ -164,6 +165,7 @@ void Settings::Save(Ini& ini) const {
     }
     ini.SetBool("biblioteca.caratulas", covers);
     for (const auto& [k, v] : lib_view) ini.SetInt("biblioteca.vista." + k, v);
+    ini.SetInt("biblioteca.tamano", cover_size);
     ini.Erase("interfaz.escala");
 
     // Se borran las carpetas viejas antes de escribir la lista nueva.

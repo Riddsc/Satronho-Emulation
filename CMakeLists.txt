@@ -53,6 +53,7 @@ set(SATRONHO_SOURCES
   src/app_extra.cpp
   src/app_touch.cpp
   src/app_bar.cpp
+  src/app_tools.cpp
   src/core/audio.cpp
   src/core/core_host.cpp
   src/core/input.cpp
