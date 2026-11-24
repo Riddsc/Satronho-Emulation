@@ -113,6 +113,8 @@ bool App::Init() {
     SDL_SetAppMetadata("Satronho Emulation", "1.0", "com.ridds.satronho.emulation");
     SDL_SetHint(SDL_HINT_AUDIO_DEVICE_STREAM_NAME, "Satronho Emulation");
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "0");
+    // Android: el botón «atrás» lo maneja la app (menú del juego, volver, cerrar con pregunta).
+    SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1");
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
         // Sin sonido o sin mandos se puede seguir; sin video no.
         if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -944,6 +946,16 @@ void App::HandleEvent(const SDL_Event& e) {
         }
         break;
     case SDL_EVENT_KEY_DOWN:
+        if (e.key.scancode == SDL_SCANCODE_AC_BACK && !e.key.repeat) {
+            // Botón «atrás» de Android: cierra lo que esté abierto o vuelve; en la biblioteca, salir.
+            if (browser_open_) browser_open_ = false;
+            else if (touch_edit_) { touch_edit_ = false; SaveConfig(); }
+            else if (confirm_) confirm_ = 0;
+            else if (in_game_) SetMenuOpen(!menu_open_);
+            else if (page_ != Page::Library || !lib_system_.empty()) { page_ = Page::Library; lib_system_.clear(); }
+            else RequestQuit();
+            break;
+        }
         // Alt+Enter siempre cambia a pantalla completa.
         if (!e.key.repeat && !was_capturing && (e.key.mod & SDL_KMOD_ALT) && e.key.scancode == SDL_SCANCODE_RETURN) {
             SetFullscreen(!settings_.fullscreen);
