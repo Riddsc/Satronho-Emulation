@@ -188,6 +188,11 @@ void App::DrawGameBar() {
             ImGui::Separator();
             if (item("Captura de pantalla", "F12")) Screenshot();
             if (item("Menú del juego completo", touch ? nullptr : "Mando: Guía")) SetMenuOpen(true);
+            // Mando de este juego (normal o DualShock) y su imagen, sin salir del juego.
+            if (!current_.key.empty() && item("Ajustes de este juego…")) {
+                bar_open_ = false;
+                game_settings_ = current_;
+            }
             ImGui::Separator();
             if (item("Salir a la biblioteca")) {
                 bar_open_ = false;
@@ -268,18 +273,18 @@ void App::DrawGameBar() {
                 v.on = !v.on;
                 changed = true;
             }
-            const bool gpu_sys = sys_->id == "cd" || sys_->id == "n64";
+            const bool gpu_sys = sys_->gpu;
             if (gpu_sys && gl_) {
                 ImGui::Separator();
                 const int api_now = GpuApiFor(*sys_);
                 if (sub("Resolución")) {
                     const int stored = settings_.GpuRes(sys_->id);
-                    if (item(Fmt("Automática (%s)", ResLabel(GpuResFor(*sys_, api_now)).c_str()).c_str(), nullptr, stored == 0)) {
+                    if (item(Fmt("Automática (%s)", ResLabel(GpuResFor(*sys_, api_now), sys_).c_str()).c_str(), nullptr, stored == 0)) {
                         settings_.gpu_res[sys_->id] = 0;
                         changed = true;
                     }
                     for (int k : GpuResSteps(*sys_, api_now))
-                        if (item(ResLabel(k).c_str(), nullptr, stored == k)) {
+                        if (item(ResLabel(k, sys_).c_str(), nullptr, stored == k)) {
                             settings_.gpu_res[sys_->id] = k;
                             changed = true;
                         }
@@ -292,6 +297,7 @@ void App::DrawGameBar() {
                     const char* n[] = {"Automático", "OpenGL", "Vulkan", "Procesador"};
                     for (int i = 0; i < 4; ++i) {
                         if (i == 2 && !hw_render_.VulkanAvailable()) continue;
+                        if (i == 3 && !sys_->gpu_cpu) continue;
                         if (item(n[i], nullptr, api == i)) { settings_.gpu_api[sys_->id] = i; changed = true; }
                     }
                     ImGui::Separator();
@@ -439,12 +445,12 @@ void App::DrawGameBar() {
             fg->AddText({x, s0.y + (bh - ImGui::GetFontSize()) * 0.5f}, U32(col), Tr(t.c_str()));
             x += ImGui::CalcTextSize(Tr(t.c_str())).x + S(18);
         };
-        const bool gpu_sys = sys_->id == "cd" || sys_->id == "n64";
+        const bool gpu_sys = sys_->gpu;
         if (gpu_sys && hw_render_.Active()) {
             const int api = GpuApiFor(*sys_);
             chip(api == 2 ? "VULKAN" : api == 1 ? "OPENGL" : "PROCESADOR", Color::Orange);
             const int k = GpuResFor(*sys_, api);
-            chip(Fmt("%dp", ResHeight(k)), Color::Teal);
+            chip(Fmt("%dp", ResHeight(k, sys_)), Color::Teal);
         } else {
             chip(gl_ ? "OPENGL" : "CLÁSICO", Color::Orange);
         }

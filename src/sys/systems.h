@@ -9,7 +9,7 @@
 namespace Satronho {
 
 // Forma del control que se dibuja en Controles.
-enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes, PlayStation, N64, DS, Saturn };
+enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes, PlayStation, N64, DS, Saturn, Dreamcast, Psp };
 
 // Un archivo de BIOS que el núcleo puede usar (la persona pone el suyo; no se incluye).
 struct BiosFile {
@@ -51,6 +51,8 @@ struct SystemDef {
     int cpu_need = 0;
     bool Heavy() const { return cpu_need >= 1; } // estados de varios MB: rebobinar pesa
     bool disc = false;         // juegos en disco (cue, chd…)
+    bool gpu = false;          // dibuja con la tarjeta gráfica (motor y resolución en Gráficos)
+    bool gpu_cpu = true;       // también puede dibujar con el procesador (Dreamcast no)
     std::vector<BiosFile> bios; // BIOS que acepta (opcional salvo bios_required)
     bool bios_required = false;
     const char* bios_note = ""; // qué cambia con la BIOS original

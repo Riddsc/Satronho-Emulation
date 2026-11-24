@@ -428,7 +428,8 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
         if (settings_.covers || covers_.HasCustom(g))
             if (const Ui::Image* img = covers_.Get(g); img && *img) return std::clamp(static_cast<float>(img->w) / std::max(1, img->h), 0.62f, 1.45f);
         if (g.system == "hexa" || g.system == "n64") return 1.38f;
-        if (g.system == "cd" || g.system == "bolsillo_plus" || g.system == "bolsillo") return 1.0f;
+        if (g.system == "cd" || g.system == "bolsillo_plus" || g.system == "bolsillo" || g.system == "sueno") return 1.0f;
+        if (g.system == "portatil") return 0.58f; // caja de UMD, alta y angosta
         return 0.74f;
     };
     const int lo = std::max(0, carousel_index_ - 6), hi = std::min(n - 1, carousel_index_ + 6);
@@ -1099,7 +1100,7 @@ int App::GpuApiFor(const SystemDef& sys) const {
     // 1 OpenGL, 2 Vulkan, 3 procesador.
     if (!gl_) return 3;
     int api = game_api_ > 0 ? game_api_ : settings_.GpuApi(sys.id);
-    if (api == 0 && hw_.software) return 3; // sin tarjeta gráfica de verdad
+    if (api == 0 && hw_.software) return sys.gpu_cpu ? 3 : 1; // sin tarjeta gráfica de verdad
     if (api == 0) {
         // Automático: Vulkan en tarjetas NVIDIA y AMD (dedicadas), OpenGL en el resto (Intel,
         // integradas viejas): es lo más compatible.
@@ -1112,6 +1113,7 @@ int App::GpuApiFor(const SystemDef& sys) const {
         if (api == 2 && sys.id == "n64" && hw_.vram_mb > 0 && hw_.vram_mb < 2000) api = 1;
     }
     if (api == 2 && !hw_render_.VulkanAvailable()) api = 1;
+    if (api == 3 && !sys.gpu_cpu) api = 1; // Dreamcast: Flycast no dibuja con el procesador
     return api;
 }
 
@@ -1119,18 +1121,25 @@ int App::GpuApiFor(const SystemDef& sys) const {
 // píxeles (solo 64 con OpenGL, que acepta tamaños exactos como 1440×1080 o 2880×2160).
 std::vector<int> App::GpuResSteps(const SystemDef& sys, int api) const {
     if (sys.id == "cd") return api == 3 ? std::vector<int>{1, 2} : std::vector<int>{1, 2, 4, 8, 16};
+    // Dreamcast (Flycast): altos exactos 4:3, de 480 (la original) a 2880.
+    if (sys.id == "sueno") return {480, 720, 960, 1080, 1200, 1440, 1920, 2160, 2400, 2880};
+    // PSP (PPSSPP): múltiplos de su pantalla de 480 × 272. Con el procesador, solo la original.
+    if (sys.id == "portatil") return api == 3 ? std::vector<int>{272} : std::vector<int>{272, 544, 816, 1088, 1360, 1632, 1904, 2176, 2448, 2720};
     if (api == 2) return {1, 2, 4, 8};          // ParaLLEl-RDP
     if (api == 3) return {1};                    // Angrylion: siempre la original
     return {240, 480, 720, 960, 1080, 1200, 1440, 1680, 1920, 2160, 2400, 2640, 2880}; // GLideN64
 }
 
-int App::ResHeight(int k) { return k > 16 ? k : k * 240; }
+int App::ResHeight(int k, const SystemDef*) { return k > 16 ? k : k * 240; }
 
-std::string App::ResLabel(int k) const {
-    const int h = ResHeight(k);
-    const char* tag = h <= 240 ? "original" : h < 700 ? "" : h < 900 ? "HD" : h < 1300 ? "Full HD" : h < 1700 ? "2K" : h < 3000 ? "4K" : "8K";
+std::string App::ResLabel(int k, const SystemDef* sys) const {
+    const int h = ResHeight(k, sys);
+    // La «original» de cada consola: 240 (PS1, 64), 480 (Dreamcast) o 272 (PSP).
+    const int native = sys && sys->id == "sueno" ? 480 : sys && sys->id == "portatil" ? 272 : 240;
+    const char* tag = h <= native ? "original" : h < 700 ? "" : h < 900 ? "HD" : h < 1300 ? "Full HD" : h < 1700 ? "2K" : h < 3000 ? "4K" : "8K";
     std::string s;
-    if (k > 16) s = Fmt("%d × %d", h * 4 / 3, h);
+    if (k > 16 && sys && sys->id == "portatil") s = Fmt("%d× · %d × %d", h / 272, h * 480 / 272, h);
+    else if (k > 16) s = Fmt("%d × %d", h * 4 / 3, h);
     else s = Fmt("%d× · %d × %d", k, 320 * k, h);
     if (*tag) s += Fmt("  (%dp · %s)", h, tag);
     else s += Fmt("  (%dp)", h);
@@ -1152,8 +1161,8 @@ int App::NearestResStep(const SystemDef& sys, int api) const {
 
 int App::GpuResFor(const SystemDef& sys, int api) const {
     int res = game_res_ > 0 ? game_res_ : settings_.GpuRes(sys.id);
-    const bool exact = sys.id == "n64" && api == 1;
     const std::vector<int> steps = GpuResSteps(sys, api);
+    const bool exact = steps.front() > 16; // altos exactos (64 con OpenGL, Dreamcast, PSP)
     if (res > 0) {
         // Guardado de otra forma (multiplicador vs. alto exacto): se convierte al paso más cercano.
         if (exact && res <= 16) res = ResHeight(res);
@@ -1163,7 +1172,7 @@ int App::GpuResFor(const SystemDef& sys, int api) const {
             if (ResHeight(k) <= ResHeight(res)) best = k;
         return best;
     }
-    if (api == 3) return 1;
+    if (api == 3) return steps.front();
     // Automática: el paso más cercano al alto de la pantalla, con un tope según la tarjeta.
     int cap = 16 * 240;
     std::string g = hw_.gpu;
@@ -1181,15 +1190,33 @@ int App::GpuResFor(const SystemDef& sys, int api) const {
 }
 
 void App::ApplyGpuChoice(const SystemDef& sys) {
-    const bool gpu_sys = sys.id == "cd" || sys.id == "n64";
-    if (!gpu_sys) {
+    if (!sys.gpu) {
         hw_render_.SetWanted(gl_ ? RETRO_HW_CONTEXT_OPENGL_CORE : RETRO_HW_CONTEXT_NONE);
         return;
     }
     const int api = GpuApiFor(sys);
     const int res = GpuResFor(sys, api);
-    hw_render_.SetWanted(api == 1 ? RETRO_HW_CONTEXT_OPENGL_CORE : api == 2 ? RETRO_HW_CONTEXT_VULKAN : RETRO_HW_CONTEXT_NONE);
+    // La PSP con el procesador igual necesita OpenGL para mostrar la imagen.
+    const bool needs_gl = sys.id == "portatil" || sys.id == "sueno";
+    hw_render_.SetWanted(api == 2 ? RETRO_HW_CONTEXT_VULKAN : (api == 1 || needs_gl) ? RETRO_HW_CONTEXT_OPENGL_CORE : RETRO_HW_CONTEXT_NONE);
     const char* api_name = api == 1 ? "OpenGL" : api == 2 ? "Vulkan" : "procesador";
+    if (sys.id == "sueno") {
+        core_.SetOption("flycast_internal_resolution", Fmt("%dx%d", res * 4 / 3, res));
+        // Sin la BIOS original, la interna de Flycast (abre casi todo).
+        std::error_code ec;
+        const bool bios = fs::exists(Paths::System() / "dc" / "dc_boot.bin", ec);
+        core_.SetOption("flycast_hle_bios", bios ? "disabled" : "enabled");
+        Log::Info("Sueño: %s a %dx%d%s", api_name, res * 4 / 3, res, bios ? " · BIOS original" : " · BIOS interna");
+        return;
+    }
+    if (sys.id == "portatil") {
+        core_.SetOption("ppsspp_backend", api == 2 ? "vulkan" : "opengl");
+        core_.SetOption("ppsspp_software_rendering", api == 3 ? "enabled" : "disabled");
+        const int k = std::max(1, res / 272);
+        core_.SetOption("ppsspp_internal_resolution", Fmt("%dx%d", 480 * k, 272 * k));
+        Log::Info("Portátil: %s a %dx%d", api_name, 480 * k, 272 * k);
+        return;
+    }
     if (sys.id == "cd") {
         core_.SetOption("beetle_psx_hw_renderer", api == 1 ? "hardware_gl" : api == 2 ? "hardware_vk" : "software");
         // Con el procesador, más de 2× va lento: se limita.

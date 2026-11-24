@@ -262,6 +262,56 @@ const std::vector<OptionInfo>& KnownOptions(const std::string& sys) {
             {"1/2", "A la mitad", "Más limpio."},
             {"1/4", "A un cuarto", nullptr},
             {"1/8", "A un octavo", "Aspecto original perfecto con la resolución más alta."}}}}},
+        {"sueno",
+         {{"flycast_widescreen_hack", "Pantalla ancha (16:9)", "Abre la vista de los juegos 3D para llenar una pantalla ancha.",
+           {{"disabled", "Desactivada", "4:3, como la consola."},
+            {"enabled", "Activada", "Ves más a los lados; en algunos juegos aparecen cosas que no debían verse."}}},
+          {"flycast_anisotropic_filtering", "Filtrado anisotrópico", "Deja nítidas las texturas del suelo y las paredes que se ven de lado.",
+           {{"off", "Apagado", "Como la consola: el suelo se ve borroso a lo lejos."},
+            {"2", "2×", "Un poco más nítido."},
+            {"4", "4×", "Nítido, casi sin costo."},
+            {"8", "8×", "Muy nítido."},
+            {"16", "16×", "Lo más nítido; con tarjeta dedicada no se nota el costo."}}},
+          {"flycast_texupscale", "Agrandar texturas (xBRZ)", "Agranda las texturas con un filtro para que se vean menos pixeladas.",
+           {{"1", "Apagado", "Las texturas originales."},
+            {"2", "2×", "Más suaves."},
+            {"4", "4×", "Muy suaves; pide más a la tarjeta."},
+            {"6", "6×", "Lo más suave; solo para tarjetas potentes."}}},
+          {"flycast_alpha_sorting", "Transparencias", "Cómo se ordenan las cosas transparentes (humo, vidrio, agua).",
+           {{"per-strip (fast, least accurate)", "Rápido", "Lo más liviano; a veces una transparencia queda delante de lo que no debe."},
+            {"per-triangle (normal)", "Normal", "El equilibrio de siempre."},
+            {"per-pixel (accurate)", "Exacto", "Como la consola; pide más a la tarjeta."}}},
+          {"flycast_mipmapping", "Mipmapping", "Suaviza las texturas lejanas para que no tiemblen.",
+           {{"enabled", "Activado", "Sin temblor a lo lejos."}, {"disabled", "Desactivado", "Más nítido, pero lo lejano parpadea."}}},
+          {"flycast_fog", "Niebla", "Algunos juegos usan niebla para esconder lo lejano.",
+           {{"enabled", "Activada", "Como la consola."}, {"disabled", "Desactivada", "Ves más lejos (a veces aparecen cosas de golpe)."}}}}},
+        {"portatil",
+         {{"ppsspp_texture_scaling_level", "Agrandar texturas", "Agranda las texturas con un filtro para que se vean menos pixeladas.",
+           {{"disabled", "Apagado", "Las texturas originales."},
+            {"1", "Apagado", "Las texturas originales."},
+            {"2x", "2×", "Más suaves."},
+            {"3x", "3×", nullptr},
+            {"4x", "4×", "Muy suaves; pide más al procesador."},
+            {"5x", "5×", "Lo más suave."}}},
+          {"ppsspp_texture_scaling_type", "Tipo de agrandado", "El filtro que se usa al agrandar texturas.",
+           {{"xbrz", "xBRZ", "Bordes limpios, estilo dibujo."},
+            {"hybrid", "Híbrido", "Mezcla xBRZ con suavizado: bueno para fotos y fondos."},
+            {"bicubic", "Bicúbico", "Suave y parejo."},
+            {"hybrid_bicubic", "Híbrido + bicúbico", "Lo más suave."}}},
+          {"ppsspp_texture_filtering", "Filtrado de texturas", "Cómo se ven las texturas al agrandarse.",
+           {{"auto", "Automático", "Lo que pide cada juego."},
+            {"nearest", "Píxel exacto", "Texturas nítidas y pixeladas."},
+            {"linear", "Suave", "Texturas suaves."},
+            {"auto_max_quality", "Máxima calidad", "Automático, con la mejor calidad posible."}}},
+          {"ppsspp_texture_anisotropic_filtering", "Filtrado anisotrópico", "Deja nítidas las texturas del suelo y las paredes que se ven de lado.",
+           {{"disabled", "Apagado", "Como la consola."},
+            {"off", "Apagado", "Como la consola."},
+            {"2x", "2×", nullptr},
+            {"4x", "4×", "Nítido, casi sin costo."},
+            {"8x", "8×", nullptr},
+            {"16x", "16×", "Lo más nítido."}}},
+          {"ppsspp_texture_deposterize", "Suavizar bandas de color", "Quita los escalones de color en los degradados de las texturas.",
+           {{"disabled", "Desactivado", nullptr}, {"enabled", "Activado", "Degradados más suaves."}}}}},
         {"anillo",
          {{"beetle_saturn_horizontal_blend", "Suavizado horizontal", "Algunos juegos de Saturn usaban el desenfoque de la tele para hacer transparencias.",
            {{"disabled", "Desactivado", "Imagen nítida."}, {"enabled", "Activado", "Mezcla píxeles vecinos: transparencias como en la tele."}}},
@@ -475,25 +525,34 @@ void App::DrawSettingsVideo() {
     }
     }
 
-    // ---------------- Motor y resolución (CD y 64)
-    const bool gpu_sys = sys->id == "cd" || sys->id == "n64";
+    // ---------------- Motor y resolución (consolas que dibujan con la tarjeta gráfica)
+    const bool gpu_sys = sys->gpu;
     if (gpu_sys) {
         ImGui::Dummy({0, S(6)});
         if (Section("Motor y resolución", &gfx_open_[1])) {
         if (!gl_) {
-            Muted("Con el motor clásico, CD y 64 dibujan con el procesador. Elige OpenGL arriba para usar la tarjeta gráfica.", 13.5f);
+            Muted("Con el motor clásico, estas consolas no usan la tarjeta gráfica. Elige OpenGL abajo, en «Para toda la app».", 13.5f);
         } else {
             const int api_now = GpuApiFor(*sys);
             const int res_now = GpuResFor(*sys, api_now);
             RowBegin("Motor del juego", nullptr);
             int api = settings_.GpuApi(sys->id);
-            if (Segmented("##api", &api, {"Automático", "OpenGL", "Vulkan", "Procesador"}, S(420))) {
+            if (!sys->gpu_cpu && api == 3) api = 0;
+            const bool changed_api = sys->gpu_cpu ? Segmented("##api", &api, {"Automático", "OpenGL", "Vulkan", "Procesador"}, S(420))
+                                                  : Segmented("##api", &api, {"Automático", "OpenGL", "Vulkan"}, S(330));
+            if (changed_api) {
                 if (api == 2 && !hw_render_.VulkanAvailable()) Toast("Este equipo no tiene Vulkan; se usará OpenGL.", GuideId::Troya, 4);
                 settings_.gpu_api[sys->id] = api;
                 changed = true;
                 if (in_game_ && sys_ == sys) Toast("Se aplica la próxima vez que abras el juego.", GuideId::Troya, 3);
             }
-            const char* api_help = sys->id == "cd"
+            const char* api_help = sys->id == "sueno"
+                ? (api_now == 2 ? "Ahora: Vulkan. Suele rendir más en tarjetas NVIDIA y AMD; si un juego se ve raro, prueba OpenGL."
+                                : "Ahora: OpenGL. El más compatible con los juegos de Dreamcast. Esta consola no puede dibujar con el procesador.")
+                : sys->id == "portatil"
+                ? (api_now == 1 ? "Ahora: OpenGL. Funciona en cualquier tarjeta." : api_now == 2 ? "Ahora: Vulkan. Más rápido en tarjetas NVIDIA y AMD."
+                                                                : "Ahora: el procesador. El más fiel, pero muy pesado y solo a la resolución original.")
+                : sys->id == "cd"
                 ? (api_now == 1 ? "Ahora: OpenGL. Funciona en cualquier tarjeta." : api_now == 2 ? "Ahora: Vulkan. Más rápido en tarjetas NVIDIA y AMD."
                                                                 : "Ahora: el procesador. Fiel, pero solo hasta 2× y más lento.")
                 : (api_now == 1 ? "Ahora: GLideN64 con OpenGL. Acepta resoluciones exactas y tiene más filtros."
@@ -505,11 +564,11 @@ void App::DrawSettingsVideo() {
             {
                 const std::vector<int> ks = GpuResSteps(*sys, api_now);
                 const int nearest = NearestResStep(*sys, api_now);
-                std::vector<std::string> res_names{std::string(Tr("Automática")) + "  ·  " + ResLabel(res_now)};
+                std::vector<std::string> res_names{std::string(Tr("Automática")) + "  ·  " + ResLabel(res_now, sys)};
                 int sel = 0;
                 const int stored = settings_.GpuRes(sys->id);
                 for (size_t i = 0; i < ks.size(); ++i) {
-                    std::string l = ResLabel(ks[i]);
+                    std::string l = ResLabel(ks[i], sys);
                     if (ks[i] == nearest && l.find(Tr("como tu pantalla")) == std::string::npos) l += std::string("  · ") + Tr("la más cercana a tu pantalla");
                     res_names.push_back(l);
                     if (stored > 0 && ResHeight(ks[i]) <= ResHeight(stored)) sel = static_cast<int>(i) + 1;
@@ -520,7 +579,12 @@ void App::DrawSettingsVideo() {
                     if (in_game_ && sys_ == sys) Toast("Se aplica la próxima vez que abras el juego.", GuideId::Troya, 3);
                 }
                 const bool exact = sys->id == "n64" && api_now == 1;
-                if (!exact)
+                if (sys->id == "sueno")
+                    ChoiceNote("La Dreamcast dibuja a 640 × 480. Flycast la sube al tamaño exacto que elijas; la marcada «como tu pantalla» es la ideal.");
+                else if (sys->id == "portatil")
+                    ChoiceNote("La pantalla de la PSP es de 480 × 272 y PPSSPP la sube en múltiplos (2×, 3×…). Si eliges una más grande que tu "
+                               "pantalla, se achica y se ve más nítida.");
+                else if (!exact)
                     ChoiceNote(sys->id == "cd"
                         ? "La PS1 solo sube de 2 en 2 (1×, 2×, 4×, 8× y 16×), así que no siempre hay una igual a tu pantalla. Si eliges una más "
                           "grande, se dibuja grande y se achica a tu pantalla: se ve más nítida. Automática elige la más cercana."

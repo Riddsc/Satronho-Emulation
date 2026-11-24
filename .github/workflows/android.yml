@@ -95,6 +95,17 @@ jobs:
         continue-on-error: true
         run: scripts/build-core-android.sh mednafen_saturn build-android-cores/arm64-v8a
 
+      - name: Núcleo de Dreamcast (Flycast, ya hecho)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-descargado.sh flycast android build-android-cores/arm64-v8a
+      - name: Núcleo de PSP (PPSSPP, ya hecho)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-descargado.sh ppsspp android build-android-cores/arm64-v8a
+      - name: Archivos de sistema de la PSP
+        run: scripts/ppsspp-assets.sh assets/system/PPSSPP
+
       - name: Núcleos listos
         run: ls -la build-android-cores/arm64-v8a || true
 

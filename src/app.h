@@ -227,6 +227,7 @@ private:
         float x = 0, y = 0, sx = 0, sy = 0; // ahora y donde empezó (píxeles)
         int owner = -1;                     // botón del control en pantalla que tomó
         double born = 0;
+        int dir = -1;                       // dirección de la cruceta que marca (0..7), para no saltar entre vecinas
     };
     struct TouchButton {
         ImVec2 c;
@@ -351,8 +352,8 @@ private:
     int GpuApiFor(const SystemDef& sys) const;  // 1 OpenGL, 2 Vulkan, 3 procesador
     int GpuResFor(const SystemDef& sys, int api) const;
     std::vector<int> GpuResSteps(const SystemDef& sys, int api) const; // pasos que admite cada núcleo
-    std::string ResLabel(int k) const;  // «4× · 1280 × 960 (960p · Full HD)» o «1440 × 1080 (1080p · Full HD)»
-    static int ResHeight(int k);        // alto en píxeles de un valor de resolución
+    std::string ResLabel(int k, const SystemDef* sys = nullptr) const;  // «4× · 1280 × 960 (960p · Full HD)» o «1440 × 1080 (1080p · Full HD)»
+    static int ResHeight(int k, const SystemDef* sys = nullptr); // alto en píxeles de un valor de resolución
     int NearestResStep(const SystemDef& sys, int api) const; // el paso más parecido al alto de la pantalla
     // Ajustes » Gráficos por consola (app_graphics.cpp).
     std::string gfx_sys_;               // consola elegida en la barra de Gráficos

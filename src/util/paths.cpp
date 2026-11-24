@@ -93,6 +93,22 @@ std::string StableId(const fs::path& file) {
     return ToUtf8(file);
 }
 
+namespace {
+// Lo que trae Satronho para los núcleos (base de datos de Nestopia, letras de la PSP…) se copia a
+// la carpeta del sistema. Lo que ya está no se toca (la persona puede haber puesto lo suyo).
+void CopySystemAssets(const fs::path& assets_system, const fs::path& system) {
+    std::error_code ec;
+    if (!fs::exists(assets_system, ec)) return;
+    for (auto it = fs::recursive_directory_iterator(assets_system, ec); !ec && it != fs::recursive_directory_iterator(); it.increment(ec)) {
+        if (!it->is_regular_file(ec)) continue;
+        const fs::path dst = system / fs::relative(it->path(), assets_system, ec);
+        if (fs::exists(dst, ec)) continue;
+        fs::create_directories(dst.parent_path(), ec);
+        fs::copy_file(it->path(), dst, ec);
+    }
+}
+} // namespace
+
 void Init() {
 #ifdef __ANDROID__
     // Android: los assets se copian a files/assets (SatronhoActivity), los núcleos están donde
@@ -106,9 +122,7 @@ void Init() {
         g_user = FromUtf8(external ? external : (internal ? internal : "."));
         std::error_code ec;
         fs::create_directories(g_user, ec);
-        const fs::path db_src = g_assets / "system" / "NstDatabase.xml";
-        const fs::path db_dst = System() / "NstDatabase.xml";
-        if (fs::exists(db_src, ec) && !fs::exists(db_dst, ec)) fs::copy_file(db_src, db_dst, ec);
+        CopySystemAssets(g_assets / "system", System());
         return;
     }
 #endif
@@ -128,11 +142,8 @@ void Init() {
     }
     fs::create_directories(g_user, ec);
 
-    // La base de datos de Nestopia mejora la detección de cartuchos raros.
-    const fs::path db_src = g_assets / "system" / "NstDatabase.xml";
-    const fs::path db_dst = System() / "NstDatabase.xml";
-    if (fs::exists(db_src, ec) && !fs::exists(db_dst, ec))
-        fs::copy_file(db_src, db_dst, ec);
+    // La base de datos de Nestopia (cartuchos raros) y las letras de la PSP (PPSSPP).
+    CopySystemAssets(g_assets / "system", System());
 }
 
 const fs::path& Base() { return g_base; }

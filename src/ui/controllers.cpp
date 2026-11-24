@@ -601,6 +601,141 @@ void DrawSaturn(Ctx& c) {
     }
 }
 
+
+// Palanca analógica (se mueve con la del mando real). `side`: 0 izquierda, 1 derecha.
+void Stick(Ctx& c, int id, float x, float y, float base_r, float knob_r, int side, ImU32 base, ImU32 knob) {
+    ImDrawList* dl = c.dl;
+    if (id >= 0) c.Hit(id, x, y, base_r * 0.9f);
+    dl->AddCircleFilled(c.P(x, y), c.L(base_r), base, 40);
+    const float sx = c.mini ? 0 : g_sticks[side * 2] * base_r * 0.25f, sy = c.mini ? 0 : g_sticks[side * 2 + 1] * base_r * 0.25f;
+    const bool moved = sx * sx + sy * sy > 9;
+    dl->AddCircleFilled(c.P(x + sx + 2, y + sy + 4), c.L(knob_r), IM_COL32(0, 0, 0, 80), 32);
+    dl->AddCircleFilled(c.P(x + sx, y + sy), c.L(knob_r), (id >= 0 && c.Down(id)) ? U32(Color::Gold) : moved ? U32(Color::Accent) : knob, 32);
+    dl->AddCircle(c.P(x + sx, y + sy), c.L(knob_r * 0.75f), base, 32, c.L(2));
+    if (id >= 0) c.Ring(id, c.P(x + sx, y + sy), c.L(knob_r));
+}
+
+// ---------------------------------------------------------------- Dreamcast (diseño 600 × 440)
+// Mando blanco con la ranura de la VMU, palanca arriba a la izquierda, cruceta abajo, A B X Y de
+// colores y los gatillos L y R atrás. En el RetroPad: A = B, B = A, X = Y, Y = X, L = L2 y R = R2.
+void DrawDreamcast(Ctx& c) {
+    ImDrawList* dl = c.dl;
+    const ImU32 shell = IM_COL32(232, 232, 236, 255), shell_dark = IM_COL32(200, 200, 208, 255), ink = IM_COL32(130, 130, 142, 255);
+    auto trigger = [&](int id, bool right) {
+        const float x0 = right ? 380 : 90, x1 = right ? 510 : 220;
+        c.Hit(id, (x0 + x1) * 0.5f, 34, 40);
+        const ImU32 col = c.Down(id) ? U32(Color::Gold) : IM_COL32(176, 176, 186, 255);
+        dl->AddRectFilled(c.P(x0, 8), c.P(x1, 74), col, c.L(26), ImDrawFlags_RoundTop);
+        if (c.hovered == id || c.capturing == id)
+            dl->AddRect(c.P(x0 - 3, 5), c.P(x1 + 3, 56), U32(Color::Accent, c.capturing == id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(22), c.L(2.5f));
+        c.Text(right ? "R" : "L", (x0 + x1) * 0.5f, 30, 15, c.Down(id) ? IM_COL32(60, 40, 0, 255) : IM_COL32(110, 110, 122, 255));
+    };
+    trigger(RETRO_DEVICE_ID_JOYPAD_L2, false);
+    trigger(RETRO_DEVICE_ID_JOYPAD_R2, true);
+    // Cuerpo: parte de arriba ancha y dos agarraderas que bajan.
+    auto body = [&](float dx, float dy, ImU32 col) {
+        dl->AddRectFilled(c.P(40 + dx, 54 + dy), c.P(560 + dx, 260 + dy), col, c.L(90));
+        for (int side = 0; side < 2; ++side) {
+            const float x0 = side ? 460 : 140, x1 = side ? 500 : 100;
+            for (int i = 0; i <= 10; ++i) {
+                const float t = i / 10.0f;
+                dl->AddCircleFilled(c.P(x0 + (x1 - x0) * t + dx, 190 + 170 * t + dy), c.L(100 - 40 * t), col, 40);
+            }
+        }
+    };
+    body(5, 10, IM_COL32(0, 0, 0, 70));
+    body(0, 0, shell);
+    // Ranura de la VMU al centro, arriba.
+    dl->AddRectFilled(c.P(232, 64), c.P(368, 172), shell_dark, c.L(14));
+    dl->AddRectFilled(c.P(248, 78), c.P(352, 158), IM_COL32(150, 150, 160, 255), c.L(8));
+    // Palanca arriba a la izquierda y cruceta abajo.
+    Stick(c, -1, 140, 128, 50, 32, 0, IM_COL32(190, 190, 198, 255), IM_COL32(150, 150, 160, 255));
+    DPad(c, 196, 250, 96, IM_COL32(90, 90, 100, 255), IM_COL32(130, 130, 142, 255));
+    // Start abajo al centro.
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_START, 300, 232, 13, IM_COL32(120, 120, 132, 255), IM_COL32(160, 160, 172, 255));
+    c.Text("START", 300, 262, 11, ink);
+    // A B X Y en rombo (Y arriba, X a la izquierda, B a la derecha, A abajo).
+    struct Btn {
+        int id;
+        const char* t;
+        float x, y;
+        ImU32 col, hi;
+    } btns[] = {{RETRO_DEVICE_ID_JOYPAD_X, "Y", 456, 112, IM_COL32(70, 170, 90, 255), IM_COL32(110, 200, 130, 255)},
+                {RETRO_DEVICE_ID_JOYPAD_Y, "X", 408, 158, IM_COL32(230, 190, 60, 255), IM_COL32(245, 215, 110, 255)},
+                {RETRO_DEVICE_ID_JOYPAD_A, "B", 504, 158, IM_COL32(70, 110, 210, 255), IM_COL32(110, 150, 235, 255)},
+                {RETRO_DEVICE_ID_JOYPAD_B, "A", 456, 204, IM_COL32(220, 70, 70, 255), IM_COL32(240, 120, 120, 255)}};
+    for (const auto& b : btns) {
+        RoundButton(c, b.id, b.x, b.y, 24, b.col, b.hi);
+        ButtonLetter(c, b.id, b.t, b.x, b.y, 16, IM_COL32(255, 255, 255, 230));
+    }
+}
+
+// ---------------------------------------------------------------- PSP (diseño 700 × 300)
+// La consola entera: pantalla ancha al centro, cruceta y palanquita a la izquierda, figuras de
+// PlayStation a la derecha, L y R arriba y Select/Start abajo.
+void DrawPsp(Ctx& c) {
+    ImDrawList* dl = c.dl;
+    const ImU32 shell = IM_COL32(150, 156, 172, 255), shell_hi = IM_COL32(186, 192, 206, 255);
+    auto shoulder = [&](int id, bool right) {
+        const float x0 = right ? 540 : 40, x1 = right ? 660 : 160;
+        c.Hit(id, (x0 + x1) * 0.5f, 22, 36);
+        const ImU32 col = c.Down(id) ? U32(Color::Gold) : IM_COL32(84, 86, 98, 255);
+        dl->AddRectFilled(c.P(x0, 6), c.P(x1, 48), col, c.L(20), right ? ImDrawFlags_RoundTopRight : ImDrawFlags_RoundTopLeft);
+        if (c.hovered == id || c.capturing == id)
+            dl->AddRect(c.P(x0 - 3, 3), c.P(x1 + 3, 40), U32(Color::Accent, c.capturing == id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(18), c.L(2.5f));
+        c.Text(right ? "R" : "L", (x0 + x1) * 0.5f, 22, 14, c.Down(id) ? IM_COL32(60, 40, 0, 255) : IM_COL32(200, 202, 214, 255));
+    };
+    shoulder(RETRO_DEVICE_ID_JOYPAD_L, false);
+    shoulder(RETRO_DEVICE_ID_JOYPAD_R, true);
+    // Cuerpo alargado con los extremos redondos.
+    dl->AddRectFilled(c.P(16, 34), c.P(694, 294), IM_COL32(0, 0, 0, 90), c.L(120));
+    dl->AddRectFilled(c.P(10, 24), c.P(688, 284), shell_hi, c.L(120));
+    dl->AddRectFilled(c.P(16, 30), c.P(682, 278), shell, c.L(114));
+    // Pantalla.
+    dl->AddRectFilled(c.P(196, 58), c.P(504, 232), IM_COL32(20, 21, 28, 255), c.L(8));
+    dl->AddRectFilledMultiColor(c.P(206, 68), c.P(494, 222), IM_COL32(60, 78, 104, 255), IM_COL32(48, 64, 90, 255),
+                                IM_COL32(30, 40, 58, 255), IM_COL32(38, 50, 70, 255));
+    // Cruceta y la palanquita debajo.
+    DPad(c, 104, 122, 92, IM_COL32(30, 31, 38, 255), IM_COL32(70, 72, 84, 255));
+    Stick(c, -1, 92, 214, 28, 20, 0, IM_COL32(30, 31, 38, 255), IM_COL32(120, 122, 134, 255));
+    // Figuras de PlayStation.
+    const ImU32 btn = IM_COL32(30, 31, 38, 255), btn_hi = IM_COL32(64, 66, 78, 255);
+    struct Face {
+        int id;
+        float x, y;
+    } faces[] = {{RETRO_DEVICE_ID_JOYPAD_X, 596, 84}, {RETRO_DEVICE_ID_JOYPAD_Y, 552, 126},
+                 {RETRO_DEVICE_ID_JOYPAD_A, 640, 126}, {RETRO_DEVICE_ID_JOYPAD_B, 596, 168}};
+    for (const auto& f : faces) {
+        RoundButton(c, f.id, f.x, f.y, 19, btn, btn_hi);
+        const bool down = c.Down(f.id);
+        const float t = c.L(2.2f);
+        const ImVec2 m = c.P(f.x, f.y);
+        const float r = c.L(8);
+        switch (f.id) {
+        case RETRO_DEVICE_ID_JOYPAD_X:
+            dl->AddTriangle({m.x, m.y - r}, {m.x - r * 1.05f, m.y + r * 0.75f}, {m.x + r * 1.05f, m.y + r * 0.75f},
+                            down ? IM_COL32(60, 40, 0, 255) : IM_COL32(64, 200, 150, 255), t);
+            break;
+        case RETRO_DEVICE_ID_JOYPAD_A:
+            dl->AddCircle(m, r, down ? IM_COL32(60, 40, 0, 255) : IM_COL32(240, 90, 96, 255), 24, t);
+            break;
+        case RETRO_DEVICE_ID_JOYPAD_B:
+            dl->AddLine({m.x - r, m.y - r}, {m.x + r, m.y + r}, down ? IM_COL32(60, 40, 0, 255) : IM_COL32(110, 150, 240, 255), t);
+            dl->AddLine({m.x + r, m.y - r}, {m.x - r, m.y + r}, down ? IM_COL32(60, 40, 0, 255) : IM_COL32(110, 150, 240, 255), t);
+            break;
+        default:
+            dl->AddRect({m.x - r * 0.85f, m.y - r * 0.85f}, {m.x + r * 0.85f, m.y + r * 0.85f},
+                        down ? IM_COL32(60, 40, 0, 255) : IM_COL32(236, 130, 200, 255), 0, t);
+            break;
+        }
+    }
+    // Select y Start abajo a la derecha de la pantalla.
+    PillButton(c, RETRO_DEVICE_ID_JOYPAD_SELECT, 404, 256, 30, 9, 0, IM_COL32(90, 92, 104, 255));
+    PillButton(c, RETRO_DEVICE_ID_JOYPAD_START, 456, 256, 30, 9, 0, IM_COL32(90, 92, 104, 255));
+    c.Text("SELECT", 404, 274, 9, IM_COL32(70, 72, 86, 255));
+    c.Text("START", 456, 274, 9, IM_COL32(70, 72, 86, 255));
+}
+
 struct Design {
     float w, h;
 };
@@ -614,6 +749,8 @@ Design DesignOf(Layout l) {
     case Layout::N64: return {640, 420};
     case Layout::DS: return {460, 560};
     case Layout::Saturn: return {640, 340};
+    case Layout::Dreamcast: return {600, 440};
+    case Layout::Psp: return {700, 300};
     default: return {692, 318};
     }
 }
@@ -646,6 +783,8 @@ int DrawController(ImDrawList* dl, Layout layout, ImVec2 pos, ImVec2 size, uint1
     case Layout::N64: DrawN64(c); break;
     case Layout::DS: DrawDs(c); break;
     case Layout::Saturn: DrawSaturn(c); break;
+    case Layout::Dreamcast: DrawDreamcast(c); break;
+    case Layout::Psp: DrawPsp(c); break;
     default: DrawNes(c); break;
     }
     return c.hovered;
@@ -669,6 +808,8 @@ void DrawControllerMini(ImDrawList* dl, Layout layout, ImVec2 center, float widt
     case Layout::N64: DrawN64(c); break;
     case Layout::DS: DrawDs(c); break;
     case Layout::Saturn: DrawSaturn(c); break;
+    case Layout::Dreamcast: DrawDreamcast(c); break;
+    case Layout::Psp: DrawPsp(c); break;
     default: DrawNes(c); break;
     }
     if (alpha < 1.0f) {

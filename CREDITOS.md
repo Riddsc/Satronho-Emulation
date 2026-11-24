@@ -16,6 +16,8 @@ Componentes de terceros incluidos (licencias completas en la carpeta `licencias`
 - Mupen64Plus-Next — núcleo de Satronho 64 — GPL 2.0 — https://github.com/libretro/mupen64plus-libretro-nx
 - melonDS DS — núcleo de Satronho Dual (incluye FreeBIOS) — GPL 3.0 — https://github.com/JesseTG/melonds-ds
 - Beetle Saturn — núcleo de Satronho Anillo — GPL 2.0 — https://github.com/libretro/beetle-saturn-libretro
+- Flycast — núcleo de Satronho Sueño — GPL 2.0 — https://github.com/flyinghead/flycast
+- PPSSPP — núcleo de Satronho Portátil (incluye sus fuentes y archivos de sistema) — GPL 2.0 o posterior — https://github.com/hrydgard/ppsspp
 - SDL 3 — zlib — https://github.com/libsdl-org/SDL
 - Dear ImGui — MIT — https://github.com/ocornut/imgui
 - libretro API (también la de Vulkan) — MIT — https://github.com/libretro/libretro-common
@@ -27,6 +29,6 @@ Componentes de terceros incluidos (licencias completas en la carpeta `licencias`
 
 Las carátulas de los juegos se descargan de libretro-thumbnails (https://github.com/libretro-thumbnails) cuando hay internet; no vienen incluidas y son de sus autores.
 
-NES, Super Nintendo, Game Boy, Game Boy Advance, Nintendo 64 y DS son marcas de Nintendo; Genesis, Mega Drive y Saturn, de Sega; PlayStation, de Sony. Se usan solo para describir con qué juegos funciona cada emulador. Este proyecto no está afiliado a ninguna de ellas y no incluye juegos.
+NES, Super Nintendo, Game Boy, Game Boy Advance, Nintendo 64 y DS son marcas de Nintendo; Genesis, Mega Drive y Saturn, de Sega; Dreamcast, también de Sega; PlayStation y PSP, de Sony. Se usan solo para describir con qué juegos funciona cada emulador. Este proyecto no está afiliado a ninguna de ellas y no incluye juegos.
 
-Las versiones exactas de cada núcleo están fijadas en los scripts `scripts/build-core-*.sh` del código fuente.
+Las versiones exactas de cada núcleo están fijadas en los scripts `scripts/build-core-*.sh` del código fuente; Flycast y PPSSPP se bajan ya hechos de buildbot.libretro.com (versión nocturna).
