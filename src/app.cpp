@@ -753,8 +753,11 @@ void App::Frame() {
             const float fb = ImGui::GetIO().DisplayFramebufferScale.y;
             const int top = GameBarReserves() ? static_cast<int>(GameBarTop() * fb) : 0;
             const int bot = GameBarReserves() ? static_cast<int>(GameBarBottom() * fb) : 0;
-            video_gl_.SetArea(0, bot);
-            video_gl_.Draw(core_, &hw_render_, VideoSettings(), pw, std::max(1, ph - top - bot), sys_->handheld);
+            int lx = 0, rx = 0;
+            TouchReserve(pw, ph, &lx, &rx);
+            game_x_off_ = lx;
+            video_gl_.SetArea(lx, bot);
+            video_gl_.Draw(core_, &hw_render_, VideoSettings(), std::max(1, pw - lx - rx), std::max(1, ph - top - bot), sys_->handheld);
             video_gl_.SetArea(0, 0);
         }
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -770,7 +773,10 @@ void App::Frame() {
             const float fb = ImGui::GetIO().DisplayFramebufferScale.y;
             const int top = GameBarReserves() ? static_cast<int>(GameBarTop() * fb) : 0;
             const int bot = GameBarReserves() ? static_cast<int>(GameBarBottom() * fb) : 0;
-            const SDL_Rect area{0, top, pw, std::max(1, ph - top - bot)};
+            int lx = 0, rx = 0;
+            TouchReserve(pw, ph, &lx, &rx);
+            game_x_off_ = lx;
+            const SDL_Rect area{lx, top, std::max(1, pw - lx - rx), std::max(1, ph - top - bot)};
             SDL_SetRenderViewport(renderer_, &area);
             video_.Draw(core_, VideoSettings(), area.w, area.h, sys_->handheld);
             SDL_SetRenderViewport(renderer_, nullptr);
@@ -1272,7 +1278,13 @@ bool App::StartGame(const fs::path& rom) {
     perf_ = Perf{};
     RefreshSlotThumbs();
     SDL_SetWindowTitle(window_, (current_.title + " — Satronho Emulation").c_str());
-    Toast("¡A jugar! Esc abre el menú.", GuideId::Samy, 3.0);
+    // El aviso habla de lo que la persona tiene en la mano: el dedo, el mando o el teclado.
+    if (TouchPadVisible())
+        Toast("¡A jugar! El botón de pausa (a la derecha) o deslizar desde arriba abren el menú.", GuideId::Samy, 3.5);
+    else if (!input_.Gamepads().empty())
+        Toast("¡A jugar! Select + Start (o el botón Guía) abren el menú.", GuideId::Samy, 3.0);
+    else
+        Toast("¡A jugar! Esc abre el menú.", GuideId::Samy, 3.0);
     return true;
 }
 
@@ -1459,7 +1471,8 @@ void App::Step(bool rewinding, bool fast_forward) {
         } else {
             SDL_RenderCoordinatesFromWindow(renderer_, mx, my, &dx, &dy);
         }
-        const SDL_FRect r = gl_ ? video_gl_.LastRect() : video_.LastRect();
+        SDL_FRect r = gl_ ? video_gl_.LastRect() : video_.LastRect();
+        r.x += static_cast<float>(game_x_off_); // la imagen se corre si el control táctil va a los costados
         if (r.w > 1 && r.h > 1) {
             const float u = (dx - r.x) / r.w, v = (dy - r.y) / r.h;
             const bool inside = u >= 0 && u <= 1 && v >= 0 && v <= 1;

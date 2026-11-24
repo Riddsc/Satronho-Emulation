@@ -2844,6 +2844,17 @@ void App::DrawPauseMenu() {
     ImGui::End();
 }
 
+// Con el control en pantalla a los costados, el medidor va en la esquina de la imagen del juego (no
+// encima de los gatillos). Devuelve cuánto se corre a la izquierda (x) y a la derecha (y), en puntos.
+ImVec2 App::MeterSides() const {
+    if (!in_game_) return {0, 0};
+    int W = 0, H = 0, l = 0, r = 0;
+    SDL_GetWindowSizeInPixels(window_, &W, &H);
+    TouchReserve(W, H, &l, &r);
+    const float k = W > 0 ? ImGui::GetMainViewport()->Size.x / W : 1.0f;
+    return {l * k, r * k};
+}
+
 void App::DrawMeter(bool preview, ImVec2 preview_pos) {
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     ImDrawList* dl = preview ? ImGui::GetWindowDrawList() : ImGui::GetForegroundDrawList();
@@ -2873,7 +2884,8 @@ void App::DrawMeter(bool preview, ImVec2 preview_pos) {
         ImVec2 p = preview_pos;
         if (!preview) {
             const float m = S(16);
-            p.x = (settings_.meter_corner % 2) ? vp->Pos.x + vp->Size.x - size.x - m : vp->Pos.x + m;
+            const ImVec2 sides = MeterSides();
+            p.x = (settings_.meter_corner % 2) ? vp->Pos.x + vp->Size.x - size.x - m - sides.y : vp->Pos.x + m + sides.x;
             p.y = (settings_.meter_corner >= 2) ? vp->Pos.y + vp->Size.y - size.y - m - GameBarBottom() : vp->Pos.y + m + GameBarTop();
         }
         dl->AddRectFilled(p, {p.x + size.x, p.y + size.y}, U32(0x1B1829, 0.88f), S(10));
@@ -2889,7 +2901,8 @@ void App::DrawMeter(bool preview, ImVec2 preview_pos) {
     ImVec2 p = preview_pos;
     if (!preview) {
         const float m = S(16);
-        p.x = (settings_.meter_corner % 2) ? vp->Pos.x + vp->Size.x - w - m : vp->Pos.x + m;
+        const ImVec2 sides = MeterSides();
+        p.x = (settings_.meter_corner % 2) ? vp->Pos.x + vp->Size.x - w - m - sides.y : vp->Pos.x + m + sides.x;
         p.y = (settings_.meter_corner >= 2) ? vp->Pos.y + vp->Size.y - h - m : vp->Pos.y + m;
     }
     dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(0x1B1829, 0.90f), S(16));

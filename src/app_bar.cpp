@@ -113,11 +113,16 @@ void App::DrawGameBar() {
                      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PopStyleColor();
     ImDrawList* dl = ImGui::GetWindowDrawList();
+    // Ojo: la ventana es solo la barra de menús, y ImGui recorta lo que se dibuja a la parte de abajo de
+    // la barra (que aquí no existe). Sin abrir el recorte, el fondo no se veía: en ventana no se
+    // notaba (detrás no hay juego), pero en Android los menús quedaban encima de la imagen.
+    dl->PushClipRect(b0, b1, false);
     dl->AddRectFilledMultiColor(b0, b1, U32(Color::Surface, 0.97f), U32(Color::Surface, 0.97f), U32(Color::Bg, 0.97f), U32(Color::Bg, 0.97f));
     dl->AddRectFilledMultiColor({b0.x, b1.y - S(2)}, {b0.x + vp->Size.x * 0.5f, b1.y}, U32(Color::Accent, 0.0f), U32(Color::Accent, 0.7f),
                                 U32(Color::Accent, 0.7f), U32(Color::Accent, 0.0f));
     dl->AddRectFilledMultiColor({b0.x + vp->Size.x * 0.5f, b1.y - S(2)}, {b1.x, b1.y}, U32(Color::Accent, 0.7f), U32(Color::Accent2, 0.0f),
                                 U32(Color::Accent2, 0.0f), U32(Color::Accent, 0.7f));
+    dl->PopClipRect();
     (void)bg;
 
     if (ImGui::BeginMenuBar()) {

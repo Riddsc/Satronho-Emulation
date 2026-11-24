@@ -161,7 +161,8 @@ private:
     void ToggleGameBar();
     bool bar_open_ = false;
     bool edge_swipe_ = false;
-    bool page_scroll_reset_ = false; // la pantalla cambió: la próxima vez empieza arriba
+    bool page_scroll_reset_ = false;
+    int game_x_off_ = 0; // píxeles que el juego se corrió a la derecha (control en pantalla a los costados) // la pantalla cambió: la próxima vez empieza arriba
     std::string shown_lib_system_;   // consola que se mostraba en la biblioteca (para volver arriba al cambiar)
     // Carrusel: arrastrar con el mouse o el dedo.
     bool car_drag_ = false, car_moved_ = false;
@@ -231,6 +232,8 @@ private:
     void UpdateTouchMode();
     void TouchEvent(const SDL_Event& e);
     void TouchScroll();
+    void TouchReserve(int W, int H, int* left, int* right) const; // espacio del control a los costados del juego
+    ImVec2 MeterSides() const;
     bool TouchPadVisible() const;
     std::vector<TouchButton> TouchLayout(float W, float H) const;
     void ApplyTouchPad();

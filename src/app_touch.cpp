@@ -183,8 +183,9 @@ std::vector<App::TouchButton> App::TouchLayout(float W, float H) const {
         const ImVec2 c(W * 0.035f + u * 1.55f + o.x, H * 0.62f + o.y);
         if (sys.id == "n64") out.push_back({c, u * 1.35f, -3, "", "izq"});
         else out.push_back({c, u * 1.45f, -2, "", "izq"});
-        // En CD, el stick izquierdo va un poco más abajo, junto a la cruceta.
-        if (sys.id == "cd" && sys.analog) out.push_back({{c.x + u * 2.3f, c.y + u * 1.05f}, u * 0.75f, -3, "", "izq"});
+        // En CD, el stick izquierdo va abajo a la derecha de la cruceta (dentro de la columna, sin
+        // tapar el juego).
+        if (sys.id == "cd" && sys.analog) out.push_back({{c.x + u * 1.15f, c.y + u * 2.05f}, u * 0.75f, -3, "", "izq"});
     }
     // Derecha: los botones de acción en las mismas filas que en Controles.
     {
@@ -217,18 +218,46 @@ std::vector<App::TouchButton> App::TouchLayout(float W, float H) const {
             out.push_back({{x + o.x, H * 0.16f + o.y}, u * 0.62f, b, name, left ? "gat_izq" : "gat_der"});
         }
     }
-    // Centro abajo: Select y Start (o solo Start).
+    // Select y Start, y el botón de menú. Acostado (lo normal), van a los costados, entre los gatillos y
+    // la cruceta: Select a la izquierda, Start a la derecha y el menú junto a Start. Así nada queda
+    // encima del juego (antes iban al centro, sobre la imagen). En vertical, abajo al centro.
+    const bool landscape = W > H * 1.25f;
     {
         const ImVec2 o = off("centro");
         const int n = static_cast<int>(sys.center.size());
         for (int i = 0; i < n; ++i) {
-            const float x = W * 0.5f + (i - (n - 1) * 0.5f) * u * 1.9f;
-            out.push_back({{x + o.x, H - u * 0.75f + o.y}, u * 0.5f, sys.center[i], ButtonName(sys, sys.center[i]), "centro"});
+            ImVec2 c;
+            if (landscape) {
+                const bool left = n > 1 && i == 0; // con un solo botón (Start), va a la derecha
+                c = left ? ImVec2(W * 0.035f + u * 1.55f, H * 0.33f) : ImVec2(W - W * 0.035f - u * 1.05f, H * 0.33f);
+            } else {
+                c = ImVec2(W * 0.5f + (i - (n - 1) * 0.5f) * u * 1.9f, H - u * 0.75f);
+            }
+            out.push_back({{c.x + o.x, c.y + o.y}, u * 0.5f, sys.center[i], ButtonName(sys, sys.center[i]), "centro"});
         }
     }
-    // Menú arriba al centro.
-    out.push_back({{W * 0.5f, u * 0.62f}, u * 0.45f, -1, "", "menu"});
+    if (landscape) out.push_back({{W - W * 0.035f - u * 2.75f, H * 0.33f}, u * 0.42f, -1, "", "menu"});
+    else out.push_back({{W * 0.5f, u * 0.62f}, u * 0.45f, -1, "", "menu"});
     return out;
+}
+
+// Acostado y con el control en pantalla, el juego se dibuja entre las dos columnas del control (se
+// achica un poco si hace falta) para que ningún botón quede encima de la imagen.
+void App::TouchReserve(int W, int H, int* left, int* right) const {
+    *left = *right = 0;
+    if (!TouchPadVisible() || bar_open_ || touch_edit_ || W <= H * 1.25f || sys_->touch) return;
+    const auto layout = TouchLayout(static_cast<float>(W), static_cast<float>(H));
+    float l = 0, r = 0;
+    for (const auto& b : layout) {
+        const bool pill = std::string(b.group).rfind("gat", 0) == 0 || std::string(b.group) == "centro";
+        const float ext = b.r * (pill ? 1.45f : 1.0f);
+        if (b.c.x < W * 0.5f) l = std::max(l, b.c.x + ext);
+        else r = std::max(r, W - (b.c.x - ext));
+    }
+    const float gap = W * 0.008f;
+    // Nunca más de un tercio por lado (si alguien movió un grupo al centro, el juego no desaparece).
+    *left = static_cast<int>(std::min(l + gap, W * 0.33f));
+    *right = static_cast<int>(std::min(r + gap, W * 0.33f));
 }
 
 void App::ApplyTouchPad() {
