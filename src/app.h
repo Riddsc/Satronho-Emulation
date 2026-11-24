@@ -108,6 +108,10 @@ private:
     std::vector<std::string> pending_toasts_; // avisos que llegan desde otros hilos (con pending_mutex_) // clic derecho en un juego; devuelve true si eligió «Jugar»
     void DrawEmptyLibrary();
     void DrawEmptySystem(const SystemDef& sys);
+    // Ajustes de un solo juego (clic derecho o toque largo › «Ajustes de este juego»).
+    Game game_settings_;
+    void DrawGameSettings();
+    void LongPressMenu(const Game& g);
     void DrawSuggested();
     void DrawNews();
     void DrawUpdatePanel();
@@ -342,6 +346,7 @@ private:
     void ApplyVsync();
     std::vector<uint8_t> CurrentFrameRGBA(unsigned* w, unsigned* h);
     void ApplyGpuChoice(const SystemDef& sys); // motor y resolución de CD y 64
+    int game_api_ = 0, game_res_ = 0; // ajustes del juego que se abre (0 = como la consola)
     int GpuApiFor(const SystemDef& sys) const;  // 1 OpenGL, 2 Vulkan, 3 procesador
     int GpuResFor(const SystemDef& sys, int api) const;
     std::vector<int> GpuResSteps(const SystemDef& sys, int api) const; // pasos que admite cada núcleo

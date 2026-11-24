@@ -57,6 +57,9 @@ public:
     // El mismo juego, pero con otro archivo de adentro del .zip/.7z (cuando trae varios).
     static Game MakeGameEntry(const fs::path& archive, const std::string& entry);
 
+    // Ajustes de un juego en particular («mando», «motor», «res»): "" = como la consola.
+    std::string GameOption(const std::string& key, const std::string& name) const;
+    void SetGameOption(const std::string& key, const std::string& name, const std::string& value);
     void ToggleFavorite(const std::string& key);
     void SetHidden(const std::string& key, bool hidden);
     void AddPlaytime(const std::string& key, long long seconds);

@@ -251,7 +251,7 @@ void Library::Rekey(const std::vector<std::pair<std::string, std::string>>& old_
         std::lock_guard lock(mutex_);
         for (const auto& [ok, nk] : old_new) {
             if (ok == nk) continue;
-            for (const char* field : {".favorito", ".tiempo", ".ultima", ".oculto"}) {
+            for (const char* field : {".favorito", ".tiempo", ".ultima", ".oculto", ".ajuste.mando", ".ajuste.motor", ".ajuste.res"}) {
                 if (!meta_.Values().count(ok + field)) continue;
                 meta_.Set(nk + field, meta_.Get(ok + field));
                 meta_.Erase(ok + field);
@@ -413,6 +413,18 @@ Game* Library::Find(const std::string& key) {
     for (auto& g : games_)
         if (g.key == key) return &g;
     return nullptr;
+}
+
+std::string Library::GameOption(const std::string& key, const std::string& name) const {
+    std::lock_guard lock(mutex_);
+    return meta_.Get(key + ".ajuste." + name);
+}
+
+void Library::SetGameOption(const std::string& key, const std::string& name, const std::string& value) {
+    std::lock_guard lock(mutex_);
+    if (value.empty()) meta_.Erase(key + ".ajuste." + name);
+    else meta_.Set(key + ".ajuste." + name, value);
+    meta_.Save(Paths::LibraryFile());
 }
 
 void Library::ToggleFavorite(const std::string& key) {

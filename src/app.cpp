@@ -374,6 +374,7 @@ bool App::Init() {
     if (qa_.count("explorador")) OpenBrowser(qa_["explorador"] == "1");
     if (qa_.count("editar_tactil")) touch_edit_ = true;
     if (qa_.count("abrir")) RequestStart(Paths::FromUtf8(qa_["abrir"]));
+    if (qa_.count("ajustes_juego")) game_settings_ = Library::MakeGame(Paths::FromUtf8(qa_["ajustes_juego"]));
     if (qa_.count("publica")) BeginDataMove(Paths::FromUtf8(qa_["publica"])); // prueba de la mudanza de Android
     if (qa_.count("descomprimir")) BeginUnpack(Library::MakeGame(Paths::FromUtf8(qa_["descomprimir"])), Paths::FromUtf8(qa_["descomprimir"]));
     if (qa_.count("carpeta")) {
@@ -1230,9 +1231,14 @@ bool App::StartGame(const fs::path& rom) {
     }
     sys_ = sys;
     core_.port_device = sys->port_device;
+    // Ajustes de este juego (si tiene): tipo de mando, motor gráfico y resolución.
+    if (library_.GameOption(probe.key, "mando") == "normal") core_.port_device = RETRO_DEVICE_JOYPAD;
+    game_api_ = std::atoi(library_.GameOption(probe.key, "motor").c_str());
+    game_res_ = std::atoi(library_.GameOption(probe.key, "res").c_str());
     // Cada consola guarda sus partidas en su propia carpeta (partidas/<consola>).
     core_.SetSaveDir(Paths::Saves() / sys->id);
     ApplyGpuChoice(*sys);
+    game_api_ = game_res_ = 0; // lo del juego vale solo para abrirlo (las pantallas muestran lo de la consola)
     fs::path load_path = rom;
     std::vector<uint8_t> mem;
     if (probe.Archived() && ArchiveNeedsUnpack(probe)) {
