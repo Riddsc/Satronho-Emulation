@@ -843,8 +843,11 @@ void RowBegin(const char* title, const char* help) {
     const ImVec2 p = ImGui::GetCursorScreenPos();
     g_row_x = p.x;
     g_row_y = p.y;
-    const float control_w = std::min(S(340), g_row_w * 0.45f);
-    const float text_w = g_row_w - control_w - S(24);
+    // En pantallas angostas (celular en vertical) la fila se apila: el texto arriba y el control
+    // debajo, a todo el ancho. Así nada queda con una letra por línea.
+    const bool stacked = g_row_w < S(560);
+    const float control_w = stacked ? g_row_w : std::min(S(340), g_row_w * 0.45f);
+    const float text_w = stacked ? g_row_w : g_row_w - control_w - S(24);
     ImGui::PushTextWrapPos(p.x + text_w - ImGui::GetWindowPos().x + ImGui::GetScrollX());
     {
         FontScope f(GetFonts().semibold, 15);
@@ -859,7 +862,12 @@ void RowBegin(const char* title, const char* help) {
     }
     ImGui::PopTextWrapPos();
     g_row_text_bottom = ImGui::GetCursorScreenPos().y;
-    ImGui::SetCursorScreenPos({p.x + g_row_w - control_w, p.y + S(2)});
+    if (stacked) {
+        ImGui::SetCursorScreenPos({p.x, g_row_text_bottom + S(6)});
+        g_row_text_bottom = p.y; // la altura la da el control
+    } else {
+        ImGui::SetCursorScreenPos({p.x + g_row_w - control_w, p.y + S(2)});
+    }
     ImGui::BeginGroup();
 }
 
@@ -1194,6 +1202,26 @@ void Ellipsize(ImDrawList* dl, ImFont* font, float size, ImVec2 pos, ImU32 color
         }
         dl->AddText(font, size, {pos.x, pos.y + li * size * 1.25f}, color, s.c_str());
     }
+}
+
+void BackToTop() {
+    ImGuiWindow* w = ImGui::GetCurrentWindow();
+    if (w->Scroll.y < w->Size.y * 0.8f) return;
+    const float d = S(46);
+    const ImVec2 keep = ImGui::GetCursorPos();
+    ImGui::SetCursorPos({w->Scroll.x + w->Size.x - d - S(18), w->Scroll.y + w->Size.y - d - S(18)});
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    const bool click = ImGui::InvisibleButton("##arriba", {d, d});
+    const bool hov = ImGui::IsItemHovered();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const ImVec2 c = {p.x + d * 0.5f, p.y + d * 0.5f};
+    dl->AddCircleFilled({c.x, c.y + S(2)}, d * 0.5f, IM_COL32(0, 0, 0, 90));
+    dl->AddCircleFilled(c, d * 0.5f, U32(Color::Accent, hov ? 1.0f : 0.9f));
+    const float a = S(7);
+    dl->AddTriangleFilled({c.x - a, c.y + a * 0.45f}, {c.x + a, c.y + a * 0.45f}, {c.x, c.y - a * 0.65f}, U32(0x15121F));
+    if (hov) ImGui::SetTooltip("%s", Tr("Volver arriba"));
+    if (click) ImGui::SetScrollY(0);
+    ImGui::SetCursorPos(keep);
 }
 
 } // namespace Satronho::Ui

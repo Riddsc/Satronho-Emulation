@@ -123,12 +123,17 @@ void App::DrawUi() {
     ImGui::Begin("##principal", nullptr, kFull);
     ImGui::PopStyleColor();
 
-    const float side_w = compact_ ? S(80) : S(252);
+    // Celular en vertical: sin barra a la izquierda; las secciones van en una barra abajo.
+    const bool portrait = compact_ && vp->Size.y > vp->Size.x * 1.1f;
+    const float side_w = portrait ? 0.0f : compact_ ? S(80) : S(252);
+    const float bottom_nav = portrait ? S(64) : 0.0f;
     // Fondo con la carátula del juego que se mira (borrosa) y, encima, el logo de Satronho.
     if (page_ == Page::Library) DrawBackdrop({vp->Pos.x + side_w, vp->Pos.y}, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y});
     DrawWatermark({vp->Pos.x + side_w, vp->Pos.y}, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y});
-    DrawSidebar(side_w);
-    ImGui::SameLine(0, 0);
+    if (!portrait) {
+        DrawSidebar(side_w);
+        ImGui::SameLine(0, 0);
+    }
 
     // Al cambiar de página el contenido entra con un fundido corto y sube un poco.
     if (page_ != shown_page_) {
@@ -142,7 +147,7 @@ void App::DrawUi() {
     const float ease = 1.0f - (1.0f - tr) * (1.0f - tr);
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.35f + 0.65f * ease);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, compact_ ? ImVec2(S(18), S(14) + (1.0f - ease) * S(10)) : ImVec2(S(38), S(30) + (1.0f - ease) * S(10)));
-    ImGui::BeginChild("##contenido", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
+    ImGui::BeginChild("##contenido", {0, -bottom_nav}, ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PopStyleVar(2);
     switch (page_) {
     case Page::Library: DrawLibrary(); break;
@@ -155,17 +160,20 @@ void App::DrawUi() {
     case Page::Tools: DrawTools(); break;
     }
     ImGui::Dummy({0, S(24)});
+    BackToTop();
     ImGui::EndChild();
+    if (portrait) DrawBottomNav(bottom_nav);
     ImGui::End();
 
     DrawHomeBar();
-    if (page_ == Page::Library && !compact_) DrawGuideBubble();
+    if (page_ == Page::Library && !compact_ && !import_.active) DrawGuideBubble();
     DrawToasts();
     if (show_welcome_) DrawWelcome();
     else if (show_whats_new_) DrawWhatsNew();
     if (!pending_start_.empty()) DrawLoading();
     DrawArchivePicker();
     DrawBrowser();
+    DrawImport();
     DrawConfirm();
     DrawSplash();
 }
@@ -386,9 +394,11 @@ void App::DrawLibrary() {
     else Title("Biblioteca", Fmt("Todas tus consolas · %zu %s", shown.size(), plural).c_str());
     const float after_title = ImGui::GetCursorScreenPos().y;
 
-    // Herramientas a la derecha.
+    // Herramientas a la derecha. En pantallas angostas, la búsqueda va abajo del título, a lo ancho.
+    const bool narrow = avail < S(620);
+    float search_bottom = 0;
     {
-        const float search_w = std::min(S(280), avail * 0.32f);
+        const float search_w = narrow ? avail : std::min(S(280), avail * 0.32f);
         FontScope f(GetFonts().medium, 14);
         const float add_w = compact_ ? S(42) : ImGui::CalcTextSize(Tr("Agregar carpeta")).x + ImGui::GetFontSize() + S(44);
         const float open_w = S(42);
@@ -404,7 +414,8 @@ void App::DrawLibrary() {
         ImGui::SetCursorScreenPos({x, top.y + S(6)});
         if (IconButton("##rescan", Icon::Refresh, S(42), U32(Color::Muted), "Volver a buscar juegos")) Rescan();
         x -= search_w + S(10);
-        ImGui::SetCursorScreenPos({x, top.y + S(6)});
+        if (narrow) ImGui::SetCursorScreenPos({top.x, std::max(after_title, top.y + S(52)) + S(8)});
+        else ImGui::SetCursorScreenPos({x, top.y + S(6)});
         const ImVec2 sp = ImGui::GetCursorScreenPos();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {S(40), S(11)});
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(12));
@@ -412,8 +423,9 @@ void App::DrawLibrary() {
         ImGui::InputTextWithHint("##buscar", Tr("Buscar en la biblioteca"), search_, sizeof search_);
         ImGui::PopStyleVar(2);
         DrawIcon(ImGui::GetWindowDrawList(), Icon::Search, {sp.x + S(20), sp.y + S(21)}, S(15), U32(Color::Dim));
+        search_bottom = ImGui::GetItemRectMax().y;
     }
-    ImGui::SetCursorScreenPos({top.x, std::max(after_title, top.y + S(56)) + S(14)});
+    ImGui::SetCursorScreenPos({top.x, std::max({after_title, top.y + S(56), narrow ? search_bottom : 0.0f}) + S(14)});
 
     if (shown.empty()) {
         if (library_.Scanning()) {
@@ -459,7 +471,7 @@ void App::DrawLibrary() {
             static const char* kViews[] = {"Cuadrícula", "Carrusel", "En lista"};
             const Icon kIcons[] = {Icon::Grid, Icon::Carousel, Icon::List};
             view = std::clamp(view, 0, 2);
-            ImGui::SameLine(0, S(10));
+            if (!narrow) ImGui::SameLine(0, S(10));
             const ImVec2 bp = ImGui::GetCursorScreenPos();
             const std::string lbl = std::string(Tr("Vista: ")) + Tr(kViews[view]);
             FontScope f(GetFonts().medium, 13.5f);
@@ -644,38 +656,40 @@ void App::DrawLibrary() {
 }
 
 void App::DrawContinueHero(const Game& g, float width) {
+    // En pantallas angostas: carátula más chica y el botón debajo del texto.
+    const bool narrow = width < S(620);
     const float h = S(150);
     const ImVec2 p = ImGui::GetCursorScreenPos();
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const float hue = static_cast<float>(g.hue);
     dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(Color::Surface), S(20));
-    dl->AddRectFilledMultiColor({p.x + S(150), p.y + 1}, {p.x + width - S(20), p.y + h - 1}, Hsv(hue, 0.6f, 0.30f, 0.0f), Hsv(hue, 0.6f, 0.35f, 0.55f),
+    const float cover_w = narrow ? S(92) : S(130);
+    dl->AddRectFilledMultiColor({p.x + cover_w + S(20), p.y + 1}, {p.x + width - S(20), p.y + h - 1}, Hsv(hue, 0.6f, 0.30f, 0.0f), Hsv(hue, 0.6f, 0.35f, 0.55f),
                                 Hsv(hue, 0.6f, 0.35f, 0.55f), Hsv(hue, 0.6f, 0.30f, 0.0f));
     dl->AddRect(p, {p.x + width, p.y + h}, Hsv(hue, 0.5f, 0.7f, 0.35f), S(20));
-    const SystemDef* gs = SystemById(g.system);
-    (void)gs;
-    DrawCover(dl, g, {p.x + S(14), p.y + S(12)}, {p.x + S(144), p.y + h - S(12)}, S(14), false);
+    DrawCover(dl, g, {p.x + S(14), p.y + S(12)}, {p.x + S(14) + cover_w, p.y + h - S(12)}, S(14), false);
 
-    const float tx = p.x + S(170);
+    const float tx = p.x + cover_w + S(34);
+    const float text_w = narrow ? width - (tx - p.x) - S(14) : width - S(420);
     {
         FontScope f(GetFonts().semibold, 12);
-        dl->AddText({tx, p.y + S(24)}, U32(Color::Gold), Tr("SEGUIR JUGANDO"));
+        dl->AddText({tx, p.y + S(narrow ? 16 : 24)}, U32(Color::Gold), Tr("SEGUIR JUGANDO"));
     }
-    Ellipsize(dl, GetFonts().bold, S(26), {tx, p.y + S(44)}, U32(Color::Text), g.title, width - S(420), 1);
+    Ellipsize(dl, GetFonts().bold, narrow ? S(20) : S(26), {tx, p.y + S(narrow ? 34 : 44)}, U32(Color::Text), g.title, text_w, 1);
     {
-        FontScope f(GetFonts().regular, 14);
-        std::string meta = FormatLastPlayed(g.last_played) + "  ·  " + FormatPlaytime(g.playtime_s) + " jugado";
-        if (HasAutoState(g)) meta += "  ·  sigues donde quedaste";
-        dl->AddText({tx, p.y + S(86)}, U32(Color::Muted), Tr(meta.c_str()));
+        std::string meta = std::string(Tr((FormatLastPlayed(g.last_played) + "  ·  " + FormatPlaytime(g.playtime_s) + " jugado").c_str()));
+        if (HasAutoState(g) && !narrow) meta += std::string("  ·  ") + Tr("sigues donde quedaste");
+        Ellipsize(dl, GetFonts().regular, S(narrow ? 12.5f : 14), {tx, p.y + S(narrow ? 62 : 86)}, U32(Color::Muted), meta, text_w, 1);
     }
 
-    // Botones.
-    const float bw = S(150);
-    ImGui::SetCursorScreenPos({p.x + width - bw - S(26), p.y + (h - S(48)) * 0.5f});
+    // Botón.
+    const float bw = narrow ? text_w : S(150);
+    const float bh = narrow ? S(42) : S(48);
+    ImGui::SetCursorScreenPos(narrow ? ImVec2(tx, p.y + h - bh - S(14)) : ImVec2(p.x + width - bw - S(26), p.y + (h - bh) * 0.5f));
     {
         FontScope f(GetFonts().semibold, 15);
         // Con guardado automático, «Continuar» sigue justo donde quedaste.
-        if (Button("Continuar##hero", ButtonKind::Primary, {bw, S(48)}, Icon::Play, true)) RequestStart(g.path, HasAutoState(g));
+        if (Button("Continuar##hero", ButtonKind::Primary, {bw, bh}, Icon::Play, true)) RequestStart(g.path, HasAutoState(g));
     }
     ImGui::SetCursorScreenPos(p);
     ImGui::Dummy({width, h});
@@ -1172,8 +1186,10 @@ void App::DrawUpdatePanel() {
 // ---------------------------------------------------------------- ajustes
 
 void App::DrawSettings() {
-    Title("Ajustes", "Todo se guarda al momento");
-    ImGui::Dummy({0, S(8)});
+    if (!compact_) {
+        Title("Ajustes", "Todo se guarda al momento");
+        ImGui::Dummy({0, S(8)});
+    }
 
     struct TabDef {
         SettingsTab tab;
@@ -1187,13 +1203,36 @@ void App::DrawSettings() {
         {SettingsTab::Library, "Biblioteca", Icon::Folder},  {SettingsTab::Guides, "Guías", Icon::Paw},
         {SettingsTab::Appearance, "Apariencia", Icon::Palette},
     };
-    ImGui::BeginChild("##tabs", {S(210), 0}, 0, ImGuiWindowFlags_NoScrollbar);
-    for (const auto& t : tabs)
-        if (NavItem(t.name, t.icon, tab_ == t.tab)) tab_ = t.tab;
-    ImGui::EndChild();
-    ImGui::SameLine(0, S(24));
+    if (compact_) {
+        // Celular: las secciones en una fila de pestañas arriba (se desliza de lado) y el panel a todo el ancho.
+        ImGui::BeginChild("##tabs_fila", {0, S(46)}, 0, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_HorizontalScrollbar);
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        for (size_t i = 0; i < std::size(tabs); ++i) {
+            const auto& t = tabs[i];
+            if (i) ImGui::SameLine(0, S(6));
+            FontScope f(GetFonts().semibold, 13.5f);
+            const char* name = Tr(t.name);
+            const float w = ImGui::CalcTextSize(name).x + S(46), h = S(38);
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            const bool sel = tab_ == t.tab;
+            if (ImGui::InvisibleButton(t.name, {w, h})) tab_ = t.tab;
+            if (sel && ImGui::IsWindowAppearing()) ImGui::SetScrollHereX(0.5f);
+            dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(sel ? Color::Accent : Color::Surface2, sel ? 0.28f : 0.8f), h * 0.5f);
+            if (sel) dl->AddRect(p, {p.x + w, p.y + h}, U32(Color::Accent, 0.8f), h * 0.5f, S(1.5f));
+            DrawIcon(dl, t.icon, {p.x + S(20), p.y + h * 0.5f}, S(16), U32(sel ? Color::Text : Color::Muted));
+            dl->AddText({p.x + S(34), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(sel ? Color::Text : Color::Muted), name);
+        }
+        ImGui::EndChild();
+        ImGui::Dummy({0, S(4)});
+    } else {
+        ImGui::BeginChild("##tabs", {S(210), 0}, 0, ImGuiWindowFlags_NoScrollbar);
+        for (const auto& t : tabs)
+            if (NavItem(t.name, t.icon, tab_ == t.tab)) tab_ = t.tab;
+        ImGui::EndChild();
+        ImGui::SameLine(0, S(24));
+    }
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(28), S(24)});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, compact_ ? ImVec2(S(14), S(12)) : ImVec2(S(28), S(24)));
     ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Surface));
     ImGui::BeginChild("##panel_ajustes", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PopStyleColor();
@@ -1215,6 +1254,7 @@ void App::DrawSettings() {
     default: break;
     }
     ImGui::Dummy({0, S(10)});
+    BackToTop();
     ImGui::EndChild();
 }
 
@@ -1641,6 +1681,15 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     const auto pads = input_.Gamepads();
     const PadFamily family = input_.FamilyOfSlot(pc.pad);
     bool changed = false;
+    // Lo siguiente va al lado si cabe; si no (celular en vertical), en la línea de abajo.
+    auto next = [](float w, float gap) {
+        ImGui::SameLine(0, gap);
+        if (ImGui::GetContentRegionAvail().x < w) {
+            ImGui::NewLine();
+            ImGui::Dummy({0, S(2)});
+        }
+    };
+    auto button_w = [](const char* label) { return ImGui::CalcTextSize(Tr(label)).x + S(60); };
 
     // Barra: dispositivo y perfil.
     {
@@ -1651,8 +1700,6 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         ImGui::SameLine(0, S(8));
         ImGui::SetCursorPosY(y0 + S(8));
         ImGui::TextUnformatted(Tr("Teclado"));
-        ImGui::SameLine(0, S(18));
-        ImGui::SetCursorPosY(y0);
         std::vector<std::string> pad_names{"Sin mando"};
         for (int i = 0; i < 4; ++i) {
             if (i < static_cast<int>(pads.size())) pad_names.push_back(Fmt("Mando %d · %s", i + 1, pads[i].name.c_str()));
@@ -1662,11 +1709,13 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         const bool disconnected = pc.Disconnected();
         if (disconnected) pad_names.push_back("Su mando (desconectado)");
         int pad_sel = disconnected ? 5 : pc.pad >= 0 ? pc.pad + 1 : std::clamp(pc.want_pos, -1, 3) + 1;
-        if (ComboStyled("##mando", &pad_sel, pad_names, compact ? S(250) : S(300)) && pad_sel <= 4) {
+        const float mando_w = compact ? S(250) : S(300);
+        next(mando_w, S(18));
+        if (ComboStyled("##mando", &pad_sel, pad_names, std::min(mando_w, ImGui::GetContentRegionAvail().x)) && pad_sel <= 4) {
             input_.SetPlayerPad(player, pad_sel - 1);
             changed = true;
         }
-        ImGui::SameLine(0, S(14));
+        next(S(150) + S(38) * 3 + S(14), S(14));
         const std::vector<std::string> profs = input_.Profiles(sys.id);
         const std::string& current = input_.PlayerProfile(player, sys);
         int prof_sel = 0;
@@ -1675,7 +1724,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         std::vector<std::string> prof_labels;
         for (const auto& n : profs) prof_labels.push_back("Perfil: " + n);
         // El combo del perfil cede espacio para que los tres íconos de al lado siempre quepan.
-        const float prof_w = std::clamp(ImGui::GetContentRegionAvail().x - S(38) * 3 - S(14), S(150), S(240));
+        const float prof_w = std::clamp(ImGui::GetContentRegionAvail().x - S(38) * 3 - S(14), S(100), S(240));
         if (ComboStyled("##perfil", &prof_sel, prof_labels, prof_w)) {
             input_.SetPlayerProfile(player, sys, profs[prof_sel]);
             changed = true;
@@ -1713,15 +1762,15 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             Toast("Mando asignado con la distribución de " + sys.name, GuideId::Samy, 2.5);
         }
         if (ImGui::IsItemHovered()) HelpTooltip("Pone los botones del mando en su lugar natural para esta consola.");
-        ImGui::SameLine(0, S(8));
+        next(button_w("Uno por uno"), S(8));
         if (Button("Uno por uno", ButtonKind::Secondary, {0, S(38)}, Icon::ChevronRight, true)) input_.StartWizard(player, sys, true);
         if (ImGui::IsItemHovered()) HelpTooltip("Te pide cada botón en orden. Presiona la tecla o el botón del mando que quieras para cada uno.");
-        ImGui::SameLine(0, S(8));
+        next(button_w("Restablecer"), S(8));
         if (Button("Restablecer", ButtonKind::Ghost, {0, S(38)}, Icon::Refresh, true)) {
             input_.ResetProfile(player, sys);
             changed = true;
         }
-        ImGui::SameLine(0, S(4));
+        next(button_w("Borrar todo"), S(4));
         if (Button("Borrar todo", ButtonKind::Ghost, {0, S(38)}, Icon::Close, true)) {
             input_.ClearProfile(player, sys);
             changed = true;

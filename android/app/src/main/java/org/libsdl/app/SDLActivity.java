@@ -884,6 +884,8 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     protected static final int COMMAND_USER = 0x8000;
 
     protected static boolean mFullscreenModeActive;
+    /** «Satronho»: alto del teclado en pantalla, en píxeles (0 si está escondido). */
+    public static volatile int sImeBottom = 0;
 
     /**
      * This method is called by SDL if SDL did not handle a message itself.

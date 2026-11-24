@@ -97,7 +97,8 @@ private:
     // Interfaz
     void DrawUi();
     void DrawSidebar(float width);
-    void DrawSidebarRail(float width); // pantallas chicas: solo íconos
+    void DrawSidebarRail(float width);
+    void DrawBottomNav(float height);   // celular en vertical // pantallas chicas: solo íconos
     void DrawLibrary();
     void DrawContinueHero(const Game& g, float width);
     bool DrawGameCard(const Game& g, float w, float h, bool selected);
@@ -158,13 +159,36 @@ private:
     float GameBarTop() const;
     float GameBarBottom() const;
     void ToggleGameBar();
-    bool bar_open_ = false;          // desplegada a pedido (pantalla completa, Android)
+    bool bar_open_ = false;
+    bool edge_swipe_ = false;        // el dedo empezó en el borde de arriba (para desplegar el menú)          // desplegada a pedido (pantalla completa, Android)
     bool bar_menu_active_ = false;   // un menú de la barra está abierto: el juego espera
     bool fast_forward_toggle_ = false;
     float muted_volume_ = 0.0f;
     int pending_page_ = -1;
     int overlay_page_ = -1;          // pantalla de Satronho abierta encima del juego (el juego espera)
     bool overlay_focus_ = false;
+    ImVec2 full_vp_pos_, full_vp_size_; // la pantalla entera (ApplySafeArea la achica durante el cuadro)
+    void ApplySafeArea();
+    // Juegos que llegan de otras apps (app_import.cpp).
+    struct ImportState {
+        bool active = false, done = false, rescan = false;
+        int phase = 0;            // 2 revisando, 3 descomprimiendo, 4 acomodando
+        std::string name, receiving;
+        float progress = 0;
+        int files_done = 0, files_total = 0, skipped = 0;
+        std::map<std::string, int> added; // consola → juegos
+        std::vector<std::string> bios, errors;
+    };
+    std::mutex import_mutex_;
+    ImportState import_;
+    std::vector<fs::path> import_queue_;
+    bool import_busy_ = false;
+    std::thread import_thread_;
+    fs::path ImportFolder() const;
+    void QueueImport(const fs::path& file);
+    void PollImports();
+    void ImportWorker();
+    void DrawImport();
     void DrawGameOverlay();
     void SatronhoModuleMenu(bool in_game); // el menú «Satronho» (barra del juego y de inicio)
     void DrawHomeBar();
@@ -216,6 +240,9 @@ private:
     bool touch_menu_latched_ = false;
     bool touch_edit_ = false;
     std::string touch_drag_group_;
+    void* drag_start_win_ = nullptr;
+    float drag_dx_ = 0, drag_dy_ = 0;
+    int drag_axis_ = 1;
     void* drag_win_ = nullptr;
     float drag_total_ = 0, drag_vel_ = 0;
     bool dragging_ = false;
@@ -275,7 +302,8 @@ private:
     int NearestResStep(const SystemDef& sys, int api) const; // el paso más parecido al alto de la pantalla
     // Ajustes » Gráficos por consola (app_graphics.cpp).
     std::string gfx_sys_;               // consola elegida en la barra de Gráficos
-    bool gfx_more_ = false;             // «Más opciones de imagen del emulador» desplegadas
+    bool gfx_more_ = false;
+    bool gfx_open_[4] = {true, true, true, false}; // secciones de Gráficos desplegadas             // «Más opciones de imagen del emulador» desplegadas
     std::string CoreOptionValue(const SystemDef& sys, const CoreOption& def) const;
     void SetCoreOptionFor(const SystemDef& sys, const std::string& key, const std::string& value);
     const std::vector<CoreOption>* CoreDefsFor(const SystemDef& sys);

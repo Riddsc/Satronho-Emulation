@@ -11,6 +11,7 @@
 #include <random>
 
 #include "app.h"
+#include "sys/android.h"
 #include "util/i18n.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -84,6 +85,16 @@ void App::DrawSettingsAppearance() {
     GuideSays(GuideId::Troya, "Elige el tema que más te guste. El logo de Satronho siempre queda de fondo: súbele o bájale la opacidad, "
                               "pero nunca menos del 10 %.");
     ImGui::Dummy({0, S(14)});
+#ifdef __ANDROID__
+    Heading("Pantalla del celular", 16);
+    RowBegin("Orientación", "Horizontal es la mejor para jugar. «Girar sola» sigue al celular (si tienes el giro automático activado).");
+    if (Segmented("##orientacion", &settings_.orientation, {"Horizontal", "Girar sola", "Vertical"}, S(380))) {
+        Android::SetOrientation(settings_.orientation);
+        SaveConfig();
+    }
+    RowEnd();
+    ImGui::Dummy({0, S(14)});
+#endif
     Heading("Idioma", 16);
     {
         // Idioma de la interfaz: automático (el del sistema) o uno fijo. Se cambia al momento.
@@ -128,8 +139,11 @@ void App::DrawSettingsAppearance() {
             dl->AddRectFilled({p.x + S(10), p.y + S(14) + k * S(14)}, {p.x + cw * 0.26f - S(10), p.y + S(22) + k * S(14)},
                               U32(k == 0 ? t.accent : t.surface3), S(3));
         const float cx = p.x + cw * 0.26f + S(12);
-        dl->AddRectFilled({cx, p.y + S(12)}, {cx + S(56), p.y + S(64)}, U32(t.surface), S(8));
-        dl->AddRectFilled({cx + S(64), p.y + S(12)}, {cx + S(120), p.y + S(64)}, U32(t.surface2), S(8));
+        // Las dos tarjetas de muestra se achican si la tarjeta del tema es angosta (celular).
+        const float room = p.x + cw - S(10) - cx;
+        const float tw = std::min(S(56), (room - S(8)) * 0.5f);
+        dl->AddRectFilled({cx, p.y + S(12)}, {cx + tw, p.y + S(64)}, U32(t.surface), S(8));
+        dl->AddRectFilled({cx + tw + S(8), p.y + S(12)}, {cx + tw * 2 + S(8), p.y + S(64)}, U32(t.surface2), S(8));
         dl->AddRectFilled({cx, p.y + S(70)}, {cx + S(44), p.y + S(78)}, U32(t.accent), S(4));
         {
             FontScope f(GetFonts().semibold, 14);

@@ -46,6 +46,49 @@
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            <!-- «Abrir con» y «Compartir» desde WhatsApp, Telegram, Drive o Archivos: juegos sueltos,
+                 .zip y .7z (Satronho los copia, los descomprime y los acomoda). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/x-zip" />
+                <data android:mimeType="application/x-7z-compressed" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-cue" />
+                <data android:mimeType="application/x-iso9660-image" />
+                <data android:mimeType="application/x-gba-rom" />
+                <data android:mimeType="application/x-nes-rom" />
+                <data android:mimeType="application/x-gameboy-rom" />
+                <data android:mimeType="application/x-gameboy-color-rom" />
+                <data android:mimeType="application/x-snes-rom" />
+                <data android:mimeType="application/x-genesis-rom" />
+                <data android:mimeType="application/x-n64-rom" />
+                <data android:mimeType="application/x-nintendo-ds-rom" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/x-zip" />
+                <data android:mimeType="application/x-7z-compressed" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-cue" />
+                <data android:mimeType="application/x-iso9660-image" />
+                <data android:mimeType="application/x-gba-rom" />
+                <data android:mimeType="application/x-nes-rom" />
+                <data android:mimeType="application/x-gameboy-rom" />
+                <data android:mimeType="application/x-gameboy-color-rom" />
+                <data android:mimeType="application/x-snes-rom" />
+                <data android:mimeType="application/x-genesis-rom" />
+                <data android:mimeType="application/x-n64-rom" />
+                <data android:mimeType="application/x-nintendo-ds-rom" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>

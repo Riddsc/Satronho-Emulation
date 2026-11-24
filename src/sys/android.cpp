@@ -95,4 +95,33 @@ std::string CoresDir() {
     return line;
 }
 
+namespace {
+std::string CallString(const char* name) {
+    Call c;
+    jmethodID m = c.M(name, "()Ljava/lang/String;");
+    if (!m) return {};
+    auto js = static_cast<jstring>(c.env->CallStaticObjectMethod(c.cls, m));
+    if (!js) return {};
+    const char* chars = c.env->GetStringUTFChars(js, nullptr);
+    std::string out = chars ? chars : "";
+    c.env->ReleaseStringUTFChars(js, chars);
+    c.env->DeleteLocalRef(js);
+    return out;
+}
+} // namespace
+
+std::string Received() { return CallString("recibido"); }
+std::string ReceiveStatus() { return CallString("estadoRecepcion"); }
+
+void SetOrientation(int mode) {
+    Call c;
+    if (jmethodID m = c.M("orientacion", "(I)V")) c.env->CallStaticVoidMethod(c.cls, m, static_cast<jint>(mode));
+}
+
+int KeyboardHeight() {
+    Call c;
+    jmethodID m = c.M("tecladoAlto", "()I");
+    return m ? c.env->CallStaticIntMethod(c.cls, m) : 0;
+}
+
 } // namespace Satronho::Android

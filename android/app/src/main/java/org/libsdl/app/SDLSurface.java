@@ -204,11 +204,11 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
         if (Build.VERSION.SDK_INT >= 30 /* Android 11 (R) */) {
+            // «Satronho»: solo la cámara y las barras visibles (con la pantalla completa no hay
+            // barras). Los gestos de los bordes no le quitan espacio a la app.
             Insets combined = insets.getInsets(WindowInsets.Type.systemBars() |
-                                               WindowInsets.Type.systemGestures() |
-                                               WindowInsets.Type.mandatorySystemGestures() |
-                                               WindowInsets.Type.tappableElement() |
                                                WindowInsets.Type.displayCutout());
+            SDLActivity.sImeBottom = insets.isVisible(WindowInsets.Type.ime()) ? insets.getInsets(WindowInsets.Type.ime()).bottom : 0;
 
             SDLActivity.onNativeInsetsChanged(combined.left, combined.right, combined.top, combined.bottom);
 
