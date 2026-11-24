@@ -43,7 +43,8 @@ case "$CORE" in
     ndk "$WORK/c/libretro/jni" nestopia ;;
   bsnes)
     fetch c https://github.com/libretro/bsnes.git "$(commit_of BSNES_COMMIT build-core-bsnes.sh)"
-    ndk "$WORK/c/bsnes/target-libretro/jni" bsnes ;;
+    # clang nuevo no deja especializar is_signed (igual que en Windows).
+    ndk "$WORK/c/bsnes/target-libretro/jni" bsnes "APP_CPPFLAGS=-Wno-invalid-specialization" ;;
   genesis_plus_gx)
     fetch c https://github.com/libretro/Genesis-Plus-GX.git 099c962e7374eb84cae9bba180c9e0e49e767b40
     ndk "$WORK/c/libretro/jni" genesis_plus_gx ;;

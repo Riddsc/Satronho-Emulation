@@ -1206,6 +1206,12 @@ void App::DrawBackdrop(ImVec2 p0, ImVec2 p1) {
     hover_key_ = hover_key_next_;
     hover_key_next_.clear();
     std::string want = !hover_key_.empty() ? hover_key_ : !selected_key_.empty() ? selected_key_ : carousel_key_;
+    if (want.empty()) {
+        // Sin nada elegido: el último que se jugó.
+        long long best = 0;
+        for (const auto& g : games_)
+            if (g.last_played > best && !g.hidden) best = g.last_played, want = g.key;
+    }
     if (want != backdrop_key_) {
         backdrop_prev_ = backdrop_key_;
         backdrop_key_ = want;
