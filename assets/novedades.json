@@ -11,7 +11,7 @@
         },
         {
           "tipo": "nuevo",
-          "texto": "Resolución con nombres claros: Nativa (240p), 2× (480p), 4× (Full HD), 6× (2K), 8× (4K) y 16× (8K), en Ajustes » Imagen y en el menú Imagen del juego."
+          "texto": "Resolución con nombres claros: Nativa (240p), 2× (480p), 4× (Full HD), 6× (2K), 8× (4K) y 16× (8K), en Ajustes » Gráficos y en el menú Imagen del juego."
         },
         {
           "tipo": "mejora",
@@ -97,11 +97,11 @@
       "cambios": [
         {
           "tipo": "nuevo",
-          "texto": "Motor gráfico OpenGL: toda la app y los juegos se dibujan con la tarjeta gráfica. Los filtros y efectos (nítido suave, CRT, líneas, rejilla LCD y fondo ambiente) ahora son sombreadores. El motor clásico queda de respaldo en Ajustes » Imagen."
+          "texto": "Motor gráfico OpenGL: toda la app y los juegos se dibujan con la tarjeta gráfica. Los filtros y efectos (nítido suave, CRT, líneas, rejilla LCD y fondo ambiente) ahora son sombreadores. El motor clásico queda de respaldo en Ajustes » Gráficos."
         },
         {
           "tipo": "nuevo",
-          "texto": "Satronho CD y Satronho 64 dibujan con la tarjeta gráfica, con OpenGL o Vulkan según tu tarjeta (NVIDIA, AMD o Intel), y suben la resolución sola para verse en HD. En Ajustes » Imagen eliges el motor y la resolución de cada una."
+          "texto": "Satronho CD y Satronho 64 dibujan con la tarjeta gráfica, con OpenGL o Vulkan según tu tarjeta (NVIDIA, AMD o Intel), y suben la resolución sola para verse en HD. En Ajustes » Gráficos eliges el motor y la resolución de cada una."
         },
         {
           "tipo": "mejora",
@@ -367,7 +367,7 @@
         },
         {
           "tipo": "mejora",
-          "texto": "Tamaño automático de la interfaz: en pantallas 1440p o 4K todo se agranda para leerse cómodo. Se puede cambiar en Ajustes » Imagen."
+          "texto": "Tamaño automático de la interfaz: en pantallas 1440p o 4K todo se agranda para leerse cómodo. Se puede cambiar en Ajustes » Gráficos."
         },
         {
           "tipo": "mejora",
@@ -402,7 +402,7 @@
         },
         {
           "tipo": "mejora",
-          "texto": "En pantallas de 120 o 144 Hz, la pantalla completa pasa a 60 Hz para que el movimiento quede perfectamente parejo (se puede apagar en Ajustes » Imagen)."
+          "texto": "En pantallas de 120 o 144 Hz, la pantalla completa pasa a 60 Hz para que el movimiento quede perfectamente parejo (se puede apagar en Ajustes » Gráficos)."
         },
         {
           "tipo": "mejora",

@@ -56,7 +56,11 @@ void Settings::Load(const Ini& ini) {
     for (const char* id : {"cd", "n64"}) {
         const std::string b = std::string("gpu.") + id + ".";
         if (ini.Values().count(b + "motor")) gpu_api[id] = std::clamp(ini.GetInt(b + "motor", 0), 0, 3);
-        if (ini.Values().count(b + "resolucion")) gpu_res[id] = std::clamp(ini.GetInt(b + "resolucion", 0), 0, 8);
+        if (ini.Values().count(b + "resolucion")) gpu_res[id] = std::clamp(ini.GetInt(b + "resolucion", 0), 0, 4320);
+        // Opciones de gráficos del núcleo elegidas en Ajustes » Gráficos («graficos.<consola>.<opción>»).
+        const std::string g = std::string("graficos.") + id + ".";
+        for (const auto& [k, v] : ini.Values())
+            if (k.rfind(g, 0) == 0) gfx[id][k.substr(g.size())] = v;
     }
 
     meter = std::clamp(ini.GetInt("medidor.modo", meter), 0, 2);
@@ -142,6 +146,8 @@ void Settings::Save(Ini& ini) const {
 
     for (const auto& [id, v] : gpu_api) ini.SetInt("gpu." + id + ".motor", v);
     for (const auto& [id, v] : gpu_res) ini.SetInt("gpu." + id + ".resolucion", v);
+    for (const auto& [id, m] : gfx)
+        for (const auto& [k, v] : m) ini.Set("graficos." + id + "." + k, v);
 
     ini.SetInt("medidor.modo", meter);
     ini.SetInt("medidor.esquina", meter_corner);

@@ -6,6 +6,7 @@
 #include <deque>
 #include <thread>
 #include <map>
+#include <set>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -166,7 +167,8 @@ private:
     Settings VideoSettings() const;   // imagen del juego actual (con «según la consola» resuelto)
     int confirm_frames_ = 0;
     Uint64 quit_request_ms_ = 0;
-    int ctrl_device_ = 0;             // Controles: 0 se asigna el mando, 1 el teclado     // cuándo se pidió cerrar (para no contar dos veces la misma X)          // cuadros que la pregunta lleva sin poder mostrarse
+    int ctrl_device_ = 0;
+    std::set<std::string> gfx_probe_tried_; // consolas cuyo núcleo ya se intentó cargar para leer sus opciones             // Controles: 0 se asigna el mando, 1 el teclado     // cuándo se pidió cerrar (para no contar dos veces la misma X)          // cuadros que la pregunta lleva sin poder mostrarse
     void RequestQuit();               // cerrar la app (pregunta si está activado)
     void RequestExitGame();           // salir del juego (pregunta si está activado)
     void DrawWhatsNew();
@@ -262,7 +264,8 @@ private:
     int GpuApiFor(const SystemDef& sys) const;  // 1 OpenGL, 2 Vulkan, 3 procesador
     int GpuResFor(const SystemDef& sys, int api) const;
     std::vector<int> GpuResSteps(const SystemDef& sys, int api) const; // pasos que admite cada núcleo
-    static std::string ResLabel(int k);                                 // «4× · 960p (Full HD)»
+    std::string ResLabel(int k) const;  // «4× · 1280 × 960 (960p · Full HD)» o «1440 × 1080 (1080p · Full HD)»
+    static int ResHeight(int k);        // alto en píxeles de un valor de resolución
     bool running_ = true;
     Uint64 last_ns_ = 0;
     double loop_ema_ = 1.0 / 60.0;

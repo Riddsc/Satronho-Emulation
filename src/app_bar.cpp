@@ -463,7 +463,7 @@ void App::DrawGameBar() {
             const int api = GpuApiFor(*sys_);
             chip(api == 2 ? "VULKAN" : api == 1 ? "OPENGL" : "PROCESADOR", Color::Orange);
             const int k = GpuResFor(*sys_, api);
-            chip(Fmt("%d× · %dp", k, k * 240), Color::Teal);
+            chip(Fmt("%dp", ResHeight(k)), Color::Teal);
         } else {
             chip(gl_ ? "OPENGL" : "CLÁSICO", Color::Orange);
         }
