@@ -10,7 +10,7 @@ struct SDL_AudioStream;
 namespace Satronho {
 
 // Salida de sonido con control dinámico de velocidad: ajusta la velocidad de reproducción
-// en ±0.5 % según lo que haya en el búfer, así el sonido no se corta ni se atrasa aunque la
+// en ±1 % según lo que haya en el búfer, así el sonido no se corta ni se atrasa aunque la
 // pantalla no vaya exactamente a la velocidad de la consola.
 class AudioOut {
 public:
@@ -28,6 +28,10 @@ public:
     double QueuedMs() const;
     double Ratio() const { return ratio_; }
     int Underruns() const { return underruns_; }
+    int Drops() const { return drops_; }
+    int LatencyMs() const { return latency_ms_; }
+    // Lo que falta (+) o sobra (-) en el búfer respecto a la latencia elegida, en cuadros de la consola.
+    double FramesShort(double fps) const { return (latency_ms_ - QueuedMs()) * fps / 1000.0; }
 
 private:
     SDL_AudioStream* stream_ = nullptr;
@@ -35,6 +39,8 @@ private:
     double ratio_ = 1.0;
     int latency_ms_ = 64;
     int underruns_ = 0;
+    int drops_ = 0;
+    bool starved_ = false;
     bool paused_ = false;
 };
 

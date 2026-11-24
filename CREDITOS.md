@@ -9,6 +9,8 @@ Componentes de terceros incluidos (licencias completas en la carpeta `licencias`
 
 - Nestopia UE — núcleo de Satronho Octa — GPL 2.0 o posterior — https://github.com/libretro/nestopia
 - mGBA — núcleo de Satronho Bolsillo y Bolsillo Plus — MPL 2.0 — https://github.com/mgba-emu/mgba
+- BlastEm — núcleo de Satronho Mega — GPL 3.0 — https://github.com/libretro/blastem
+- bsnes — núcleo de Satronho Hexa — GPL 3.0 — https://github.com/libretro/bsnes
 - SDL 3 — zlib — https://github.com/libsdl-org/SDL
 - Dear ImGui — MIT — https://github.com/ocornut/imgui
 - libretro API — MIT — https://github.com/libretro/libretro-common

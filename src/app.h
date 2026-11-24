@@ -172,6 +172,8 @@ private:
     int menu_section_ = 0;
     Game current_;
     double acc_ = 0;
+    double audio_report_s_ = 0;
+    int audio_cuts_logged_ = 0, audio_drops_logged_ = 0;
     uint64_t emu_frames_ = 0;
     double session_s_ = 0;
     double uncommitted_s_ = 0;

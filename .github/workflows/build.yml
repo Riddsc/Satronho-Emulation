@@ -61,6 +61,16 @@ jobs:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-mgba.sh build/cores
 
+      - name: Núcleo de Genesis / Mega Drive (BlastEm)
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: scripts/build-core-blastem.sh build/cores
+
+      - name: Núcleo de SNES (bsnes)
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: scripts/build-core-bsnes.sh build/cores
+
       - name: Satronho Emulation
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
