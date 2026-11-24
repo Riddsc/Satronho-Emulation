@@ -86,6 +86,11 @@ jobs:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-melonds.sh build/cores
 
+      - name: Núcleo de Sega Saturn (Beetle Saturn)
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: scripts/build-core-beetle-saturn.sh build/cores
+
       - name: Satronho Emulation
         env:
           LLVM_MINGW: /home/runner/llvm-mingw

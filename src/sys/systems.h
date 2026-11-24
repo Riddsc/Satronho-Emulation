@@ -9,7 +9,14 @@
 namespace Satronho {
 
 // Forma del control que se dibuja en Controles.
-enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes, PlayStation, N64, DS };
+enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes, PlayStation, N64, DS, Saturn };
+
+// Un archivo de BIOS que el núcleo puede usar (la persona pone el suyo; no se incluye).
+struct BiosFile {
+    const char* name;      // como lo busca el núcleo: "scph5501.bin"
+    unsigned size;         // en bytes, para reconocerlo
+    const char* keywords;  // palabras del nombre original que lo delatan: "jap|101"
+};
 
 // Un emulador de la familia Satronho dentro del hub.
 struct SystemDef {
@@ -38,6 +45,9 @@ struct SystemDef {
     unsigned port_device = 1;  // RETRO_DEVICE_JOYPAD; en CD, el DualShock
     bool analog = false;       // los sticks van al juego
     bool disc = false;         // juegos en disco (cue, chd…)
+    std::vector<BiosFile> bios; // BIOS que acepta (opcional salvo bios_required)
+    bool bios_required = false;
+    const char* bios_note = ""; // qué cambia con la BIOS original
     // Valores por defecto de Satronho para opciones del núcleo.
     std::vector<std::pair<const char*, const char*>> core_defaults;
 };

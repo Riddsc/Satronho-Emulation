@@ -547,6 +547,50 @@ void DrawDs(Ctx& c) {
     c.Text("SELECT", 388, 512, 10, IM_COL32(190, 196, 212, 255), false);
 }
 
+// ---------------------------------------------------------------- Sega Saturn (diseño 640 × 340)
+void DrawSaturn(Ctx& c) {
+    ImDrawList* dl = c.dl;
+    const ImU32 shell = IM_COL32(52, 52, 60, 255), rim = IM_COL32(72, 72, 82, 255);
+    auto shoulder = [&](int id, bool right) {
+        const float x0 = right ? 430 : 70, x1 = right ? 570 : 210;
+        c.Hit(id, (x0 + x1) * 0.5f, 30, 40);
+        const ImU32 col = c.Down(id) ? U32(Color::Gold) : IM_COL32(96, 96, 108, 255);
+        dl->AddRectFilled(c.P(x0, 8), c.P(x1, 70), col, c.L(30), right ? ImDrawFlags_RoundTopRight : ImDrawFlags_RoundTopLeft);
+        if (c.hovered == id || c.capturing == id)
+            dl->AddRect(c.P(x0 - 3, 5), c.P(x1 + 3, 50), U32(Color::Accent, c.capturing == id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(26), c.L(2.5f));
+        c.Text(right ? "R" : "L", (x0 + x1) * 0.5f, 28, 15, c.Down(id) ? IM_COL32(60, 40, 0, 255) : IM_COL32(200, 200, 212, 255));
+    };
+    shoulder(RETRO_DEVICE_ID_JOYPAD_L2, false);
+    shoulder(RETRO_DEVICE_ID_JOYPAD_R2, true);
+    // Cuerpo ovalado.
+    dl->AddRectFilled(c.P(26, 56), c.P(626, 334), IM_COL32(0, 0, 0, 90), c.L(135));
+    dl->AddRectFilled(c.P(20, 46), c.P(620, 324), rim, c.L(135));
+    dl->AddRectFilled(c.P(28, 54), c.P(612, 316), shell, c.L(128));
+    // Cruceta sobre su disco.
+    dl->AddCircleFilled(c.P(160, 186), c.L(76), IM_COL32(36, 36, 42, 255), 48);
+    DPad(c, 160, 186, 120, IM_COL32(84, 84, 96, 255), IM_COL32(110, 110, 124, 255));
+    // Start al centro.
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_START, 320, 214, 15, IM_COL32(90, 90, 102, 255), IM_COL32(120, 120, 134, 255));
+    c.Text("START", 320, 248, 11, IM_COL32(150, 150, 164, 255));
+    // X Y Z arriba (chicos) y A B C abajo (grandes).
+    const ImU32 small = IM_COL32(110, 110, 124, 255), small_hi = IM_COL32(140, 140, 156, 255);
+    struct Btn {
+        int id;
+        const char* t;
+        float x, y, r;
+        ImU32 col, hi;
+    } btns[] = {{RETRO_DEVICE_ID_JOYPAD_Y, "X", 418, 140, 18, small, small_hi},
+                {RETRO_DEVICE_ID_JOYPAD_X, "Y", 474, 124, 18, small, small_hi},
+                {RETRO_DEVICE_ID_JOYPAD_L, "Z", 530, 108, 18, small, small_hi},
+                {RETRO_DEVICE_ID_JOYPAD_B, "A", 414, 214, 27, IM_COL32(88, 104, 190, 255), IM_COL32(120, 136, 220, 255)},
+                {RETRO_DEVICE_ID_JOYPAD_A, "B", 478, 196, 27, IM_COL32(64, 150, 100, 255), IM_COL32(100, 186, 136, 255)},
+                {RETRO_DEVICE_ID_JOYPAD_R, "C", 542, 178, 27, IM_COL32(200, 160, 50, 255), IM_COL32(230, 196, 100, 255)}};
+    for (const auto& b : btns) {
+        RoundButton(c, b.id, b.x, b.y, b.r, b.col, b.hi);
+        ButtonLetter(c, b.id, b.t, b.x, b.y, b.r * 0.8f, IM_COL32(255, 255, 255, 220));
+    }
+}
+
 struct Design {
     float w, h;
 };
@@ -559,6 +603,7 @@ Design DesignOf(Layout l) {
     case Layout::PlayStation: return {660, 390};
     case Layout::N64: return {640, 420};
     case Layout::DS: return {460, 560};
+    case Layout::Saturn: return {640, 340};
     default: return {692, 318};
     }
 }
@@ -586,6 +631,7 @@ int DrawController(ImDrawList* dl, Layout layout, ImVec2 pos, ImVec2 size, uint1
     case Layout::PlayStation: DrawPlayStation(c); break;
     case Layout::N64: DrawN64(c); break;
     case Layout::DS: DrawDs(c); break;
+    case Layout::Saturn: DrawSaturn(c); break;
     default: DrawNes(c); break;
     }
     return c.hovered;
@@ -608,6 +654,7 @@ void DrawControllerMini(ImDrawList* dl, Layout layout, ImVec2 center, float widt
     case Layout::PlayStation: DrawPlayStation(c); break;
     case Layout::N64: DrawN64(c); break;
     case Layout::DS: DrawDs(c); break;
+    case Layout::Saturn: DrawSaturn(c); break;
     default: DrawNes(c); break;
     }
     if (alpha < 1.0f) {

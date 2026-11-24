@@ -50,7 +50,7 @@ void BiosDialogCallback(void* user, const char* const* list, int) {
     auto* app = static_cast<App*>(user);
     if (!list || !*list) return;
     std::lock_guard lock(app->pending_mutex_);
-    app->pending_bios_.push_back(*list);
+    for (; *list; ++list) app->pending_bios_.push_back(*list);
 }
 
 // ---------------------------------------------------------------- inicio y cierre
@@ -511,51 +511,68 @@ void App::ProcessPendingPaths() {
         std::lock_guard lock(pending_mutex_);
         bios.swap(pending_bios_);
     }
-    for (const auto& b : bios) ImportPsxBios(Paths::FromUtf8(b));
+    for (const auto& b : bios) ImportBios(bios_target_, Paths::FromUtf8(b));
 }
 
-// ---------------------------------------------------------------- BIOS de PlayStation
+// ---------------------------------------------------------------- BIOS (la de cada quien)
 
-namespace {
-// Nombres que busca el núcleo (Japón, Estados Unidos, Europa y otras revisiones).
-const char* const kPsxBios[] = {"scph5501.bin", "scph5500.bin", "scph5502.bin", "scph5503.bin", "scph7003.bin",
-                                "scph5552.bin", "scph1001.bin", "scph7001.bin", "scph7502.bin", "scph101.bin", "psxonpsp660.bin"};
-} // namespace
-
-std::string App::PsxBiosFound() const {
+std::vector<std::string> App::BiosFound(const SystemDef& sys) const {
+    std::vector<std::string> out;
     std::error_code ec;
-    for (const char* name : kPsxBios)
-        if (fs::exists(Paths::System() / name, ec)) return name;
-    return {};
+    for (const auto& b : sys.bios)
+        if (fs::exists(Paths::System() / b.name, ec) || fs::exists(Paths::System() / "melonDS DS" / b.name, ec)) out.push_back(b.name);
+    return out;
 }
 
-void App::PickPsxBios() {
-    static const SDL_DialogFileFilter filters[] = {{"BIOS de PlayStation", "bin;rom"}, {"Todos los archivos", "*"}};
-    SDL_ShowOpenFileDialog(&BiosDialogCallback, this, window_, filters, 2, nullptr, false);
+void App::PickBios(const SystemDef& sys) {
+    bios_target_ = sys.id;
+    static const SDL_DialogFileFilter filters[] = {{"BIOS", "bin;rom;bios"}, {"Todos los archivos", "*"}};
+    SDL_ShowOpenFileDialog(&BiosDialogCallback, this, window_, filters, 2, nullptr, true);
 }
 
-void App::ImportPsxBios(const fs::path& file) {
+void App::ImportBios(const std::string& sys_id, const fs::path& file) {
+    const SystemDef* sys = SystemById(sys_id);
+    if (!sys || sys->bios.empty()) return;
     std::error_code ec;
     const auto size = fs::file_size(file, ec);
-    if (ec || (size != 512 * 1024 && size != 1024 * 1024)) {
-        Toast("Ese archivo no parece una BIOS de PlayStation (pesa 512 KB).", GuideId::Nono, 5);
-        return;
-    }
-    // Se respeta el nombre si es uno de los que busca el núcleo; si no, queda como la de
-    // Estados Unidos, que es la que más juegos piden.
     std::string name = Paths::ToUtf8(file.filename());
     std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    bool known = false;
-    for (const char* k : kPsxBios) known |= name == k;
-    if (!known) name = "scph5501.bin";
+    // 1) Ya tiene el nombre que busca el núcleo. 2) Si no, el que coincide en tamaño y, entre
+    // varios del mismo tamaño, el que tenga en el nombre una pista (región, modelo).
+    const BiosFile* pick = nullptr;
+    for (const auto& b : sys->bios)
+        if (name == b.name) pick = &b;
+    if (!pick) {
+        for (const auto& b : sys->bios) {
+            if (b.size != size && !(std::string(b.name) == "firmware.bin" && (size == 131072 || size == 524288))) continue;
+            if (!pick) pick = &b;
+            std::string kw = b.keywords;
+            size_t pos = 0;
+            while (pos <= kw.size()) {
+                const size_t bar = kw.find('|', pos);
+                const std::string word = kw.substr(pos, bar == std::string::npos ? std::string::npos : bar - pos);
+                if (!word.empty() && name.find(word) != std::string::npos) {
+                    pick = &b;
+                    pos = kw.size() + 1;
+                    break;
+                }
+                if (bar == std::string::npos) break;
+                pos = bar + 1;
+            }
+        }
+    }
+    if (!pick || (ec && pick)) {
+        Toast("Ese archivo no parece una BIOS de " + sys->full + ".", GuideId::Nono, 5);
+        return;
+    }
     fs::create_directories(Paths::System(), ec);
-    fs::copy_file(file, Paths::System() / name, fs::copy_options::overwrite_existing, ec);
+    fs::copy_file(file, Paths::System() / pick->name, fs::copy_options::overwrite_existing, ec);
     if (ec) {
         Toast("No pude copiar la BIOS: " + ec.message(), GuideId::Nono, 5);
         return;
     }
-    Log::Info("BIOS de PlayStation agregada: %s", name.c_str());
-    Toast("¡Listo! BIOS agregada como " + name + ". Se usa desde el próximo juego.", GuideId::Nono, 5);
+    Log::Info("BIOS de %s agregada: %s", sys->full.c_str(), pick->name);
+    Toast("¡Listo! " + std::string(pick->name) + " quedó en su lugar. Se usa desde el próximo juego.", GuideId::Nono, 5);
 }
 
 void App::AddFolderDialog() {
@@ -686,6 +703,14 @@ bool App::StartGame(const fs::path& rom) {
         Toast("Este archivo no es de ninguna consola de Satronho Emulation.", GuideId::MechaRidds, 5);
         return false;
     }
+    if (sys->bios_required && BiosFound(*sys).empty()) {
+        // Sin BIOS no arranca: se explica y se abre el lugar donde se agrega.
+        Toast(sys->full + " necesita la BIOS original de la consola. Agrégala aquí con «Agregar BIOS…».", GuideId::Nono, 8);
+        page_ = Page::Settings;
+        tab_ = SettingsTab::Core;
+        core_tab_system_ = sys->id;
+        return false;
+    }
     std::string err;
     if (!EnsureCore(*sys, &err)) {
         Toast("Falta el núcleo de " + sys->full + ". Vuelve a descargar Satronho Emulation.", GuideId::MechaRidds, 6);
@@ -698,7 +723,7 @@ bool App::StartGame(const fs::path& rom) {
         Toast(err, GuideId::MechaRidds, 6);
         return false;
     }
-    if (sys->disc && PsxBiosFound().empty() && !bios_hint_shown_) {
+    if (sys->id == "cd" && BiosFound(*sys).empty() && !bios_hint_shown_) {
         bios_hint_shown_ = true;
         Toast("Sin BIOS de PlayStation uso OpenBIOS, que es libre. Si un juego falla, agrega la tuya en Ajustes » Núcleo » CD.",
               GuideId::Nono, 8);

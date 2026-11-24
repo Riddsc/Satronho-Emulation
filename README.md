@@ -21,7 +21,8 @@ Cada emulador de la familia tiene su nombre Satronho:
 | **Satronho CD** | PlayStation | Disponible |
 | **Satronho 64** | Nintendo 64 | Disponible |
 | **Satronho Dual** | Nintendo DS (3DS más adelante) | Disponible |
-| Satronho Cubo, Anillo, Sueño, CD2, Portátil | GameCube/Wii, Saturn, Dreamcast, PlayStation 2, PSP | Más adelante |
+| **Satronho Anillo** | Sega Saturn (con tu BIOS) | Disponible |
+| Satronho Cubo, Sueño, CD2, Portátil | GameCube/Wii, Dreamcast, PlayStation 2, PSP | Más adelante |
 | [Satronho NX](https://github.com/Riddsc/satronho-nx) | Switch | App aparte |
 
 ## Lo que trae
@@ -87,6 +88,7 @@ Satronho Emulation es software libre bajo la licencia **GPL 3.0 o posterior** (v
 | [Beetle PSX](https://github.com/libretro/beetle-psx-libretro) | Núcleo de Satronho CD (incluye OpenBIOS, MIT) | GPL 2.0 |
 | [Mupen64Plus-Next](https://github.com/libretro/mupen64plus-libretro-nx) | Núcleo de Satronho 64 | GPL 2.0 |
 | [melonDS DS](https://github.com/JesseTG/melonds-ds) | Núcleo de Satronho Dual (incluye FreeBIOS) | GPL 3.0 |
+| [Beetle Saturn](https://github.com/libretro/beetle-saturn-libretro) | Núcleo de Satronho Anillo | GPL 2.0 |
 | [SDL 3](https://github.com/libsdl-org/SDL) | Ventana, sonido, mandos y dibujo | zlib |
 | [Dear ImGui](https://github.com/ocornut/imgui) | Base de la interfaz | MIT |
 | [libretro API](https://github.com/libretro/libretro-common) | Conexión con los núcleos | MIT |
