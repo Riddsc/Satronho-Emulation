@@ -7,7 +7,7 @@ trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
 Ridds pidió A y B de una sola vez, sin preguntas («me voy a dormir»). La parte C (emuladores
 nuevos: Cubo, Sueño, CD2, Portátil, 3DS) queda **para cuando él la pida**. Se trabajó en la rama
-`etapa-2` y se unió a `main`. El Release lleva el zip de Windows y el APK de Android.
+`etapa-2` y se unió a `main`. Publicada como `build-14`: el Release lleva el zip de Windows y el APK de Android (verificado).
 
 ### Qué trae
 
