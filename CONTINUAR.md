@@ -3,10 +3,12 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
-## Estado al 24 de noviembre de 2026 (build 20)
+## Estado al 24 de noviembre de 2026 (build 21)
 
 Ridds mandó un video del celular (build 19) y pidió revisar el repo entero antes de la parte C. Rama
-`build-20`. Lo siguiente sigue siendo **agregar consolas** (parte C, ver «Ideas que quedan» de la build 15).
+`build-20`; se publicó como **build-21** porque la prueba completa del CI en la rama (`gh workflow run
+build.yml --ref build-20`) gastó el número 20 (el número del Release es el de la ejecución de `build.yml`;
+para probar en una rama sin gastar números basta `android.yml`). Lo siguiente sigue siendo **agregar consolas** (parte C, ver «Ideas que quedan» de la build 15).
 
 - **Biblioteca que no bajaba** (desde la build 18): en `DrawLibrary` el encabezado comparaba posiciones de
   pantalla con `0.0f` (`narrow ? search_bottom : 0.0f`); al bajar, el título queda arriba con posiciones
@@ -53,7 +55,7 @@ Ridds mandó un video del celular (build 19) y pidió revisar el repo entero ant
 1. Bajar en la biblioteca (Cuadrícula y Lista) con el dedo y con la rueda: llega al final y no se corre de lado.
 2. Tocar un juego y volver a tocarlo (o su ▶) para abrir; toque largo para el menú.
 3. Abrir un disco en .zip: barra de avance y Cancelar; la segunda vez abre al instante.
-4. Al abrir la build 20 en el celular: que pida el permiso, mude todo a «Satronho Games» (con tiempos y
+4. Al abrir la build 21 en el celular: que pida el permiso, mude todo a «Satronho Games» (con tiempos y
    favoritos) y que los juegos de WhatsApp lleguen ahí.
 5. Dragon Ball GT Final Bout con «Ajustes de este juego» › Mando normal: ¿se va el aviso del mando?
 6. El control en pantalla a los costados en CD y en 64 (que nada tape la imagen y todo se alcance con los dedos).
