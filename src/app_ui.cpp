@@ -3,10 +3,14 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <fstream>
 #include <map>
+#include <thread>
 
 #include "app.h"
 #include "imgui.h"
+#include "miniz.h"
+#include "util/shortcut.h"
 #include "imgui_internal.h"
 #include "libretro.h"
 #include "ui/controllers.h"
@@ -305,7 +309,7 @@ void App::DrawSidebar(float width) {
     }
     ImGui::Dummy({0, S(10)});
     SectionLabel("   SATRONHO");
-    if (NavItem("Pregúntale a los guías", Icon::Heart, page_ == Page::Guides, nullptr, false, Color::Green)) page_ = Page::Guides;
+    if (NavItem("Pregúntale a los guías", Icon::Paw, page_ == Page::Guides, nullptr, false, Color::Green)) page_ = Page::Guides;
     if (NavItem("Configuración sugerida", Icon::Sparkle, page_ == Page::Suggested, nullptr, false, Color::Teal)) page_ = Page::Suggested;
     const bool update = updater_.GetState() == Updater::State::Available;
     if (NavItem("Novedades", Icon::Bell, page_ == Page::News, update ? "Nueva" : nullptr, false, Color::Pink)) page_ = Page::News;
@@ -672,17 +676,64 @@ void App::DrawContinueHero(const Game& g, float width) {
 }
 
 bool App::GameContextMenu(const Game& g) {
+    // Clic derecho en un juego (como en Satronho NX): todo lo que se puede hacer con él.
     bool play = false;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(10), S(10)});
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {S(10), S(7)});
     if (ImGui::BeginPopupContextItem("##menu")) {
-        if (ImGui::MenuItem("Jugar")) play = true;
-        if (HasAutoState(g) && ImGui::MenuItem("Continuar donde quedé")) RequestStart(g.path, true);
-        if (ImGui::MenuItem(g.favorite ? "Quitar de favoritos" : "Marcar como favorito")) {
+        ImGui::PopStyleVar(2);
+        {
+            FontScope f(GetFonts().bold, 14);
+            ImGui::TextUnformatted(g.title.c_str());
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Favorito", nullptr, g.favorite)) {
             library_.ToggleFavorite(g.key);
             games_dirty_ = true;
         }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Jugar")) play = true;
+        if (HasAutoState(g) && ImGui::MenuItem("Continuar donde quedé")) RequestStart(g.path, true);
+        ImGui::Separator();
         if (ImGui::MenuItem("Abrir la carpeta del juego")) OpenFolder(g.path.parent_path());
-        if (ImGui::MenuItem("Elegir carátula…")) PickCoverDialog(g);
-        if (covers_.HasCustom(g) && ImGui::MenuItem("Quitar mi carátula")) covers_.RemoveCustom(g);
+        if (ImGui::MenuItem("Abrir la carpeta de partidas")) OpenFolder(Paths::Saves() / g.system);
+        if (ImGui::MenuItem("Abrir la carpeta de estados")) OpenFolder(StatePathFor(g, 1).parent_path());
+        ImGui::Separator();
+        if (ImGui::BeginMenu("Carátula")) {
+            if (ImGui::MenuItem("Elegir una imagen…")) PickCoverDialog(g);
+            if (ImGui::MenuItem("Quitar mi carátula", nullptr, false, covers_.HasCustom(g))) covers_.RemoveCustom(g);
+            if (ImGui::MenuItem("Buscarla de nuevo en internet")) covers_.QueueDownloads({g});
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Tiempo de juego")) {
+            ImGui::TextDisabled("%s", g.playtime_s > 0 ? FormatPlaytime(g.playtime_s).c_str() : "Sin jugar");
+            if (ImGui::MenuItem("Volver a cero", nullptr, false, g.playtime_s > 0)) {
+                library_.ResetPlaytime(g.key);
+                games_dirty_ = true;
+            }
+            ImGui::EndMenu();
+        }
+        const std::string ext = Lower(Paths::ToUtf8(g.path.extension()));
+        if (ext == ".cue" && ImGui::MenuItem("Convertir a .chd")) {
+            StartChdJob({g.path}, false);
+            Toast("Convirtiendo «" + g.title + "» a .chd. Tu original se queda.", GuideId::Nono, 4);
+        }
+        if (ImGui::MenuItem("Verificar el archivo")) VerifyGame(g);
+        if (ImGui::BeginMenu("Copiar")) {
+            if (ImGui::MenuItem("El nombre")) SDL_SetClipboardText(g.title.c_str());
+            if (ImGui::MenuItem("La ruta del archivo")) SDL_SetClipboardText(Paths::ToUtf8(g.path).c_str());
+            ImGui::EndMenu();
+        }
+#ifdef _WIN32
+        if (ImGui::BeginMenu("Crear acceso directo")) {
+            if (ImGui::MenuItem("En el escritorio")) {
+                std::string err;
+                if (Shortcut::CreateOnDesktop(g.title, g.path, {}, &err)) Toast("Listo: «" + g.title + "» está en tu escritorio.", GuideId::Samy, 4);
+                else Toast(err, GuideId::MechaRidds, 4);
+            }
+            ImGui::EndMenu();
+        }
+#endif
         ImGui::Separator();
         if (ImGui::MenuItem("Ocultar de la biblioteca")) {
             library_.SetHidden(g.key, true);
@@ -690,8 +741,37 @@ bool App::GameContextMenu(const Game& g) {
             Toast("«" + g.title + "» quedó oculto. Lo vuelves a mostrar en Ajustes » Biblioteca.", GuideId::Samy, 4.5);
         }
         ImGui::EndPopup();
+    } else {
+        ImGui::PopStyleVar(2);
     }
     return play;
+}
+
+// Calcula el CRC32 y el tamaño del juego (como los de las listas No-Intro / Redump) para saber si
+// el archivo está completo. Los muy grandes se miden en un hilo aparte.
+void App::VerifyGame(const Game& g) {
+    std::error_code ec;
+    const uintmax_t size = fs::file_size(g.path, ec);
+    const fs::path path = g.path;
+    const std::string title = g.title;
+    std::thread([this, path, title, size]() {
+        std::ifstream f(path, std::ios::binary);
+        mz_ulong crc = 0;
+        if (f) {
+            std::vector<unsigned char> buf(1 << 20);
+            while (f) {
+                f.read(reinterpret_cast<char*>(buf.data()), static_cast<std::streamsize>(buf.size()));
+                const std::streamsize n = f.gcount();
+                if (n <= 0) break;
+                crc = mz_crc32(crc, buf.data(), static_cast<size_t>(n));
+            }
+        }
+        const bool ok = static_cast<bool>(std::ifstream(path, std::ios::binary));
+        std::lock_guard lock(pending_mutex_);
+        pending_toasts_.push_back(ok ? Fmt("«%s»: %.1f MB · CRC32 %08lX. Compáralo con la lista de tu juego (No-Intro o Redump).", title.c_str(),
+                                          size / 1048576.0, static_cast<unsigned long>(crc))
+                                    : "No pude leer «" + title + "».");
+    }).detach();
 }
 
 // Fila de la vista en lista: carátula chica, nombre, consola, tiempo jugado y botón de jugar.
@@ -1098,7 +1178,7 @@ void App::DrawSettings() {
         {SettingsTab::Video, "Imagen", Icon::Monitor},       {SettingsTab::Audio, "Sonido", Icon::Volume},
         {SettingsTab::Controls, "Controles", Icon::Gamepad}, {SettingsTab::Performance, "Rendimiento", Icon::Forward},
         {SettingsTab::Meter, "Medidor", Icon::Meter},        {SettingsTab::Core, "Núcleo", Icon::Chip},
-        {SettingsTab::Library, "Biblioteca", Icon::Folder},  {SettingsTab::Guides, "Guías", Icon::Heart},
+        {SettingsTab::Library, "Biblioteca", Icon::Folder},  {SettingsTab::Guides, "Guías", Icon::Paw},
         {SettingsTab::Appearance, "Apariencia", Icon::Palette},
     };
     ImGui::BeginChild("##tabs", {S(210), 0}, 0, ImGuiWindowFlags_NoScrollbar);
@@ -2713,7 +2793,7 @@ void App::DrawGuideBubble() {
     if (img) dl->AddImageRounded(img.Ref(), {ac.x - av * 0.5f, ac.y - av * 0.5f}, {ac.x + av * 0.5f, ac.y + av * 0.5f}, {0, 0}, {1, 1}, IM_COL32_WHITE, av * 0.5f);
 
     ImGui::SetCursorScreenPos({b1.x - S(102), b0.y + S(8)});
-    if (IconButton("##preguntar", Icon::Heart, S(28), U32(Color::Muted), "Pregúntale a los guías")) page_ = Page::Guides;
+    if (IconButton("##preguntar", Icon::Paw, S(28), U32(Color::Muted), "Pregúntale a los guías")) page_ = Page::Guides;
     ImGui::SameLine(0, S(4));
     if (IconButton("##sig", Icon::ChevronRight, S(28), U32(Color::Muted), "Otro consejo")) {
         tip_index_ = NextTip();

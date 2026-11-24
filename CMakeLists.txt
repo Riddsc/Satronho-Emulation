@@ -75,6 +75,7 @@ set(SATRONHO_SOURCES
   src/util/net.cpp
   src/util/archive.cpp
   src/util/chd.cpp
+  src/util/shortcut.cpp
   src/gfx/gl.cpp
   src/gfx/hw_render.cpp
   src/gfx/video_gl.cpp
@@ -110,7 +111,7 @@ if(WIN32)
   set(SATRONHO_ICON "${CMAKE_SOURCE_DIR}/dist/windows/satronho.ico")
   configure_file(dist/windows/satronho.rc.in ${CMAKE_BINARY_DIR}/satronho.rc @ONLY)
   target_sources(${SATRONHO_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/satronho.rc)
-  target_link_libraries(${SATRONHO_TARGET} PRIVATE dxgi psapi)
+  target_link_libraries(${SATRONHO_TARGET} PRIVATE dxgi psapi ole32 uuid)
   target_compile_definitions(${SATRONHO_TARGET} PRIVATE NOMINMAX)
   if(MINGW)
     target_link_options(${SATRONHO_TARGET} PRIVATE -static)

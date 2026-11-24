@@ -658,7 +658,7 @@ void App::DrawSidebarRail(float width) {
         Page page;
         Icon icon;
         unsigned color;
-    } navs[] = {{"##r_guias", Page::Guides, Icon::Chat, Color::Green},     {"##r_sug", Page::Suggested, Icon::Sparkle, Color::Teal},
+    } navs[] = {{"##r_guias", Page::Guides, Icon::Paw, Color::Green},     {"##r_sug", Page::Suggested, Icon::Sparkle, Color::Teal},
                 {"##r_nov", Page::News, Icon::Bell, Color::Pink},          {"##r_ctrl", Page::Controls, Icon::Gamepad, Color::Amber},
                 {"##r_herr", Page::Tools, Icon::Tools, Color::Orange},
                 {"##r_aj", Page::Settings, Icon::Gear, Color::Accent},     {"##r_ac", Page::About, Icon::Info, Color::Accent}};
