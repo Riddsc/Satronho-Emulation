@@ -282,7 +282,7 @@ Suggestion Suggest(const HardwareInfo& hw, const Settings& current) {
     r.vsync = true;
     r.fullscreen_60hz = true;
 
-    static const char* effects[] = {"Ninguno", "Líneas de barrido", "Pantalla CRT", "Pantalla LCD", "Según la consola (CRT en TV, LCD en portátiles)"};
+    static const char* effects[] = {"Ninguno", "Líneas de barrido", "Pantalla CRT", "Pantalla LCD", "Según la consola (CRT en las de TV, LCD en portátiles y limpio en las 3D)"};
     static const char* filters[] = {"Píxel exacto", "Nítido suave", "Suave"};
     s.changes.push_back(std::string("Efecto de pantalla: ") + effects[r.effect]);
     s.changes.push_back(std::string("Filtro: ") + filters[r.filter]);

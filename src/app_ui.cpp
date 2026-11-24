@@ -1037,7 +1037,7 @@ void App::DrawSettingsVideo() {
     changed |= Segmented("##filtro", &settings_.filter, {"Píxel exacto", "Nítido suave", "Suave"}, S(320));
     RowEnd();
 
-    RowBegin("Efecto de pantalla", "«Auto» usa televisor CRT en las consolas de casa y pantalla LCD en las portátiles.");
+    RowBegin("Efecto de pantalla", "«Auto» usa televisor CRT en las consolas de casa en 2D, pantalla LCD en las portátiles y la imagen limpia en las 3D (CD, 64, Anillo y Dual).");
     changed |= Segmented("##efecto", &settings_.effect, {"Ninguno", "Líneas", "CRT", "LCD", "Auto"}, S(340));
     RowEnd();
 
