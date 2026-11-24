@@ -100,6 +100,41 @@ LONG WINAPI OnCrash(EXCEPTION_POINTERS* info) {
     if (g_file) {
         std::fprintf(g_file, "[cierre] Error Cierre inesperado: código 0x%08lX en %s+0x%llX\n", static_cast<unsigned long>(code),
                      base, offset);
+        // En un acceso inválido: qué dirección se quiso leer o escribir.
+        if (code == EXCEPTION_ACCESS_VIOLATION && info->ExceptionRecord->NumberParameters >= 2) {
+            const ULONG_PTR kind = info->ExceptionRecord->ExceptionInformation[0];
+            std::fprintf(g_file, "[cierre] Al %s la dirección 0x%llX\n", kind == 0 ? "leer" : kind == 1 ? "escribir" : "ejecutar",
+                         static_cast<unsigned long long>(info->ExceptionRecord->ExceptionInformation[1]));
+        }
+#if defined(__x86_64__) || defined(_M_X64)
+        // Cadena de llamadas (de la más reciente a la más vieja), para saber quién llegó ahí.
+        if (info->ContextRecord) {
+            CONTEXT ctx = *info->ContextRecord;
+            for (int i = 0; i < 24 && ctx.Rip; ++i) {
+                HMODULE m = nullptr;
+                char name[MAX_PATH] = "?";
+                if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                       reinterpret_cast<LPCSTR>(ctx.Rip), &m) && m)
+                    GetModuleFileNameA(m, name, sizeof name);
+                const char* nb = name;
+                for (const char* c = name; *c; ++c)
+                    if (*c == '\\' || *c == '/') nb = c + 1;
+                std::fprintf(g_file, "[cierre]   %2d  %s+0x%llX\n", i, nb,
+                             m ? static_cast<unsigned long long>(ctx.Rip - reinterpret_cast<DWORD64>(m)) : static_cast<unsigned long long>(ctx.Rip));
+                DWORD64 image = 0;
+                PRUNTIME_FUNCTION fn = RtlLookupFunctionEntry(ctx.Rip, &image, nullptr);
+                if (!fn) {
+                    if (IsBadReadPtr(reinterpret_cast<void*>(ctx.Rsp), 8)) break;
+                    ctx.Rip = *reinterpret_cast<DWORD64*>(ctx.Rsp);
+                    ctx.Rsp += 8;
+                } else {
+                    PVOID handler_data = nullptr;
+                    DWORD64 frame = 0;
+                    RtlVirtualUnwind(UNW_FLAG_NHANDLER, image, ctx.Rip, fn, &ctx, &handler_data, &frame, nullptr);
+                }
+            }
+        }
+#endif
         std::fflush(g_file);
     }
     if (locked) g_mutex.unlock();

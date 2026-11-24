@@ -146,6 +146,7 @@ private:
     void DrawLibraryCarousel(const std::vector<const Game*>& list, const SystemDef* lib_sys);
     bool DrawCover(ImDrawList* dl, const Game& g, ImVec2 a, ImVec2 b, float rounding, bool hovered);
     void DrawConfirm();
+    int confirm_frames_ = 0;          // cuadros que la pregunta lleva sin poder mostrarse
     void RequestQuit();               // cerrar la app (pregunta si está activado)
     void RequestExitGame();           // salir del juego (pregunta si está activado)
     void DrawWhatsNew();

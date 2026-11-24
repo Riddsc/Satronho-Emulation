@@ -6332,6 +6332,8 @@ static bool ImGui_ImplStbTrueType_FontBakedLoadGlyph(ImFontAtlas* atlas, ImFontC
     {
         const int w = (x1 - x0 + oversample_h - 1);
         const int h = (y1 - y0 + oversample_v - 1);
+        if (w <= 0 || h <= 0 || w > 2048 || h > 2048) // Satronho: medidas imposibles = glifo sin dibujo.
+            return true;
         ImFontAtlasRectId pack_id = ImFontAtlasPackAddRect(atlas, w, h);
         if (pack_id == ImFontAtlasRectId_Invalid)
         {
@@ -6957,6 +6959,10 @@ ImFontBaked* ImFont::GetFontBaked(float size, float density)
     // Round font size
     // - ImGui::PushFont() will already round, but other paths calling GetFontBaked() directly also needs it (e.g. ImFontAtlasBuildPreloadAllGlyphRanges)
     size = ImGui::GetRoundedFontSize(size);
+    // Satronho: nunca hornear tamaños inválidos (NaN, cero, negativos o gigantes). Un tamaño así
+    // deja un rectángulo de glifo con medidas basura y la copia del bitmap lee fuera de memoria.
+    if (!(size >= 1.0f)) size = 1.0f;
+    if (size > 512.0f) size = 512.0f;
 
     if (density < 0.0f)
         density = CurrentRasterizerDensity;

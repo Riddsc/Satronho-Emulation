@@ -11,6 +11,7 @@
 #include <sstream>
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 #include "imgui_impl_opengl3.h"
@@ -712,7 +713,12 @@ void App::PollUpdater() {
 void App::QaTick() {
     if (qa_.empty()) return;
     ++qa_frames_;
+    if (qa_frames_ % 60 == 0) {
+        ImFontAtlas* at = ImGui::GetIO().Fonts;
+        Log::Info("QA atlas: %dx%d, tamaños horneados %d", at->TexData ? at->TexData->Width : 0, at->TexData ? at->TexData->Height : 0, at->Builder ? at->Builder->BakedPool.Size : 0);
+    }
     const int wanted = qa_.count("frames") ? std::atoi(qa_["frames"].c_str()) : 30;
+    if (qa_frames_ == wanted / 2 && qa_.count("salir_tarde")) confirm_ = std::atoi(qa_["salir_tarde"].c_str());
     if (qa_frames_ == wanted / 2 && qa_.count("menu")) {
         SetMenuOpen(true);
         if (qa_.count("seccion")) menu_section_ = std::atoi(qa_["seccion"].c_str());

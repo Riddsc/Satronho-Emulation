@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2026 Ridds (Satronho Emulation)
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include <cstdio>
 #include "ui/controllers.h"
 
 #include <algorithm>
@@ -69,9 +70,9 @@ void DPad(Ctx& c, float cx, float cy, float size, ImU32 body, ImU32 shade) {
         const ImVec2 b1 = c.P(mx - arm.dx * w * 0.25f + arm.dy * w * 0.45f, my - arm.dy * w * 0.25f + arm.dx * w * 0.45f);
         const ImVec2 b2 = c.P(mx - arm.dx * w * 0.25f - arm.dy * w * 0.45f, my - arm.dy * w * 0.25f - arm.dx * w * 0.45f);
         c.dl->AddTriangleFilled(tip, b1, b2, shade);
-        const ImVec2 r0 = c.P(arm.dx ? std::min(mx - w, mx + arm.dx * w) : cx - w, arm.dy ? std::min(my - w, my + arm.dy * w) : cy - w);
-        const ImVec2 r1 = c.P(arm.dx ? std::max(mx - w, mx + arm.dx * w) + (arm.dx > 0 ? w * 0.1f : 0) : cx + w,
-                              arm.dy ? std::max(my - w, my + arm.dy * w) : cy + w);
+        // Brazo completo, desde el centro hacia afuera (antes arriba e izquierda medían cero y no se encendían).
+        const ImVec2 r0 = c.P(arm.dx ? (arm.dx < 0 ? cx - a : cx + w) : cx - w, arm.dy ? (arm.dy < 0 ? cy - a : cy + w) : cy - w);
+        const ImVec2 r1 = c.P(arm.dx ? (arm.dx < 0 ? cx - w : cx + a) : cx + w, arm.dy ? (arm.dy < 0 ? cy - w : cy + a) : cy + w);
         if (c.Down(arm.id)) c.dl->AddRectFilled(r0, r1, U32(Color::Gold, 0.85f), c.L(3));
         if (c.hovered == arm.id || c.capturing == arm.id)
             c.dl->AddRect(r0, r1, U32(Color::Accent, c.capturing == arm.id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(3), c.L(2.5f));

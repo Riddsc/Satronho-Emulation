@@ -123,6 +123,9 @@ void App::DrawUi() {
 
     // Al cambiar de página el contenido entra con un fundido corto y sube un poco.
     if (page_ != shown_page_) {
+        static const char* kPageNames[] = {"Biblioteca", "Controles", "Configuración sugerida", "Novedades", "Ajustes", "Acerca de", "Guías"};
+        const int pi = static_cast<int>(page_);
+        Log::Info("Pantalla: %s", pi >= 0 && pi < 7 ? kPageNames[pi] : "?");
         shown_page_ = page_;
         BeginPageTransition();
     }
@@ -1621,7 +1624,8 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     ImGui::Dummy({0, S(6)});
 
     Mapping& m = input_.Edit(player, sys);
-    const uint16_t live = input_.LiveButtons(player, sys);
+    uint16_t live = input_.LiveButtons(player, sys);
+    if (qa_.count("presionar")) live |= static_cast<uint16_t>(std::atoi(qa_["presionar"].c_str()));
 
     // Casilla de un botón: nombre, su tecla y su botón de mando.
     const float gap = S(10);
@@ -2069,7 +2073,8 @@ void App::DrawPauseMenu() {
     const float H = std::min(S(620), vp->Size.y - S(60));
     ImGui::SetNextWindowPos({vp->Pos.x + (vp->Size.x - W) * 0.5f, vp->Pos.y + (vp->Size.y - H) * 0.5f});
     ImGui::SetNextWindowSize({W, H});
-    ImGui::SetNextWindowFocus();
+    // Sin robarle el foco a una ventana encima (la pregunta de salir): si no, nunca se vería.
+    if (confirm_ == 0 && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) ImGui::SetNextWindowFocus();
     ImGui::PushStyleColor(ImGuiCol_WindowBg, V4(Color::Bg, 0.97f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(24));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
