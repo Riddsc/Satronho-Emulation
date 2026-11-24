@@ -48,6 +48,7 @@ unsigned Rng() {
 }
 
 float EaseOut(float t) { return 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t); }
+constexpr float kPi() { return 3.14159265f; }
 } // namespace
 
 // ---------------------------------------------------------------- temas y logo de fondo
@@ -1193,6 +1194,113 @@ void App::DrawArchivePicker() {
     }
     ImGui::PopStyleColor(2);
     ImGui::PopStyleVar(2);
+}
+
+} // namespace Satronho
+
+namespace Satronho {
+
+// ---------------------------------------------------------------- fondo con la carátula
+
+void App::DrawBackdrop(ImVec2 p0, ImVec2 p1) {
+    hover_key_ = hover_key_next_;
+    hover_key_next_.clear();
+    std::string want = !hover_key_.empty() ? hover_key_ : !selected_key_.empty() ? selected_key_ : carousel_key_;
+    if (want != backdrop_key_) {
+        backdrop_prev_ = backdrop_key_;
+        backdrop_key_ = want;
+        backdrop_t_ = ImGui::GetTime();
+    }
+    const float t = std::clamp(static_cast<float>((ImGui::GetTime() - backdrop_t_) / 0.45), 0.0f, 1.0f);
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    auto draw = [&](const std::string& key, float alpha) {
+        if (key.empty() || alpha <= 0.01f) return;
+        const Game* g = nullptr;
+        for (const auto& x : games_)
+            if (x.key == key) g = &x;
+        if (!g) return;
+        const Ui::Image* img = covers_.GetBlur(*g);
+        if (!img) return;
+        // Llenando el área sin deformar, un poco agrandada (se mueve lento hacia arriba).
+        const float W = p1.x - p0.x, H = p1.y - p0.y;
+        const float ia = static_cast<float>(img->w) / std::max(1, img->h);
+        float w = W * 1.12f, h = w / ia;
+        if (h < H * 1.12f) {
+            h = H * 1.12f;
+            w = h * ia;
+        }
+        const float drift = std::sin(static_cast<float>(ImGui::GetTime()) * 0.15f) * H * 0.02f;
+        const ImVec2 a(p0.x + (W - w) * 0.5f, p0.y + (H - h) * 0.5f + drift);
+        dl->AddImage(img->Ref(), a, {a.x + w, a.y + h}, {0, 0}, {1, 1}, IM_COL32(255, 255, 255, static_cast<int>(255 * alpha * (LightTheme() ? 0.20f : 0.30f))));
+    };
+    draw(backdrop_prev_, 1.0f - t);
+    draw(backdrop_key_, t);
+    // Se funde con el fondo hacia abajo para que el texto se lea bien.
+    const float mid = p0.y + (p1.y - p0.y) * 0.45f;
+    dl->AddRectFilledMultiColor({p0.x, mid}, p1, U32(Color::Bg, 0.0f), U32(Color::Bg, 0.0f), U32(Color::Bg, 0.92f), U32(Color::Bg, 0.92f));
+}
+
+// ---------------------------------------------------------------- presentación al abrir
+
+void App::DrawSplash() {
+    if (splash_done_) return;
+    const double now = ImGui::GetTime();
+    if (splash_t0_ < 0) splash_t0_ = now;
+    const float t = static_cast<float>(now - splash_t0_);
+    const float total = 2.3f;
+    // Se salta con un clic, una tecla o un botón del mando.
+    if (t > 0.3f && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Escape) ||
+                     ImGui::IsKeyPressed(ImGuiKey_Space) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown)))
+        splash_t0_ = now - total + 0.35;
+    if (t >= total) {
+        splash_done_ = true;
+        return;
+    }
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImDrawList* dl = ImGui::GetForegroundDrawList();
+    const float out = std::clamp((total - t) / 0.45f, 0.0f, 1.0f); // fundido de salida
+    const ImVec2 c(vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.45f);
+    dl->AddRectFilled(vp->Pos, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y}, U32(Color::Bg, out));
+    // Estrellas que titilan.
+    for (int i = 0; i < 70; ++i) {
+        const float sx = std::fmod(i * 97.13f, 100.0f) / 100.0f, sy = std::fmod(i * 57.71f + 13, 100.0f) / 100.0f;
+        const float tw = 0.5f + 0.5f * std::sin(t * (1.5f + (i % 5) * 0.4f) + i);
+        dl->AddCircleFilled({vp->Pos.x + sx * vp->Size.x, vp->Pos.y + sy * vp->Size.y}, S(0.8f + (i % 3) * 0.5f), U32(0xFFFFFF, 0.35f * tw * out));
+    }
+    // El logo entra con un rebote suave.
+    const float k = std::clamp(t / 0.7f, 0.0f, 1.0f);
+    const float spring = 1.0f - std::exp(-6.0f * k) * std::cos(9.0f * k);
+    const float size = std::min(vp->Size.x, vp->Size.y) * 0.28f * spring;
+    // Anillo dorado que gira.
+    const float ring = size * 0.95f;
+    dl->PathArcTo(c, ring, t * 1.6f, t * 1.6f + 4.4f, 48);
+    dl->PathStroke(U32(Color::Gold, 0.55f * out), S(2.5f), 0);
+    if (logo_) dl->AddImageRounded(logo_.Ref(), {c.x - size * 0.5f, c.y - size * 0.5f}, {c.x + size * 0.5f, c.y + size * 0.5f}, {0, 0}, {1, 1},
+                                   IM_COL32(255, 255, 255, static_cast<int>(255 * out)), size * 0.22f);
+    // Los cinco guías aparecen uno por uno y orbitan alrededor.
+    for (int i = 0; i < static_cast<int>(GuideId::Count); ++i) {
+        const float appear = std::clamp((t - 0.45f - i * 0.12f) / 0.35f, 0.0f, 1.0f);
+        if (appear <= 0 || !guides_[i]) continue;
+        const float ang = -kPi() * 0.5f + i * (2 * kPi() / 5) + t * 0.5f;
+        const float av = size * 0.30f * (0.6f + 0.4f * appear);
+        const ImVec2 gc(c.x + std::cos(ang) * ring, c.y + std::sin(ang) * ring);
+        const GuideInfo& gi = Guide(static_cast<GuideId>(i));
+        dl->AddCircleFilled(gc, av * 0.5f + S(3), U32(Color::Bg, appear * out));
+        dl->AddCircle(gc, av * 0.5f + S(3), U32(gi.color, appear * out), 0, S(2));
+        dl->AddImageRounded(guides_[i].Ref(), {gc.x - av * 0.5f, gc.y - av * 0.5f}, {gc.x + av * 0.5f, gc.y + av * 0.5f}, {0, 0}, {1, 1},
+                            IM_COL32(255, 255, 255, static_cast<int>(255 * appear * out)), av * 0.5f);
+    }
+    // Nombre y crédito.
+    const float tx = std::clamp((t - 0.55f) / 0.5f, 0.0f, 1.0f);
+    {
+        const char* name = "Satronho Emulation";
+        const float fs = std::max(S(28), size * 0.2f);
+        const ImVec2 ts = GetFonts().bold->CalcTextSizeA(fs, FLT_MAX, 0, name);
+        dl->AddText(GetFonts().bold, fs, {c.x - ts.x * 0.5f, c.y + ring + S(34) + (1 - tx) * S(14)}, U32(Color::Text, tx * out), name);
+        const char* by = "por Ridds";
+        const ImVec2 bs = GetFonts().semibold->CalcTextSizeA(S(15), FLT_MAX, 0, by);
+        dl->AddText(GetFonts().semibold, S(15), {c.x - bs.x * 0.5f, c.y + ring + S(34) + ts.y + S(6) + (1 - tx) * S(14)}, U32(Color::Accent, tx * out), by);
+    }
 }
 
 } // namespace Satronho

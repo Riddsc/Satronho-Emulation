@@ -336,6 +336,8 @@ bool App::Init() {
         else StartGame(Paths::FromUtf8(qa_["rom"]));
     }
     if (qa_.count("tactil")) touch_mode_ = true;
+    // La presentación animada se salta en las revisiones automáticas (salvo que se pida).
+    if (!qa_.empty() && !qa_.count("presentacion")) splash_done_ = true;
     if (qa_.count("explorador")) OpenBrowser(qa_["explorador"] == "1");
     if (qa_.count("editar_tactil")) touch_edit_ = true;
     if (qa_.count("abrir")) RequestStart(Paths::FromUtf8(qa_["abrir"]));
@@ -1059,6 +1061,7 @@ bool App::StartGame(const fs::path& rom) {
               GuideId::Nono, 8);
     }
     current_ = probe;
+    game_enter_t_ = ImGui::GetCurrentContext() ? ImGui::GetTime() : 0.0;
     MigrateLegacyStates();
     library_.MarkPlayed(current_.key);
     games_dirty_ = true;

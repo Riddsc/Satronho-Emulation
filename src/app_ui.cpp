@@ -115,7 +115,8 @@ void App::DrawUi() {
     ImGui::PopStyleColor();
 
     const float side_w = compact_ ? S(80) : S(252);
-    // Logo de Satronho de fondo (detrás de todo el contenido).
+    // Fondo con la carátula del juego que se mira (borrosa) y, encima, el logo de Satronho.
+    if (page_ == Page::Library) DrawBackdrop({vp->Pos.x + side_w, vp->Pos.y}, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y});
     DrawWatermark({vp->Pos.x + side_w, vp->Pos.y}, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y});
     DrawSidebar(side_w);
     ImGui::SameLine(0, 0);
@@ -152,6 +153,7 @@ void App::DrawUi() {
     DrawArchivePicker();
     DrawBrowser();
     DrawConfirm();
+    DrawSplash();
 }
 
 void App::DrawLoading() {
@@ -608,6 +610,7 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     ImGui::SetNextItemAllowOverlap();
     const bool clicked = ImGui::InvisibleButton("##card", {w, h});
     const bool hovered = ImGui::IsItemHovered();
+    if (hovered) hover_key_next_ = g.key;
     const bool focused = ImGui::IsItemFocused();
     if (clicked) selected_key_ = g.key;
     if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) play = true;
@@ -2026,6 +2029,9 @@ void App::DrawAbout() {
 
 void App::DrawGameLayer() {
     const ImGuiViewport* vp = ImGui::GetMainViewport();
+    // Fundido al entrar al juego.
+    if (const float f = 1.0f - static_cast<float>((ImGui::GetTime() - game_enter_t_) / 0.6); f > 0)
+        ImGui::GetBackgroundDrawList()->AddRectFilled(vp->Pos, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y}, IM_COL32(0, 0, 0, static_cast<int>(255 * f * f)));
     if (menu_open_) {
         DrawPauseMenu();
         return;
@@ -2511,7 +2517,7 @@ void App::DrawGuideBubble() {
         FontScope f(GetFonts().regular, 13.5f);
         dl->AddText(nullptr, 0.0f, {b0.x + S(18), b0.y + S(38)}, U32(Color::Text), tip.text.c_str(), nullptr, w - S(36));
     }
-    const ImVec2 ac(b1.x + S(14) + av * 0.5f, b1.y - av * 0.5f);
+    const ImVec2 ac(b1.x + S(14) + av * 0.5f, b1.y - av * 0.5f + GuideBob(g.name));
     const Image& img = guides_[static_cast<int>(tip.guide)];
     if (img) dl->AddImageRounded(img.Ref(), {ac.x - av * 0.5f, ac.y - av * 0.5f}, {ac.x + av * 0.5f, ac.y + av * 0.5f}, {0, 0}, {1, 1}, IM_COL32_WHITE, av * 0.5f);
 

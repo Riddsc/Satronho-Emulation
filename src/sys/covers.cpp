@@ -148,7 +148,10 @@ void Covers::Shutdown() {
 }
 
 void Covers::DropTextures() {
-    for (auto& [k, e] : cache_) Ui::FreeImage(e.img);
+    for (auto& [k, e] : cache_) {
+        Ui::FreeImage(e.img);
+        Ui::FreeImage(e.blur);
+    }
     cache_.clear();
     std::lock_guard lock(mutex_);
     decoded_.clear();
@@ -207,6 +210,12 @@ const Ui::Image* Covers::Get(const Game& g) {
     return nullptr;
 }
 
+const Ui::Image* Covers::GetBlur(const Game& g) {
+    Get(g);
+    auto it = cache_.find(g.key);
+    return it != cache_.end() && it->second.blur ? &it->second.blur : nullptr;
+}
+
 void Covers::Pump() {
     std::vector<Decoded> ready;
     std::vector<std::string> reload;
@@ -222,6 +231,7 @@ void Covers::Pump() {
         auto it = cache_.find(k);
         if (it != cache_.end() && !it->second.loading) {
             Ui::FreeImage(it->second.img);
+            Ui::FreeImage(it->second.blur);
             cache_.erase(it);
         }
     }
@@ -229,7 +239,10 @@ void Covers::Pump() {
         auto it = cache_.find(d.key);
         if (it == cache_.end()) continue;
         it->second.loading = false;
-        if (d.ok) it->second.img = Ui::ImageFromRGBA(d.rgba.data(), d.w, d.h);
+        if (d.ok) {
+            it->second.img = Ui::ImageFromRGBA(d.rgba.data(), d.w, d.h);
+            it->second.blur = Ui::ImageFromRGBA(d.small.data(), d.sw, d.sh);
+        }
         else it->second.missing = true;
     }
     // Si hay demasiadas en la tarjeta gráfica, se sueltan las que hace más tiempo no se ven.
@@ -242,6 +255,7 @@ void Covers::Pump() {
         std::sort(order.begin(), order.end());
         for (int i = 0; i < loaded - kMaxTextures; ++i) {
             Ui::FreeImage(cache_[order[i].second].img);
+            Ui::FreeImage(cache_[order[i].second].blur);
             cache_.erase(order[i].second);
         }
     }
@@ -280,6 +294,20 @@ void Covers::DecodeLoop() {
                 w = nw;
                 h = nh;
             }
+            // Versión diminuta (24 px de ancho) para el fondo borroso.
+            d.sw = 24;
+            d.sh = std::max(1, h * 24 / w);
+            d.small.resize(static_cast<size_t>(d.sw) * d.sh * 4);
+            for (int y = 0; y < d.sh; ++y)
+                for (int x = 0; x < d.sw; ++x) {
+                    const int x0 = x * w / d.sw, x1 = std::max(x0 + 1, (x + 1) * w / d.sw);
+                    const int y0 = y * h / d.sh, y1 = std::max(y0 + 1, (y + 1) * h / d.sh);
+                    unsigned sum[4] = {}, n = 0;
+                    for (int yy = y0; yy < y1; yy += 2)
+                        for (int xx = x0; xx < x1; xx += 2, ++n)
+                            for (int c = 0; c < 4; ++c) sum[c] += px[(static_cast<size_t>(yy) * w + xx) * 4 + c];
+                    for (int c = 0; c < 4; ++c) d.small[(static_cast<size_t>(y) * d.sw + x) * 4 + c] = static_cast<unsigned char>(sum[c] / std::max(1u, n));
+                }
             d.rgba = std::move(px);
             d.w = w;
             d.h = h;
@@ -300,6 +328,7 @@ void Covers::SetCustom(const Game& g, const fs::path& image) {
     auto it = cache_.find(g.key);
     if (it != cache_.end()) {
         Ui::FreeImage(it->second.img);
+        Ui::FreeImage(it->second.blur);
         cache_.erase(it);
     }
     changed_ = true;
@@ -312,6 +341,7 @@ void Covers::RemoveCustom(const Game& g) {
     auto it = cache_.find(g.key);
     if (it != cache_.end()) {
         Ui::FreeImage(it->second.img);
+        Ui::FreeImage(it->second.blur);
         cache_.erase(it);
     }
     changed_ = true;
