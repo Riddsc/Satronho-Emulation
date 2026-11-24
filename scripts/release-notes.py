@@ -15,7 +15,7 @@ lines += [
     "",
     f"1. Descarga `SatronhoEmulation-build-{build}-windows-x64.zip`.",
     "2. Descomprime la carpeta donde quieras y abre `satronho-emulation.exe`.",
-    "3. Agrega la carpeta donde tienes tus juegos de NES. Satronho Emulation no incluye juegos.",
+    "3. Agrega la carpeta donde tienes tus juegos (cada uno queda en su consola). Satronho Emulation no incluye juegos.",
     "",
     "¿Quieres todo en una sola carpeta (por ejemplo en una memoria USB)? Crea un archivo vacío llamado `portable.txt` junto al programa.",
 ]

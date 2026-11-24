@@ -10,4 +10,9 @@ void Info(const char* fmt, ...);
 void Warn(const char* fmt, ...);
 void Error(const char* fmt, ...);
 
+// Si la aplicación se cierra de golpe (un núcleo que falla, por ejemplo), deja anotado en el
+// registro el código del error y en qué archivo pasó (satronho-emulation.exe o el .dll del núcleo).
+// Solo Windows; en otros sistemas no hace nada.
+void InstallCrashHandler();
+
 } // namespace Satronho::Log

@@ -21,4 +21,6 @@ Componentes de terceros incluidos (licencias completas en la carpeta `licencias`
 - stb — dominio público / MIT — https://github.com/nothings/stb
 - Poppins y JetBrains Mono — SIL Open Font License 1.1
 
-NES, Game Boy y Game Boy Advance son marcas de Nintendo. Este proyecto no está afiliado a Nintendo y no incluye juegos.
+NES, Super Nintendo, Game Boy, Game Boy Advance, Nintendo 64 y DS son marcas de Nintendo; Genesis, Mega Drive y Saturn, de Sega; PlayStation, de Sony. Se usan solo para describir con qué juegos funciona cada emulador. Este proyecto no está afiliado a ninguna de ellas y no incluye juegos.
+
+Las versiones exactas de cada núcleo están fijadas en los scripts `scripts/build-core-*.sh` del código fuente.

@@ -2,7 +2,7 @@
   "consejos": [
     {
       "guia": "samy",
-      "texto": "Mantén Tab (o el gatillo derecho) para avanzar rápido por las partes lentas."
+      "texto": "El avance rápido viene apagado. Si lo quieres, enciéndelo en Ajustes » Rendimiento y mantén Tab para pasar rápido las partes lentas."
     },
     {
       "guia": "samy",
@@ -10,11 +10,11 @@
     },
     {
       "guia": "samy",
-      "texto": "¿Te equivocaste de salto? Mantén Retroceso (o el gatillo izquierdo) y rebobina unos segundos."
+      "texto": "¿Te equivocaste de salto? Mantén Retroceso (o el gatillo izquierdo) y rebobina unos segundos. En PS1, DS, Saturn y 64 se enciende aparte en Ajustes » Rendimiento."
     },
     {
       "guia": "samy",
-      "texto": "Haz clic derecho en un juego para marcarlo como favorito o abrir su carpeta."
+      "texto": "Haz clic derecho en un juego para marcarlo como favorito, abrir su carpeta, seguir donde quedaste u ocultarlo."
     },
     {
       "guia": "samy",
@@ -38,7 +38,7 @@
     },
     {
       "guia": "nono",
-      "texto": "El adelanto de 1 cuadro hace que los saltos respondan antes. Si un juego hace algo raro, apágalo en el menú del juego."
+      "texto": "En Satronho Octa, el adelanto de 1 cuadro hace que los saltos respondan antes. Si un juego hace algo raro, apágalo en el menú del juego."
     },
     {
       "guia": "nono",
@@ -50,7 +50,7 @@
     },
     {
       "guia": "mecharidds",
-      "texto": "Esto apenas empieza: después de la NES vienen más consolas a esta misma casa."
+      "texto": "Esto apenas empieza: ya son nueve consolas y vienen más a esta misma casa."
     },
     {
       "guia": "mecharidds",
@@ -71,6 +71,26 @@
     {
       "guia": "nono",
       "texto": "Si tu pantalla es de 144 Hz, juega en pantalla completa: la cambio a 60 Hz y el movimiento queda perfecto."
+    },
+    {
+      "guia": "samy",
+      "texto": "Al salir de un juego guardo dónde quedaste. En la biblioteca, «Continuar» te deja justo ahí."
+    },
+    {
+      "guia": "samy",
+      "texto": "¿Cargaste la ranura equivocada? En el menú del juego » Estados está «Deshacer la carga»."
+    },
+    {
+      "guia": "troya",
+      "texto": "Cada consola puede tener su propia imagen: en el menú del juego » Ajustes rápidos, enciende «Imagen propia»."
+    },
+    {
+      "guia": "troya",
+      "texto": "En Satronho Dual, F2 (o el clic del stick derecho) cambia cómo se ven las dos pantallas."
+    },
+    {
+      "guia": "nono",
+      "texto": "Cada jugador recuerda su mando: si uno se desconecta, el otro sigue con el suyo."
     }
   ]
 }

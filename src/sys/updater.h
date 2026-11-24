@@ -35,7 +35,7 @@ private:
     std::atomic<int> latest_{0};
     std::atomic<float> progress_{0};
     mutable std::mutex mutex_;
-    std::string zip_url_, page_url_, error_, script_;
+    std::string zip_url_, sha_url_, page_url_, error_, script_;
     std::thread worker_;
 };
 

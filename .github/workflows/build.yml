@@ -36,6 +36,15 @@ jobs:
       - name: Herramientas
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build zip nasm
 
+      # Los 8 núcleos tardan mucho en compilar y casi nunca cambian: se guardan en caché. La clave
+      # cambia sola si se toca un script de núcleo (otra versión) o la versión de llvm-mingw.
+      - name: Caché de los núcleos
+        id: cache-cores
+        uses: actions/cache@v4
+        with:
+          path: build/cores
+          key: cores-${{ env.LLVM_MINGW_VERSION }}-${{ hashFiles('scripts/build-core-*.sh', 'cmake/llvm-mingw.cmake') }}
+
       - name: Caché de llvm-mingw
         id: cache-mingw
         uses: actions/cache@v4
@@ -52,41 +61,49 @@ jobs:
           mv ~/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-22.04-x86_64 ~/llvm-mingw
 
       - name: Núcleo de NES (Nestopia UE)
+        if: steps.cache-cores.outputs.cache-hit != \'true\'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-nestopia.sh build/cores
 
       - name: Núcleo de Game Boy y Game Boy Advance (mGBA)
+        if: steps.cache-cores.outputs.cache-hit != \'true\'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-mgba.sh build/cores
 
       - name: Núcleo de Genesis / Mega Drive (BlastEm)
+        if: steps.cache-cores.outputs.cache-hit != \'true\'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-blastem.sh build/cores
 
       - name: Núcleo de SNES (bsnes)
+        if: steps.cache-cores.outputs.cache-hit != \'true\'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-bsnes.sh build/cores
 
       - name: Núcleo de PlayStation (Beetle PSX)
+        if: steps.cache-cores.outputs.cache-hit != \'true\'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-beetle-psx.sh build/cores
 
       - name: Núcleo de Nintendo 64 (Mupen64Plus-Next)
+        if: steps.cache-cores.outputs.cache-hit != \'true\'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-mupen64plus.sh build/cores
 
       - name: Núcleo de Nintendo DS (melonDS DS)
+        if: steps.cache-cores.outputs.cache-hit != \'true\'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-melonds.sh build/cores
 
       - name: Núcleo de Sega Saturn (Beetle Saturn)
+        if: steps.cache-cores.outputs.cache-hit != \'true\'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-beetle-saturn.sh build/cores
@@ -100,6 +117,20 @@ jobs:
             -DSATRONHO_BUILD=${{ github.run_number }}
           cmake --build build -j"$(nproc)"
           ~/llvm-mingw/bin/x86_64-w64-mingw32-strip -s build/satronho-emulation.exe
+
+      # Prueba automática: se compila también para Linux y se abre la app sin pantalla (modo de
+      # revisión) en varias páginas. Si se cierra con error, no se publica nada.
+      - name: Prueba de arranque (Linux)
+        run: |
+          cmake -S . -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DSDL_X11=OFF -DSDL_WAYLAND=OFF -DSDL_UNIX_CONSOLE_BUILD=ON
+          cmake --build build-linux -j"$(nproc)"
+          touch build-linux/portable.txt
+          for q in "fresh=1;frames=40" "page=ajustes;tab=3;frames=30" "page=ajustes;tab=6;frames=30" \
+                   "page=controles;ctrl=1;frames=30" "page=sugerida;frames=30" "page=novedades;frames=30" "welcome=1;frames=30"; do
+            echo "Revisión: $q"
+            SDL_RENDER_DRIVER=software SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy SATRONHO_QA="$q" timeout 120 build-linux/satronho-emulation
+          done
 
       - name: Empaquetar
         id: pack
@@ -116,16 +147,19 @@ jobs:
           cp CREDITOS.md "$PKG/CREDITOS.md"
           ZIP="SatronhoEmulation-build-$N-windows-x64.zip"
           zip -qr9 "$ZIP" "$PKG"
+          # Huella para que el actualizador compruebe que la descarga llegó completa.
+          sha256sum "$ZIP" | cut -d' ' -f1 > "$ZIP.sha256"
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
           ls -la "$ZIP"
 
       - name: Publicar Release
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           N=${{ github.run_number }}
           python3 scripts/release-notes.py "$N"
-          gh release create "build-$N" "${{ steps.pack.outputs.zip }}" \
+          gh release create "build-$N" "${{ steps.pack.outputs.zip }}" "${{ steps.pack.outputs.zip }}.sha256" \
             --target "${{ github.sha }}" \
             --title "Satronho Emulation · build $N" \
             --notes-file release-notes.md

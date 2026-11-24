@@ -3,6 +3,93 @@
     {
       "version": "Esta build",
       "fecha": "23 de noviembre de 2026",
+      "titulo": "Partidas más seguras, seguir donde quedaste y muchos arreglos",
+      "cambios": [
+        {
+          "tipo": "arreglo",
+          "texto": "Las partidas de batería ahora se guardan por consola (partidas/<consola>). Antes dos juegos con el mismo nombre en consolas distintas (por ejemplo, Resident Evil de PS1 y de Saturn) compartían el mismo archivo y uno podía borrar al otro. Las partidas de antes se siguen leyendo solas."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Antes de guardar por primera vez en cada sesión queda una copia de la partida anterior (.srm.bak), por si algo sale mal."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Al salir de un juego guardo dónde quedaste: «Continuar» en la biblioteca te deja justo ahí. Se puede apagar en Ajustes » Rendimiento."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "«Deshacer la carga» en el menú del juego, por si cargaste la ranura equivocada."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El avance rápido viene apagado de fábrica y sin botón de mando: el gatillo choca con botones del juego en algunas consolas (R2 en CD, por ejemplo). Se enciende en Ajustes » Rendimiento."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Rebobinar guarda solo lo que cambia, comprimido: gasta mucha menos memoria. En PS1, DS, Saturn y 64 viene apagado y se enciende aparte."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Vibración del mando en los juegos que la usan (Rumble Pak en 64, DualShock en CD). Se apaga en Controles » General."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Cada jugador recuerda su mando: si se desconecta el del jugador 1, el del jugador 2 sigue siendo suyo."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Dual: F2 o el clic del stick derecho cambia cómo se ven las pantallas (una arriba de la otra, lado a lado o una grande). El mouse ya no se esconde mientras juegas, porque es el lápiz."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Cada consola puede tener su propia imagen (efecto, filtro y tamaño): menú del juego » Ajustes rápidos » «Imagen propia»."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Juegos de varios discos: el menú muestra la lista de discos y el cambio se hace como en la consola, con la tapa abierta un momento para que el juego lo note."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Bolsillo y Bolsillo Plus ya no se pasan las opciones del núcleo: cada una guarda las suyas (el filtro de sonido de la GBA ya no se queda en Game Boy, ni falta en GBA)."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "BIOS de PlayStation: si tu archivo se llama SCPH-1001, 7001 u otro modelo, se guarda con el nombre que el núcleo sí abre. Se reconoce también por su huella."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Agregar una carpeta mientras se buscaban juegos no hacía nada; ahora queda en fila. Además, la búsqueda se puede cancelar."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Ocultar un juego de la biblioteca (clic derecho) y volver a mostrarlo en Ajustes » Biblioteca."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Ñoño dice cómo le va a cada consola en tu equipo, y el adelanto de cuadros ahora explica que por ahora es solo para NES."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Al abrir un juego sale «Cargando…» con su portada, y la barra lateral se puede desplazar en ventanas bajas."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Las actualizaciones comprueban que la descarga llegó completa y reemplazan las carpetas del programa (sin dejar archivos viejos)."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Alt+F4 ya no reinicia el juego antes de cerrar. En modo portátil (USB) los favoritos, el tiempo de juego y los estados ya no se pierden si cambia la letra de la unidad."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Si la app se cierra de golpe, el registro anota dónde pasó, para poder arreglarlo."
+        }
+      ]
+    },
+    {
+      "version": "Build 10",
+      "fecha": "23 de noviembre de 2026",
       "titulo": "Llega Satronho Anillo, y cada quien puede poner su BIOS",
       "cambios": [
         {

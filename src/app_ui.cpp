@@ -101,6 +101,7 @@ void App::DrawUi() {
     if (in_game_) {
         DrawGameLayer();
         DrawToasts();
+        if (!pending_start_.empty()) DrawLoading();
         return;
     }
 
@@ -132,13 +133,46 @@ void App::DrawUi() {
     if (page_ == Page::Library) DrawGuideBubble();
     DrawToasts();
     if (show_welcome_) DrawWelcome();
+    if (!pending_start_.empty()) DrawLoading();
+}
+
+void App::DrawLoading() {
+    // «Cargando…» sobre todo lo demás, con la portada del juego que se abre.
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImDrawList* dl = ImGui::GetForegroundDrawList();
+    dl->AddRectFilled(vp->Pos, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y}, IM_COL32(8, 6, 14, 215));
+    const Game g = Library::MakeGame(pending_start_);
+    const SystemDef* gs = SystemById(g.system);
+    const float cw = S(150), chh = S(170);
+    const ImVec2 c(vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f);
+    DrawCartridge(dl, {c.x - cw * 0.5f, c.y - chh * 0.5f - S(40)}, {c.x + cw * 0.5f, c.y + chh * 0.5f - S(40)}, g.hue, g.title, S(16), false,
+                  gs ? gs->layout : Layout::Nes, gs ? gs->label.c_str() : "OCTA");
+    {
+        FontScope f(GetFonts().semibold, 18);
+        const std::string t = "Cargando " + g.title + "…";
+        const ImVec2 ts = ImGui::CalcTextSize(t.c_str());
+        dl->AddText({c.x - ts.x * 0.5f, c.y + chh * 0.5f - S(20)}, U32(Color::Text), t.c_str());
+    }
+    if (gs) {
+        FontScope f(GetFonts().medium, 14);
+        const ImVec2 ts = ImGui::CalcTextSize(gs->full.c_str());
+        dl->AddText({c.x - ts.x * 0.5f, c.y + chh * 0.5f + S(10)}, U32(gs->color), gs->full.c_str());
+    }
+    // Puntitos que avanzan (cada cuadro dibujado mueve uno).
+    const int dot = static_cast<int>(ImGui::GetTime() * 6) % 3;
+    for (int i = 0; i < 3; ++i)
+        dl->AddCircleFilled({c.x - S(16) + i * S(16), c.y + chh * 0.5f + S(44)}, S(4), U32(Color::Accent, i == dot ? 1.0f : 0.3f));
 }
 
 void App::DrawSidebar(float width) {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Side));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(16), S(22)});
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {S(6), S(4)});
-    ImGui::BeginChild("##lateral", {width, 0}, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_NoScrollbar);
+    // Con ventanas bajas no cabe todo (son 9 consolas): la barra se puede desplazar y muestra una
+    // barrita fina; si cabe, no se ve ninguna.
+    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, S(5));
+    ImGui::BeginChild("##lateral", {width, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
+    ImGui::PopStyleVar();
     ImGui::PopStyleColor();
 
     // Marca.
@@ -159,9 +193,11 @@ void App::DrawSidebar(float width) {
     }
 
     char count[16];
-    std::snprintf(count, sizeof count, "%zu", games_.size());
+    size_t visible = 0;
+    for (const auto& g : games_) visible += !g.hidden;
+    std::snprintf(count, sizeof count, "%zu", visible);
     SectionLabel("   JUGAR");
-    if (NavItem("Biblioteca", Icon::Library, page_ == Page::Library && lib_system_.empty(), games_.empty() ? nullptr : count)) {
+    if (NavItem("Biblioteca", Icon::Library, page_ == Page::Library && lib_system_.empty(), visible == 0 ? nullptr : count)) {
         page_ = Page::Library;
         lib_system_.clear();
     }
@@ -169,7 +205,7 @@ void App::DrawSidebar(float width) {
     SectionLabel("   CONSOLAS");
     for (const auto& sys : Systems()) {
         size_t n = 0;
-        for (const auto& g : games_) n += g.system == sys.id;
+        for (const auto& g : games_) n += g.system == sys.id && !g.hidden;
         const std::string badge = n ? std::to_string(n) : std::string("Lista");
         const bool sel = page_ == Page::Library && lib_system_ == sys.id;
         if (NavItem(sys.name.c_str(), Icon::None, sel, badge.c_str(), false, sys.color, sys.hint.c_str())) {
@@ -301,7 +337,7 @@ void App::DrawLibrary() {
     const SystemDef* lib_sys = lib_system_.empty() ? nullptr : SystemById(lib_system_);
     std::vector<const Game*> shown;
     for (const auto& g : games_)
-        if (!lib_sys || g.system == lib_sys->id) shown.push_back(&g);
+        if (!g.hidden && (!lib_sys || g.system == lib_sys->id)) shown.push_back(&g);
 
     // Encabezado.
     const float avail = ImGui::GetContentRegionAvail().x;
@@ -343,6 +379,8 @@ void App::DrawLibrary() {
             Spinner(S(12), Color::Accent);
             ImGui::SameLine();
             Muted("Buscando juegos…");
+            ImGui::SameLine(0, S(12));
+            if (Button("Cancelar##busqueda", ButtonKind::Ghost, {0, S(30)})) library_.CancelScan();
         } else {
             DrawEmptyLibrary();
         }
@@ -378,6 +416,9 @@ void App::DrawLibrary() {
             Spinner(S(9), Color::Accent);
             ImGui::SameLine();
             Muted("Actualizando…", 13);
+            ImGui::SameLine(0, S(8));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(6));
+            if (Button("Cancelar##busqueda2", ButtonKind::Ghost, {0, S(28)})) library_.CancelScan();
         }
     }
     ImGui::Dummy({0, S(6)});
@@ -422,7 +463,7 @@ void App::DrawLibrary() {
                     ImGui::SetCursorScreenPos({row0.x + c * (cw + gap), row0.y});
                     const Game& g = *items[i];
                     if (DrawGameCard(g, cw, ch, g.key == selected_key_)) {
-                        StartGame(g.path);
+                        RequestStart(g.path);
                         return true;
                     }
                 }
@@ -499,7 +540,8 @@ void App::DrawContinueHero(const Game& g, float width) {
     Ellipsize(dl, GetFonts().bold, S(26), {tx, p.y + S(44)}, U32(Color::Text), g.title, width - S(420), 1);
     {
         FontScope f(GetFonts().regular, 14);
-        const std::string meta = FormatLastPlayed(g.last_played) + "  ·  " + FormatPlaytime(g.playtime_s) + " jugado";
+        std::string meta = FormatLastPlayed(g.last_played) + "  ·  " + FormatPlaytime(g.playtime_s) + " jugado";
+        if (HasAutoState(g)) meta += "  ·  sigues donde quedaste";
         dl->AddText({tx, p.y + S(86)}, U32(Color::Muted), meta.c_str());
     }
 
@@ -508,7 +550,8 @@ void App::DrawContinueHero(const Game& g, float width) {
     ImGui::SetCursorScreenPos({p.x + width - bw - S(26), p.y + (h - S(48)) * 0.5f});
     {
         FontScope f(GetFonts().semibold, 15);
-        if (Button("Continuar##hero", ButtonKind::Primary, {bw, S(48)}, Icon::Play, true)) StartGame(g.path);
+        // Con guardado automático, «Continuar» sigue justo donde quedaste.
+        if (Button("Continuar##hero", ButtonKind::Primary, {bw, S(48)}, Icon::Play, true)) RequestStart(g.path, HasAutoState(g));
     }
     ImGui::SetCursorScreenPos(p);
     ImGui::Dummy({width, h});
@@ -527,11 +570,18 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     if (focused && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown))) play = true;
     if (ImGui::BeginPopupContextItem("##menu")) {
         if (ImGui::MenuItem("Jugar")) play = true;
+        if (HasAutoState(g) && ImGui::MenuItem("Continuar donde quedé")) RequestStart(g.path, true);
         if (ImGui::MenuItem(g.favorite ? "Quitar de favoritos" : "Marcar como favorito")) {
             library_.ToggleFavorite(g.key);
             games_dirty_ = true;
         }
         if (ImGui::MenuItem("Abrir la carpeta del juego")) OpenFolder(g.path.parent_path());
+        ImGui::Separator();
+        if (ImGui::MenuItem("Ocultar de la biblioteca")) {
+            library_.SetHidden(g.key, true);
+            games_dirty_ = true;
+            Toast("«" + g.title + "» quedó oculto. Lo vuelves a mostrar en Ajustes » Biblioteca.", GuideId::Samy, 4.5);
+        }
         ImGui::EndPopup();
     }
 
@@ -620,7 +670,8 @@ void App::DrawEmptyLibrary() {
     ImGui::Dummy({0, S(6)});
     ImGui::SetCursorPosX(x0);
     GuideSays(GuideId::Samy,
-              "Agrega la carpeta donde guardas tus juegos (NES, Game Boy, Game Boy Color o Game Boy Advance) y yo busco también en las subcarpetas. "
+              "Agrega la carpeta donde guardas tus juegos (de cualquiera de las nueve consolas) y yo busco también en las subcarpetas; "
+              "cada juego queda en su consola. "
               "Si prefieres, arrastra un juego a la ventana y lo abrimos de una.",
               w);
     ImGui::Dummy({0, S(12)});
@@ -714,6 +765,40 @@ void App::DrawSuggested() {
         ImGui::SameLine(0, S(14));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(14));
         Chip("Aplicada", Color::Green);
+    }
+    PanelEnd();
+
+    // Cómo le va a cada consola en este equipo.
+    ImGui::Dummy({0, S(18)});
+    PanelBegin("##por_consola", {0, 0});
+    Heading("Cómo le va a cada consola");
+    Muted("Según los hilos de tu procesador. Es una guía: un procesador viejo puede ir más lento aunque tenga muchos hilos.", 13);
+    ImGui::Dummy({0, S(6)});
+    const float avail_w = ImGui::GetContentRegionAvail().x;
+    const int per_row = avail_w > S(900) ? 3 : avail_w > S(560) ? 2 : 1;
+    const float cell_w = (avail_w - S(12) * (per_row - 1)) / per_row;
+    int col = 0;
+    for (const auto& v : s.systems) {
+        const SystemDef* sd = SystemById(v.system);
+        if (!sd) continue;
+        if (col) ImGui::SameLine(0, S(12));
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const float h = S(62);
+        static const unsigned level_col[] = {Color::Green, Color::Teal, Color::Amber, Color::Red};
+        const unsigned lc = level_col[std::clamp(v.level, 0, 3)];
+        dl->AddRectFilled(p, {p.x + cell_w, p.y + h}, U32(Color::Surface2), S(12));
+        dl->AddRectFilled(p, {p.x + S(5), p.y + h}, U32(lc), S(12), ImDrawFlags_RoundLeft);
+        DrawControllerMini(dl, sd->layout, {p.x + S(32), p.y + h * 0.5f}, sd->handheld ? S(22) : S(30), 1.0f);
+        {
+            FontScope f(GetFonts().semibold, 14.5f);
+            dl->AddText({p.x + S(58), p.y + S(10)}, U32(Color::Text), sd->full.c_str());
+        }
+        Ellipsize(dl, GetFonts().regular, S(12.5f), {p.x + S(58), p.y + S(33)}, U32(lc), v.text, cell_w - S(66), 1);
+        ImGui::Dummy({cell_w, h});
+        if (ImGui::IsItemHovered()) HelpTooltip(v.text.c_str());
+        col = (col + 1) % per_row;
+        if (!col) ImGui::Dummy({0, S(2)});
     }
     PanelEnd();
 }
@@ -908,6 +993,23 @@ void App::DrawSettingsVideo() {
         RowEnd();
     }
 
+    {
+        int own = 0;
+        for (const auto& [id, v] : settings_.video_for) own += v.on;
+        if (own > 0) {
+            RowBegin(Fmt("%d %s su propia imagen", own, own == 1 ? "consola tiene" : "consolas tienen").c_str(),
+                     "Se elige desde el menú del juego » Ajustes rápidos » «Imagen propia». Ahí manda sobre lo de esta página.");
+            if (Button("Usar la general en todas", ButtonKind::Ghost, {0, 0}, Icon::Refresh, true)) {
+                for (auto& [id, v] : settings_.video_for) v.on = false;
+                changed = true;
+            }
+            RowEnd();
+        } else {
+            Muted("Cada consola puede tener su propia imagen: menú del juego » Ajustes rápidos » «Imagen propia».", 13);
+            ImGui::Dummy({0, S(6)});
+        }
+    }
+
     RowBegin("Fondo ambiente", "Llena los bordes con los colores del juego, suaves y desenfocados.");
     changed |= Toggle("##amb", &settings_.ambient);
     RowEnd();
@@ -980,29 +1082,65 @@ void App::DrawSettingsAudio() {
 void App::DrawSettingsPerformance() {
     GuideSays(GuideId::Nono,
               "El adelanto de cuadros hace que los controles respondan más rápido que en la consola original. "
-              "Con 1 cuadro casi nadie nota diferencias raras; con 2 puede haber saltitos en algunos juegos.");
+              "Por ahora funciona en Satronho Octa (NES); en las demás consolas se queda apagado solo, porque su sonido "
+              "no vive dentro del estado y sonaría raro.");
     ImGui::Dummy({0, S(16)});
     bool changed = false;
-    RowBegin("Adelanto de cuadros", "Reduce el retraso entre presionar un botón y verlo en pantalla.");
+    RowBegin("Adelanto de cuadros", "Reduce el retraso entre presionar un botón y verlo en pantalla. Solo en Satronho Octa.");
     changed |= Segmented("##ra", &settings_.runahead, {"Apagado", "1 cuadro", "2 cuadros"}, S(320));
     RowEnd();
+
+    Heading("Rebobinar", 16);
+    ImGui::Dummy({0, S(4)});
     RowBegin("Rebobinar", "Mantén Retroceso (o el gatillo izquierdo) para volver atrás en el tiempo.");
     changed |= Toggle("##rw", &settings_.rewind);
     RowEnd();
     if (settings_.rewind) {
-        RowBegin("Cuánto se puede rebobinar", "Más segundos usan más memoria (unos 3 MB por cada 10 s en NES).");
+        RowBegin("También en las consolas pesadas",
+                 "PS1, DS, Saturn y 64 guardan varios MB por paso y en equipos modestos pueden dar tirones. Apagado de fábrica.");
+        changed |= Toggle("##rwh", &settings_.rewind_heavy);
+        RowEnd();
+        RowBegin("Cuánto se puede rebobinar", "Segundos hacia atrás como máximo.");
         changed |= SliderIntStyled("##rws", &settings_.rewind_seconds, 5, 60, "%d s", S(320));
         RowEnd();
+        RowBegin("Memoria para el historial",
+                 "Se guarda solo lo que cambia entre un momento y otro, comprimido. Si se llena, se borra lo más viejo primero.");
+        changed |= SliderIntStyled("##rwm", &settings_.rewind_mb, 64, 1024, "%d MB", S(320));
+        RowEnd();
+        if (in_game_ && RewindActive()) {
+            const double secs = static_cast<double>(rewind_.Steps()) * 2.0 / std::max(1.0, core_.Fps());
+            Muted(Fmt("Ahora mismo: %.0f s guardados en %.0f MB.", secs, static_cast<double>(rewind_.Bytes()) / (1024.0 * 1024.0)).c_str(), 13);
+        }
     }
-    static const int speeds[] = {2, 3, 4, 6};
-    int fi = 1;
-    for (int i = 0; i < 4; ++i)
-        if (settings_.fast_forward == speeds[i]) fi = i;
-    RowBegin("Velocidad del avance rápido", "Mientras mantienes Tab o el gatillo derecho.");
-    if (Segmented("##ff", &fi, {"2×", "3×", "4×", "6×"}, S(320))) {
-        settings_.fast_forward = speeds[fi];
-        changed = true;
+
+    ImGui::Dummy({0, S(8)});
+    Heading("Avance rápido", 16);
+    ImGui::Dummy({0, S(4)});
+    RowBegin("Avance rápido", "Apagado de fábrica: el gatillo choca con botones de varias consolas. Al activarlo, se usa manteniendo Tab "
+                              "(y el botón del mando que le asignes en Controles » Atajos).");
+    changed |= Toggle("##ffon", &settings_.fast_forward_enabled);
+    RowEnd();
+    if (settings_.fast_forward_enabled) {
+        static const int speeds[] = {2, 3, 4, 6};
+        int fi = 1;
+        for (int i = 0; i < 4; ++i)
+            if (settings_.fast_forward == speeds[i]) fi = i;
+        RowBegin("Velocidad del avance rápido", nullptr);
+        if (Segmented("##ff", &fi, {"2×", "3×", "4×", "6×"}, S(320))) {
+            settings_.fast_forward = speeds[fi];
+            changed = true;
+        }
+        RowEnd();
     }
+
+    ImGui::Dummy({0, S(8)});
+    Heading("Al jugar", 16);
+    ImGui::Dummy({0, S(4)});
+    RowBegin("Guardar dónde quedé al salir", "Al volver a la biblioteca se guarda una ranura automática; «Continuar» sigue justo ahí.");
+    changed |= Toggle("##autosave", &settings_.autosave_exit);
+    RowEnd();
+    RowBegin("Pausar al cambiar de ventana", "Si haces clic en otro programa, el juego se detiene hasta que vuelvas.");
+    changed |= Toggle("##foco", &settings_.pause_on_focus_loss);
     RowEnd();
     if (changed) SaveConfig();
 }
@@ -1061,17 +1199,34 @@ void App::DrawSettingsCore() {
     ImGui::EndDisabled();
     ImGui::Dummy({0, S(10)});
     const SystemDef& tsys = Systems()[cur];
-    std::string err;
-    if (!in_game_ && !EnsureCore(tsys, &err)) {
-        IconText(Icon::Info, ("No se pudo cargar el núcleo de " + tsys.full + ".").c_str(), U32(Color::Red));
-        return;
+    // Opciones «en vivo» si el núcleo cargado es el de esta consola; si no, se muestran desde la
+    // copia guardada (sin cargar y descargar el .dll solo por mirar) y se guardan en satronho.ini.
+    bool live = core_.CoreLoaded() && core_file_ == CoreFile(tsys) && options_sys_ == tsys.id;
+    auto cached = core_cache_.find(CoreFile(tsys));
+    if (!live && !in_game_ && cached == core_cache_.end()) {
+        std::string err;
+        if (!EnsureCore(tsys, &err)) {
+            IconText(Icon::Info, ("No se pudo cargar el núcleo de " + tsys.full + ".").c_str(), U32(Color::Red));
+            return;
+        }
+        live = true;
+        cached = core_cache_.find(CoreFile(tsys));
     }
-    if (!core_ok_) return;
-    const auto& si = core_.SystemInfo();
+    if (!live) {
+        if (cached == core_cache_.end()) return;
+        if (tab_options_sys_ != tsys.id) {
+            tab_options_ = OptionsFor(tsys, cached->second.options);
+            tab_options_sys_ = tsys.id;
+        }
+    }
+    const std::string core_label = live ? std::string(core_.SystemInfo().library_name ? core_.SystemInfo().library_name : "")
+                                        : cached->second.name;
+    const std::string core_version = live ? std::string(core_.SystemInfo().library_version ? core_.SystemInfo().library_version : "")
+                                          : cached->second.version;
     GuideSays(GuideId::Samy,
               Fmt("El corazón de %s es %s %s. Estas opciones son suyas; la mayoría se nota al momento y otras al reiniciar el juego.%s",
-                  tsys.full.c_str(), si.library_name, si.library_version,
-                  tsys.core == "mgba" ? " Bolsillo y Bolsillo Plus comparten el mismo núcleo y sus opciones." : "").c_str());
+                  tsys.full.c_str(), core_label.c_str(), core_version.c_str(),
+                  tsys.core == "mgba" ? " Bolsillo y Bolsillo Plus comparten el núcleo, pero cada una guarda sus propias opciones." : "").c_str());
     ImGui::Dummy({0, S(16)});
     if (!tsys.bios.empty()) {
         // BIOS de la consola: la pone cada quien (no se incluye). Se muestra cuál hay y cuál falta.
@@ -1096,7 +1251,12 @@ void App::DrawSettingsCore() {
         ImGui::Dummy({0, S(6)});
     }
     bool changed = false;
-    auto& opts = core_.Options();
+    std::vector<CoreOption>& opts = live ? core_.Options() : tab_options_;
+    const std::vector<CoreCategory>& categories = live ? core_.Categories() : cached->second.categories;
+    auto set_option = [&](CoreOption& o, const std::string& v) {
+        if (live) core_.SetOption(o.key, v);
+        else o.current = v;
+    };
     auto draw_option = [&](CoreOption& o) {
         if (!o.visible || o.values.size() < 2) return;
         ImGui::PushID(o.key.c_str());
@@ -1108,16 +1268,16 @@ void App::DrawSettingsCore() {
             if (o.values[i].value == o.current) cur = static_cast<int>(i);
         }
         if (ComboStyled("##v", &cur, labels, S(320))) {
-            core_.SetOption(o.key, o.values[cur].value);
+            set_option(o, o.values[cur].value);
             changed = true;
         }
         RowEnd();
         ImGui::PopID();
     };
-    if (core_.Categories().empty()) {
+    if (categories.empty()) {
         for (auto& o : opts) draw_option(o);
     } else {
-        for (const auto& cat : core_.Categories()) {
+        for (const auto& cat : categories) {
             bool any = false;
             for (const auto& o : opts) any |= o.category == cat.key && o.visible;
             if (!any) continue;
@@ -1137,10 +1297,13 @@ void App::DrawSettingsCore() {
         }
     }
     if (Button("Restablecer opciones del núcleo", ButtonKind::Ghost)) {
-        for (auto& o : opts) core_.SetOption(o.key, o.def);
+        for (auto& o : opts) set_option(o, o.def);
         changed = true;
     }
-    if (changed) SaveConfig();
+    if (changed) {
+        if (!live) SaveCoreOptions(tsys.id, tab_options_);
+        SaveConfig();
+    }
 }
 
 void App::DrawSettingsLibrary() {
@@ -1157,7 +1320,8 @@ void App::DrawSettingsLibrary() {
         DrawIcon(dl, Icon::Folder, {p.x + S(24), p.y + S(23)}, S(18), U32(Color::Amber));
         {
             FontScope f(GetFonts().medium, 14);
-            Ellipsize(dl, GetFonts().medium, S(14), {p.x + S(46), p.y + S(13)}, U32(Color::Text), settings_.folders[i], w - S(110), 1);
+            Ellipsize(dl, GetFonts().medium, S(14), {p.x + S(46), p.y + S(13)}, U32(Color::Text),
+                      Paths::ToUtf8(Paths::ResolveFolder(settings_.folders[i])), w - S(110), 1);
         }
         ImGui::SetCursorScreenPos({p.x + w - S(42), p.y + S(5)});
         if (IconButton("##quitar", Icon::Close, S(36), U32(Color::Muted), "Quitar esta carpeta")) remove = static_cast<int>(i);
@@ -1175,7 +1339,13 @@ void App::DrawSettingsLibrary() {
     if (Button("Agregar carpeta##aj", ButtonKind::Primary, {0, 0}, Icon::Plus, true)) AddFolderDialog();
     ImGui::SameLine();
     if (Button("Volver a buscar", ButtonKind::Secondary, {0, 0}, Icon::Refresh, true)) Rescan();
-    ImGui::Dummy({0, S(20)});
+    if (library_.Scanning()) {
+        ImGui::SameLine();
+        if (Button("Cancelar búsqueda", ButtonKind::Ghost, {0, 0})) library_.CancelScan();
+    }
+    ImGui::Dummy({0, S(14)});
+    DrawHiddenGames();
+    ImGui::Dummy({0, S(14)});
 
     RowBegin("Carpeta de datos", Paths::Portable() ? "Modo portátil: todo se guarda junto al programa." : Paths::ToUtf8(Paths::User()).c_str());
     if (Button("Abrir carpeta", ButtonKind::Secondary, {0, 0}, Icon::Folder, true)) OpenFolder(Paths::User());
@@ -1186,6 +1356,40 @@ void App::DrawSettingsLibrary() {
     RowBegin("BIOS y archivos del sistema", "Para juegos de Famicom Disk System se necesita «disksys.rom» en esta carpeta.");
     if (Button("Abrir carpeta del sistema", ButtonKind::Secondary, {0, 0}, Icon::Folder, true)) OpenFolder(Paths::System());
     RowEnd();
+}
+
+void App::DrawHiddenGames() {
+    if (games_dirty_) {
+        games_ = library_.Snapshot();
+        games_dirty_ = false;
+    }
+    std::vector<const Game*> hidden;
+    for (const auto& g : games_)
+        if (g.hidden) hidden.push_back(&g);
+    Heading(Fmt("Juegos ocultos (%zu)", hidden.size()).c_str(), 16);
+    if (hidden.empty()) {
+        Muted("Ninguno. Para ocultar un juego, clic derecho sobre su portada » «Ocultar de la biblioteca».", 13);
+        return;
+    }
+    for (const Game* g : hidden) {
+        ImGui::PushID(g->key.c_str());
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        const float w = ImGui::GetContentRegionAvail().x;
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        dl->AddRectFilled(p, {p.x + w, p.y + S(42)}, U32(Color::Surface2), S(12));
+        const SystemDef* gs = SystemById(g->system);
+        if (gs) DrawControllerMini(dl, gs->layout, {p.x + S(24), p.y + S(21)}, gs->handheld ? S(18) : S(26), 1.0f);
+        Ellipsize(dl, GetFonts().medium, S(14), {p.x + S(48), p.y + S(12)}, U32(Color::Text),
+                  g->title + (gs ? "  ·  " + gs->name : std::string()), w - S(170), 1);
+        ImGui::SetCursorScreenPos({p.x + w - S(110), p.y + S(5)});
+        if (Button("Mostrar", ButtonKind::Secondary, {S(100), S(32)})) {
+            library_.SetHidden(g->key, false);
+            games_dirty_ = true;
+        }
+        ImGui::SetCursorScreenPos({p.x, p.y + S(48)});
+        ImGui::Dummy({0, 0});
+        ImGui::PopID();
+    }
 }
 
 void App::DrawSettingsGuides() {
@@ -1265,9 +1469,12 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             if (i < static_cast<int>(pads.size())) pad_names.push_back(Fmt("Mando %d · %s", i + 1, pads[i].name.c_str()));
             else pad_names.push_back(Fmt("Mando %d (no conectado)", i + 1));
         }
-        int pad_sel = pc.pad + 1;
-        if (ComboStyled("##mando", &pad_sel, pad_names, compact ? S(250) : S(300))) {
-            pc.pad = pad_sel - 1;
+        // Su mando está desconectado: se recuerda y vuelve solo al conectarlo.
+        const bool disconnected = pc.Disconnected();
+        if (disconnected) pad_names.push_back("Su mando (desconectado)");
+        int pad_sel = disconnected ? 5 : pc.pad >= 0 ? pc.pad + 1 : std::clamp(pc.want_pos, -1, 3) + 1;
+        if (ComboStyled("##mando", &pad_sel, pad_names, compact ? S(250) : S(300)) && pad_sel <= 4) {
+            input_.SetPlayerPad(player, pad_sel - 1);
             changed = true;
         }
         ImGui::SameLine(0, S(14));
@@ -1563,7 +1770,9 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
 
 void App::DrawHotkeys() {
     GuideSays(GuideId::Samy, "Los atajos sirven en cualquier consola. Haz clic en una casilla y presiona la tecla o el botón del mando. "
-                             "Select+Start en el mando siempre abre el menú, y Alt+Enter cambia a pantalla completa.");
+                             "Select+Start en el mando siempre abre el menú, y Alt+Enter cambia a pantalla completa. Un botón del "
+                             "mando que use el juego no dispara su atajo. El avance rápido viene apagado: se enciende en "
+                             "Ajustes » Rendimiento.");
     ImGui::Dummy({0, S(12)});
     const PadFamily family = input_.FamilyOfSlot(0);
     bool changed = false;
@@ -1626,7 +1835,7 @@ void App::DrawProfilePopup() {
                 profile_popup_ = 0;
                 ImGui::CloseCurrentPopup();
             } else {
-                Toast("Ese nombre ya existe o no es válido (sin «.» ni «|»).", GuideId::Samy, 3);
+                Toast("Ese nombre ya existe o no es válido (sin «.», «|», «=», «#» ni «;», y sin espacios al principio o al final).", GuideId::Samy, 4);
             }
         }
         ImGui::SameLine();
@@ -1648,7 +1857,7 @@ void App::DrawControls() {
         names.push_back(Systems()[i].name.c_str());
         if (Systems()[i].id == ctrl_system_) cur = static_cast<int>(i);
     }
-    // Pestañas arriba y, debajo, la consola (con ocho consolas no caben en la misma fila).
+    // Pestañas arriba y, debajo, la consola (con nueve consolas no caben en la misma fila).
     Segmented("##ctrl_tab", &ctrl_tab_, {"General", "Jugador 1", "Jugador 2", "Atajos"}, S(520));
     ImGui::Dummy({0, S(4)});
     if (ctrl_tab_ == 1 || ctrl_tab_ == 2) {
@@ -1672,6 +1881,12 @@ void App::DrawControls() {
         RowBegin("El stick izquierdo también mueve la cruceta", nullptr);
         changed |= Toggle("##stick", &input_.stick_dpad);
         RowEnd();
+        RowBegin("Vibración", "Los juegos que la usan (Rumble Pak en 64, DualShock en CD) hacen vibrar tu mando.");
+        if (Toggle("##vibra", &settings_.rumble)) {
+            changed = true;
+            if (!settings_.rumble) input_.ApplyRumble(core_, false);
+        }
+        RowEnd();
         RowBegin("Registro de botones", "Anota en satronho.log cada botón que llega al juego. Sirve para revisar si algún botón se pierde.");
         changed |= Toggle("##registro", &input_.log_buttons);
         RowEnd();
@@ -1684,8 +1899,12 @@ void App::DrawControls() {
             DrawIcon(ImGui::GetWindowDrawList(), Icon::Gamepad, {p.x + S(12), p.y + S(12)}, S(20), U32(Color::Green));
             ImGui::SetCursorScreenPos({p.x + S(34), p.y});
             FontScope f(GetFonts().medium, 15);
-            ImGui::TextUnformatted(Fmt("Mando %d · %s (%s)", pd.slot + 1, pd.name.c_str(), pd.family_name.c_str()).c_str());
+            std::string owner;
+            for (int pl = 0; pl < Input::kPlayers; ++pl)
+                if (input_.players[pl].pad == pd.slot) owner = Fmt("  ·  Jugador %d", pl + 1);
+            ImGui::TextUnformatted(Fmt("Mando %d · %s (%s)%s", pd.slot + 1, pd.name.c_str(), pd.family_name.c_str(), owner.c_str()).c_str());
         }
+        Muted("Cada jugador recuerda su mando: si uno se desconecta, los demás siguen con el suyo.", 13);
         if (changed) SaveConfig();
     } else if (ctrl_tab_ == 3) {
         DrawHotkeys();
@@ -1730,7 +1949,9 @@ void App::DrawAbout() {
 
     Muted("Logo, guías (Samy, Troya, Ñoño, Juana y MechaRidds), interfaz y diseño: Ridds. "
           "Software libre bajo GPL 3.0; las licencias de los componentes van en la carpeta «licencias».", 13);
-    Muted("NES, Game Boy y Game Boy Advance son marcas de Nintendo, usadas solo para describir. Este proyecto no está afiliado a Nintendo y no incluye juegos.", 12.5f);
+    Muted("NES, Super Nintendo, Game Boy, Nintendo 64 y DS son marcas de Nintendo; Genesis, Mega Drive y Saturn, de Sega; PlayStation, de Sony. "
+          "Se usan solo para describir con qué juegos funciona cada emulador. Este proyecto no está afiliado a ninguna de ellas y no incluye juegos.",
+          12.5f);
     ImGui::Dummy({0, S(14)});
     if (Button("Código fuente", ButtonKind::Secondary, {0, 0}, Icon::File, true)) SDL_OpenURL("https://github.com/Riddsc/Satronho-Emulation");
     ImGui::SameLine();
@@ -1760,8 +1981,9 @@ void App::DrawGameLayer() {
     std::string chip;
     Icon icon = Icon::Forward;
     unsigned col = Color::Accent;
-    if (rewinding_) { chip = rewind_.empty() ? "Sin más historial" : "Rebobinando"; icon = Icon::Rewind; col = Color::Pink; }
+    if (rewinding_) { chip = rewind_.Empty() ? "Sin más historial" : "Rebobinando"; icon = Icon::Rewind; col = Color::Pink; }
     else if (fast_forward_) { chip = Fmt("Avance rápido ×%d", settings_.fast_forward); }
+    else if (disk_swap_target_ >= 0) { chip = "Cambiando de disco"; icon = Icon::Refresh; col = Color::Teal; }
     else if (paused_) { chip = "En pausa"; icon = Icon::Pause; col = Color::Amber; }
     if (!chip.empty()) {
         ImDrawList* dl = ImGui::GetForegroundDrawList();
@@ -1816,15 +2038,11 @@ void App::DrawPauseMenu() {
     if (NavItem("Estados", Icon::Save, menu_section_ == 0)) menu_section_ = 0;
     if (NavItem("Ajustes rápidos", Icon::Gear, menu_section_ == 1, nullptr, false, Color::Accent)) menu_section_ = 1;
     if (NavItem("Controles", Icon::Gamepad, menu_section_ == 2, nullptr, false, Color::Amber)) menu_section_ = 2;
-    // Juegos de varios discos: cambiar de disco como en la consola.
+    // Juegos de varios discos: elegir el disco como en la consola.
     if (const unsigned discs = core_.DiskCount(); discs > 1) {
         const int idx = core_.DiskIndex();
         const std::string badge = Fmt("%d de %u", idx + 1, discs);
-        if (NavItem("Cambiar disco", Icon::Refresh, false, badge.c_str(), false, Color::Teal)) {
-            const unsigned next = (static_cast<unsigned>(std::max(idx, 0)) + 1) % discs;
-            if (core_.SetDisk(next)) Toast("Pusiste el " + core_.DiskLabel(next) + ".", GuideId::Samy, 3);
-            else Toast("No se pudo cambiar el disco.", GuideId::Samy, 3);
-        }
+        if (NavItem("Discos", Icon::Refresh, menu_section_ == 3, badge.c_str(), false, Color::Teal)) menu_section_ = 3;
     }
     if (NavItem("Reiniciar", Icon::Restart, false)) {
         core_.Reset();
@@ -1848,10 +2066,60 @@ void App::DrawPauseMenu() {
     if (menu_section_ == 0) {
         Title("Estados", "Guarda en cualquier momento y vuelve justo ahí");
         ImGui::Dummy({0, S(4)});
+        // Ranura automática (se guarda al salir) y deshacer la última carga.
+        {
+            const auto auto_it = slot_thumbs_.find(0);
+            const bool has_auto = auto_it != slot_thumbs_.end();
+            const auto d = slot_dates_.find(0);
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            const float w = ImGui::GetContentRegionAvail().x, h = S(64);
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(Color::Surface), S(14));
+            const float tw = h * 1.2f;
+            if (has_auto && auto_it->second)
+                dl->AddImageRounded(auto_it->second.Ref(), {p.x + S(8), p.y + S(8)}, {p.x + S(8) + tw, p.y + h - S(8)}, {0, 0}, {1, 1}, IM_COL32_WHITE,
+                                    S(8));
+            else
+                dl->AddRectFilled({p.x + S(8), p.y + S(8)}, {p.x + S(8) + tw, p.y + h - S(8)}, U32(Color::Surface2), S(8));
+            {
+                FontScope f(GetFonts().semibold, 14);
+                dl->AddText({p.x + tw + S(22), p.y + S(12)}, U32(Color::Text), "Guardado automático");
+            }
+            {
+                FontScope f(GetFonts().regular, 12.5f);
+                const std::string sub = !settings_.autosave_exit ? std::string("Apagado (Ajustes » Rendimiento)")
+                                        : has_auto && d != slot_dates_.end() ? "Al salir · " + d->second
+                                                                              : std::string("Se guarda al salir a la biblioteca");
+                dl->AddText({p.x + tw + S(22), p.y + S(34)}, U32(Color::Dim), sub.c_str());
+            }
+            FontScope f(GetFonts().semibold, 12.5f);
+            float x = p.x + w - S(12);
+            if (!undo_state_.empty()) {
+                const float bw2 = S(170);
+                x -= bw2;
+                ImGui::SetCursorScreenPos({x, p.y + (h - S(32)) * 0.5f});
+                if (Button("Deshacer la carga", ButtonKind::Secondary, {bw2, S(32)}, Icon::Rewind, true)) {
+                    UndoLoad();
+                    SetMenuOpen(false);
+                }
+                x -= S(8);
+            }
+            const float bw1 = S(100);
+            x -= bw1;
+            ImGui::SetCursorScreenPos({x, p.y + (h - S(32)) * 0.5f});
+            ImGui::BeginDisabled(!has_auto);
+            if (Button("Cargar##auto", ButtonKind::Primary, {bw1, S(32)})) {
+                LoadSlot(0);
+                SetMenuOpen(false);
+            }
+            ImGui::EndDisabled();
+            ImGui::SetCursorScreenPos({p.x, p.y + h + S(12)});
+            ImGui::Dummy({0, 0});
+        }
         const float avail = ImGui::GetContentRegionAvail().x;
         const float gap = S(14);
         const float cw = std::floor((avail - gap * 3) / 4);
-        const float thumb_h = cw * 240.0f / 256.0f * 0.82f;
+        const float thumb_h = cw * 240.0f / 256.0f * 0.64f;
         const float ch = thumb_h + S(92);
         for (int s = 1; s <= 8; ++s) {
             const int col = (s - 1) % 4;
@@ -1902,19 +2170,51 @@ void App::DrawPauseMenu() {
             if (col == 3) ImGui::Dummy({0, S(2)});
         }
         ImGui::Dummy({0, S(4)});
-        Muted("F5 guarda y F9 carga en la ranura marcada. F6 y F7 cambian de ranura.", 13);
+        Muted(Fmt("%s guarda y %s carga en la ranura marcada. %s y %s cambian de ranura.",
+                  Input::KeyLabel(input_.hk_keys[static_cast<int>(Hotkey::SaveState)]).c_str(),
+                  Input::KeyLabel(input_.hk_keys[static_cast<int>(Hotkey::LoadState)]).c_str(),
+                  Input::KeyLabel(input_.hk_keys[static_cast<int>(Hotkey::PrevSlot)]).c_str(),
+                  Input::KeyLabel(input_.hk_keys[static_cast<int>(Hotkey::NextSlot)]).c_str()).c_str(),
+              13);
     } else if (menu_section_ == 1) {
         Title("Ajustes rápidos", "Cambia la imagen sin salir del juego");
         ImGui::Dummy({0, S(8)});
         bool changed = false;
-        RowBegin("Efecto de pantalla", nullptr);
-        changed |= Segmented("##qe", &settings_.effect, {"Ninguno", "Líneas", "CRT", "LCD", "Auto"}, S(320));
+        // Imagen propia de esta consola: se guarda aparte y manda sobre la general.
+        auto vit = settings_.video_for.find(sys_->id);
+        bool own = vit != settings_.video_for.end() && vit->second.on;
+        RowBegin(("Imagen propia para " + sys_->full).c_str(),
+                 own ? "Lo que cambies aquí vale solo para esta consola." : "Apagado: se usa la imagen general de Ajustes » Imagen.");
+        if (Toggle("##propio", &own)) {
+            VideoOverride& v = settings_.video_for[sys_->id];
+            if (own && !v.on) {
+                // Empieza con lo que se está viendo ahora.
+                v.scale_mode = settings_.scale_mode;
+                v.filter = settings_.filter;
+                v.effect = settings_.effect;
+                v.effect_strength = settings_.effect_strength;
+            }
+            v.on = own;
+            changed = true;
+        }
         RowEnd();
+        int* q_effect = own ? &settings_.video_for[sys_->id].effect : &settings_.effect;
+        int* q_filter = own ? &settings_.video_for[sys_->id].filter : &settings_.filter;
+        int* q_scale = own ? &settings_.video_for[sys_->id].scale_mode : &settings_.scale_mode;
+        float* q_strength = own ? &settings_.video_for[sys_->id].effect_strength : &settings_.effect_strength;
+        RowBegin("Efecto de pantalla", nullptr);
+        changed |= Segmented("##qe", q_effect, {"Ninguno", "Líneas", "CRT", "LCD", "Auto"}, S(320));
+        RowEnd();
+        if (*q_effect != 0) {
+            RowBegin("Intensidad del efecto", nullptr);
+            changed |= SliderPercent("##qi", q_strength, S(300));
+            RowEnd();
+        }
         RowBegin("Filtro", nullptr);
-        changed |= Segmented("##qf", &settings_.filter, {"Píxel", "Nítido", "Suave"}, S(300));
+        changed |= Segmented("##qf", q_filter, {"Píxel", "Nítido", "Suave"}, S(300));
         RowEnd();
         RowBegin("Tamaño", nullptr);
-        changed |= Segmented("##qs", &settings_.scale_mode, {"Ajustar", "Entero", "Estirar"}, S(300));
+        changed |= Segmented("##qs", q_scale, {"Ajustar", "Entero", "Estirar"}, S(300));
         RowEnd();
         RowBegin("Medidor", nullptr);
         changed |= Segmented("##qm", &settings_.meter, {"Apagado", "Compacto", "Detallado"}, S(300));
@@ -1925,10 +2225,47 @@ void App::DrawPauseMenu() {
             changed = true;
         }
         RowEnd();
-        RowBegin("Adelanto de cuadros", nullptr);
-        changed |= Segmented("##qr", &settings_.runahead, {"Apagado", "1", "2"}, S(300));
-        RowEnd();
+        if (sys_->runahead_ok) {
+            RowBegin("Adelanto de cuadros", nullptr);
+            changed |= Segmented("##qr", &settings_.runahead, {"Apagado", "1", "2"}, S(300));
+            RowEnd();
+        }
         if (changed) SaveConfig();
+    } else if (menu_section_ == 3) {
+        Title("Discos", "Elige el disco como en la consola: se abre la tapa, se cambia y se cierra");
+        ImGui::Dummy({0, S(8)});
+        const unsigned discs = core_.DiskCount();
+        const int idx = core_.DiskIndex();
+        for (unsigned i = 0; i < discs; ++i) {
+            ImGui::PushID(static_cast<int>(i));
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            const float w = ImGui::GetContentRegionAvail().x, h = S(52);
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            const bool in = static_cast<int>(i) == idx;
+            dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(in ? Color::Surface2 : Color::Surface), S(12));
+            if (in) dl->AddRect(p, {p.x + w, p.y + h}, U32(Color::Teal, 0.7f), S(12), S(1.5f));
+            dl->AddCircle({p.x + S(28), p.y + h * 0.5f}, S(14), U32(in ? Color::Teal : Color::Dim), 0, S(2));
+            dl->AddCircleFilled({p.x + S(28), p.y + h * 0.5f}, S(4), U32(in ? Color::Teal : Color::Dim));
+            {
+                FontScope f(GetFonts().semibold, 14.5f);
+                dl->AddText({p.x + S(54), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), core_.DiskLabel(i).c_str());
+            }
+            ImGui::SetCursorScreenPos({p.x + w - S(130), p.y + (h - S(34)) * 0.5f});
+            if (in) {
+                Chip("Puesto", Color::Teal);
+            } else {
+                ImGui::BeginDisabled(disk_swap_target_ >= 0);
+                if (Button("Poner este", ButtonKind::Primary, {S(120), S(34)})) {
+                    RequestDisk(i);
+                    SetMenuOpen(false);
+                }
+                ImGui::EndDisabled();
+            }
+            ImGui::SetCursorScreenPos({p.x, p.y + h + S(8)});
+            ImGui::Dummy({0, 0});
+            ImGui::PopID();
+        }
+        if (disk_swap_target_ >= 0) Muted("Cambiando de disco…", 13);
     } else {
         Title("Controles", "Toca un botón del dibujo y presiona la tecla o el botón que quieras");
         ImGui::Dummy({0, S(4)});
@@ -2198,8 +2535,8 @@ void App::DrawWelcome() {
             Heading("Tus juegos", 22);
             ImGui::Dummy({0, S(2)});
             GuideSays(GuideId::Samy,
-                      "Dime en qué carpeta tienes tus juegos (NES, Game Boy, Game Boy Color o Game Boy Advance) y los acomodo en la biblioteca. Mientras juegas: Esc abre el menú, "
-                      "F5 guarda, F9 carga y mantener Tab acelera.",
+                      "Dime en qué carpeta tienes tus juegos y los acomodo en la biblioteca, cada uno en su consola. Mientras juegas: Esc abre el menú, "
+                      "F5 guarda, F9 carga y mantener Retroceso rebobina. Al salir guardo dónde quedaste.",
                       inner);
             ImGui::Dummy({0, S(14)});
             const float bw = (inner - S(12)) * 0.5f;

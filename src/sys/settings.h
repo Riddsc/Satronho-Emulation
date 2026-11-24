@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -14,6 +15,15 @@ class Ini;
 enum class ScaleMode { Fit = 0, Integer = 1, Stretch = 2 };
 enum class Filter { Pixel = 0, SharpSmooth = 1, Smooth = 2 };
 enum class Effect { None = 0, Scanlines = 1, Crt = 2, Lcd = 3, Auto = 4 };
+
+// Imagen propia de una consola (si está activada, manda sobre la general).
+struct VideoOverride {
+    bool on = false;
+    int scale_mode = 0;
+    int filter = 1;
+    int effect = 0;
+    float effect_strength = 0.45f;
+};
 
 struct Settings {
     // Video
@@ -32,11 +42,21 @@ struct Settings {
     int latency_ms = 64;
     bool mute_fast_forward = true;
 
+    std::map<std::string, VideoOverride> video_for; // por consola (id)
+
     // Rendimiento
-    int runahead = 0;              // cuadros de adelanto para reducir el retraso
+    int runahead = 0;              // cuadros de adelanto para reducir el retraso (solo NES por ahora)
     bool rewind = true;
+    bool rewind_heavy = false;     // también en PS1, DS, Saturn y 64 (estados de varios MB)
     int rewind_seconds = 10;
+    int rewind_mb = 256;           // tope de memoria del historial (comprimido)
+    bool fast_forward_enabled = false; // apagado de fábrica: el gatillo choca con botones del juego
     int fast_forward = 3;          // ×
+    bool pause_on_focus_loss = false;
+
+    // Juego
+    bool autosave_exit = true;     // al salir, guarda dónde quedaste (ranura automática)
+    bool rumble = true;            // vibración del mando
 
     // Medidor
     int meter = 1;                 // 0 apagado, 1 compacto, 2 detallado
@@ -63,6 +83,16 @@ struct Settings {
 
     void Load(const Ini& ini);
     void Save(Ini& ini) const;
+
+    // Ajustes de imagen que valen para una consola (los suyos si los tiene, si no los generales).
+    Settings ForSystem(const std::string& sys) const;
+};
+
+// Qué tan bien va cada consola en este equipo (lo dice Ñoño).
+struct SystemVerdict {
+    std::string system;  // id
+    int level;           // 0 va perfecto, 1 va bien, 2 puede ir justo, 3 puede ir lento
+    std::string text;
 };
 
 // Configuración sugerida según el equipo (la revisa Ñoño).
@@ -72,6 +102,7 @@ struct Suggestion {
     std::vector<std::string> reasons;  // por qué
     std::vector<std::string> changes;  // qué cambia
     Settings result;
+    std::vector<SystemVerdict> systems;
 };
 
 Suggestion Suggest(const HardwareInfo& hw, const Settings& current);

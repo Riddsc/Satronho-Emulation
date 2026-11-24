@@ -29,6 +29,15 @@ bool Portable();
 fs::path FromUtf8(const std::string& s);
 std::string ToUtf8(const fs::path& p);
 
+// Carpetas guardadas en la configuración. En modo portátil (memoria USB) se guardan relativas
+// a la carpeta del programa cuando están en la misma unidad, así siguen sirviendo aunque
+// Windows le cambie la letra a la memoria (E: hoy, F: mañana).
+std::string StoreFolder(const fs::path& folder); // ruta que se guarda en satronho.ini
+fs::path ResolveFolder(const std::string& stored); // ruta real para usar
+// Texto estable para identificar un archivo (tiempo de juego, favoritos, estados): la ruta
+// completa, o relativa a la carpeta del programa en modo portátil.
+std::string StableId(const fs::path& file);
+
 // Nombre de archivo seguro para usar como clave (sin caracteres raros).
 std::string SafeName(const std::string& s);
 

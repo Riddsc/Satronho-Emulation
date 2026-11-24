@@ -29,12 +29,15 @@ Cada emulador de la familia tiene su nombre Satronho:
 
 - **Biblioteca** con portadas de cartucho dibujadas para cada juego, búsqueda, favoritos, orden por recientes o más jugados, tiempo de juego y «Seguir jugando».
 - **Imagen**: filtro «Nítido suave» (píxeles cuadrados y sin temblores a cualquier tamaño), escala entera, líneas de barrido, pantalla CRT con máscara de fósforo y viñeta, rejilla LCD para las portátiles, fondo ambiente con los colores del juego y pantalla completa a 60 Hz en monitores de 120/144 Hz.
-- **Controles**: el control de cada consola dibujado con sus botones iluminándose en vivo, perfiles por consola, Jugador 1 y 2, asignación automática o uno por uno, atajos asignables y nombres de botones según tu mando (Xbox, PlayStation o Switch). Además: adelanto de cuadros, rebobinar, avance rápido y turbo.
-- **Estados**: 8 ranuras con miniatura y fecha. Las partidas de batería se guardan solas.
+- **Imagen propia por consola**: cada consola puede tener su efecto, filtro y tamaño (menú del juego » Ajustes rápidos).
+- **Controles**: el control de cada consola dibujado con sus botones iluminándose en vivo, perfiles por consola, Jugador 1 y 2 (cada uno recuerda su mando aunque otro se desconecte), asignación automática o uno por uno, atajos asignables con aviso si chocan, vibración y nombres de botones según tu mando (Xbox, PlayStation o Switch). Además: adelanto de cuadros (NES), rebobinar, avance rápido (apagado de fábrica) y turbo.
+- **Estados**: 8 ranuras con miniatura y fecha, más una ranura automática al salir: «Continuar» sigue justo donde quedaste. «Deshacer la carga» por si eliges la ranura equivocada.
+- **Partidas de batería**: se guardan solas, cada consola en su carpeta, con una copia de seguridad (.srm.bak).
 - **Medidor Satronho** (compacto o detallado): FPS, velocidad, tiempo del núcleo, gráfica de cuadros, tirones, CPU, RAM y sonido.
 - **Configuración sugerida**: Ñoño revisa tu procesador, memoria, tarjeta gráfica y pantalla, y con «Aplícalo por mí» deja todo listo.
 - **Sonido** con control dinámico de velocidad, para que no se corte ni se atrase.
-- **Actualizaciones** desde la app: Juana avisa cuando sale una build nueva y la instala con un clic.
+- **Juegos en disco**: lista de discos en el menú y cambio de disco como en la consola.
+- **Actualizaciones** desde la app: Juana avisa cuando sale una build nueva y la instala con un clic (comprobando que la descarga llegó completa).
 
 ## Descargar
 
@@ -51,13 +54,16 @@ Satronho Emulation **no incluye juegos**. Usa copias de los cartuchos que tienes
 | Esc | Guía o Select+Start | Menú del juego |
 | F5 / F9 | | Guardar / cargar estado |
 | F6 / F7 | | Cambiar de ranura |
-| Tab (mantener) | Gatillo derecho | Avance rápido |
+| Tab (mantener) | (sin asignar) | Avance rápido · apagado de fábrica, se enciende en Ajustes » Rendimiento |
 | Retroceso (mantener) | Gatillo izquierdo | Rebobinar |
 | P | | Pausa |
-| Ctrl+R | | Reiniciar |
+| F4 | | Reiniciar |
 | F3 | | Medidor |
 | F12 | | Captura |
 | F11 o Alt+Enter | | Pantalla completa |
+| F2 | Clic del stick derecho | Cambiar pantallas (Satronho Dual) |
+
+Todos se cambian en Controles » Atajos. Un botón del mando que use el juego no dispara su atajo.
 
 ## Compilar
 
@@ -65,13 +71,12 @@ Las builds oficiales las hace GitHub Actions desde Linux con [llvm-mingw](https:
 
 ```bash
 export LLVM_MINGW=/ruta/a/llvm-mingw
-scripts/build-core-nestopia.sh build/cores
-scripts/build-core-mgba.sh build/cores
+for s in scripts/build-core-*.sh; do "$s" build/cores; done   # los 8 núcleos
 cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw.cmake
 cmake --build build
 ```
 
-También compila de forma nativa en Linux (`cmake -S . -B build && cmake --build build`), útil para probar.
+También compila de forma nativa en Linux (`cmake -S . -B build && cmake --build build`), útil para probar. Detalles técnicos y cómo continuar el proyecto: [`SATRONHO.md`](SATRONHO.md) y [`CONTINUAR.md`](CONTINUAR.md).
 
 ## Créditos
 

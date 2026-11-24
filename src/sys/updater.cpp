@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "sys/updater.h"
 
+#include <cctype>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
 
 #include <SDL3/SDL.h>
 
+#include "util/hash.h"
 #include "util/json.h"
 #include "util/log.h"
 #include "util/paths.h"
@@ -102,12 +104,17 @@ void Updater::Check(int current_build) {
         const Json j = Json::Parse(ss.str());
         const std::string tag = j["tag_name"].String();
         const int latest = tag.rfind("build-", 0) == 0 ? std::atoi(tag.c_str() + 6) : 0;
-        std::string zip;
-        for (const auto& a : j["assets"].arr)
-            if (a["name"].String().find("windows-x64.zip") != std::string::npos) zip = a["browser_download_url"].String();
+        std::string zip, sha;
+        for (const auto& a : j["assets"].arr) {
+            const std::string name = a["name"].String();
+            if (name.size() > 15 && name.compare(name.size() - 15, 15, "windows-x64.zip") == 0) zip = a["browser_download_url"].String();
+            if (name.size() > 22 && name.compare(name.size() - 22, 22, "windows-x64.zip.sha256") == 0)
+                sha = a["browser_download_url"].String();
+        }
         {
             std::lock_guard lock(mutex_);
             zip_url_ = zip;
+            sha_url_ = sha;
             page_url_ = j["html_url"].String();
         }
         latest_ = latest;
@@ -127,13 +134,16 @@ void Updater::Install() {
     progress_ = 0;
     worker_ = std::thread([this] {
 #ifdef _WIN32
-        std::string url;
+        std::string url, sha_url;
         {
             std::lock_guard lock(mutex_);
             url = zip_url_;
+            sha_url = sha_url_;
         }
-        const fs::path dir = fs::temp_directory_path() / "satronho-emulation-update";
         std::error_code ec;
+        fs::path tmp_root = fs::temp_directory_path(ec);
+        if (ec) tmp_root = Paths::User();
+        const fs::path dir = tmp_root / "satronho-emulation-update";
         fs::remove_all(dir, ec);
         fs::create_directories(dir, ec);
         const fs::path zip = dir / "update.zip";
@@ -142,6 +152,28 @@ void Updater::Install() {
             error_ = "No se pudo descargar la build nueva.";
             state_ = State::Failed;
             return;
+        }
+        // Huella del zip (desde la build 11 cada Release la publica): si no coincide, el archivo
+        // llegó incompleto o dañado y no se instala.
+        if (!sha_url.empty()) {
+            const fs::path sha_file = dir / "update.zip.sha256";
+            std::string expected;
+            if (Download(sha_url, sha_file)) {
+                std::ifstream in(sha_file, std::ios::binary);
+                in >> expected;
+                for (auto& c : expected) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            }
+            const std::string got = Hash::Sha256File(zip);
+            if (expected.size() != 64 || got != expected) {
+                Log::Warn("Actualizaciones: la huella no coincide (esperada %s, obtenida %s)", expected.c_str(), got.c_str());
+                std::lock_guard lock(mutex_);
+                error_ = "La descarga llegó dañada (la huella no coincide). Inténtalo de nuevo.";
+                state_ = State::Failed;
+                return;
+            }
+            Log::Info("Actualizaciones: huella SHA-256 correcta");
+        } else {
+            Log::Warn("Actualizaciones: este Release no trae huella SHA-256; se instala sin comprobarla");
         }
         progress_ = 1.0f;
         // El instalador espera a que Satronho Emulation se cierre, descomprime, copia encima
@@ -157,12 +189,33 @@ void Updater::Install() {
            << "try {\r\n"
            << "  Expand-Archive -LiteralPath " << Quote(zip) << " -DestinationPath " << Quote(out) << " -Force\r\n"
            << "  $src = Join-Path " << Quote(out) << " 'SatronhoEmulation'\r\n"
-           << "  Copy-Item -Path (Join-Path $src '*') -Destination " << Quote(base) << " -Recurse -Force\r\n"
+           << "  $dst = " << Quote(base) << "\r\n"
+           // Las carpetas del programa se reemplazan enteras (así no quedan archivos viejos, como un
+           // núcleo renombrado). Primero se apartan con .viejo y, si algo falla, se devuelven.
+           << "  $dirs = @('cores', 'assets', 'licencias')\r\n"
+           << "  try {\r\n"
+           << "    foreach ($d in $dirs) {\r\n"
+           << "      $p = Join-Path $dst $d\r\n"
+           << "      if (Test-Path -LiteralPath \"$p.viejo\") { Remove-Item -LiteralPath \"$p.viejo\" -Recurse -Force }\r\n"
+           << "      if (Test-Path -LiteralPath $p) { Rename-Item -LiteralPath $p -NewName \"$d.viejo\" }\r\n"
+           << "    }\r\n"
+           << "    Get-ChildItem -LiteralPath $src | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $dst -Recurse -Force }\r\n"
+           << "    foreach ($d in $dirs) { $p = Join-Path $dst \"$d.viejo\"; if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force } }\r\n"
+           << "  } catch {\r\n"
+           << "    foreach ($d in $dirs) {\r\n"
+           << "      $p = Join-Path $dst $d\r\n"
+           << "      if (Test-Path -LiteralPath \"$p.viejo\") {\r\n"
+           << "        if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force }\r\n"
+           << "        Rename-Item -LiteralPath \"$p.viejo\" -NewName $d\r\n"
+           << "      }\r\n"
+           << "    }\r\n"
+           << "    throw\r\n"
+           << "  }\r\n"
            << "} catch {\r\n"
            << "  Add-Type -AssemblyName PresentationFramework\r\n"
            << "  [System.Windows.MessageBox]::Show('No se pudo instalar la actualización: ' + $_.Exception.Message, 'Satronho Emulation') | Out-Null\r\n"
            << "}\r\n"
-           << "Start-Process -FilePath (Join-Path " << Quote(base) << " 'satronho-emulation.exe')\r\n";
+           << "Start-Process -FilePath (Join-Path " << Quote(base) << " 'satronho-emulation.exe') -WorkingDirectory " << Quote(base) << "\r\n";
         ps.close();
         {
             std::lock_guard lock(mutex_);

@@ -54,6 +54,15 @@ const char* FamilyName(PadFamily f) {
     }
 }
 
+// El nombre va dentro de las claves de satronho.ini: sin «.», «|», «=» ni espacios en las puntas.
+bool ValidProfileName(const std::string& n) {
+    if (n.empty() || n.size() > 40) return false;
+    if (n.front() == ' ' || n.back() == ' ') return false;
+    for (char c : n)
+        if (c == '.' || c == '|' || c == '=' || c == '#' || c == ';' || static_cast<unsigned char>(c) < 32) return false;
+    return true;
+}
+
 std::vector<std::string> Split(const std::string& s, char sep) {
     std::vector<std::string> out;
     std::stringstream ss(s);
@@ -70,6 +79,7 @@ const HotkeyDef& HotkeyInfo(Hotkey h) {
         {"Ranura anterior", false},           {"Ranura siguiente", false},     {"Avance rápido (mantener)", true},
         {"Rebobinar (mantener)", true},       {"Pausa", false},                {"Reiniciar el juego", false},
         {"Mostrar u ocultar el medidor", false}, {"Captura de pantalla", false}, {"Pantalla completa", false},
+        {"Cambiar pantallas (Satronho Dual)", false},
     };
     return defs[static_cast<int>(h)];
 }
@@ -78,8 +88,11 @@ const HotkeyDef& HotkeyInfo(Hotkey h) {
 
 void Input::Init() {
     ResetHotkeys();
-    players[0] = {true, 0};
-    players[1] = {false, 1};
+    players[0] = {};
+    players[0].keyboard = true;
+    players[0].want_pos = 0;
+    players[1] = {};
+    players[1].want_pos = 1;
     int count = 0;
     SDL_JoystickID* ids = SDL_GetGamepads(&count);
     for (int i = 0; i < count; ++i) {
@@ -89,6 +102,7 @@ void Input::Init() {
         }
     }
     SDL_free(ids);
+    ResolvePads();
 }
 
 void Input::Shutdown() {
@@ -108,13 +122,15 @@ void Input::ResetHotkeys() {
     set(Hotkey::LoadState, SDL_SCANCODE_F9, kPadNone);
     set(Hotkey::PrevSlot, SDL_SCANCODE_F6, kPadNone);
     set(Hotkey::NextSlot, SDL_SCANCODE_F7, kPadNone);
-    set(Hotkey::FastForward, SDL_SCANCODE_TAB, kPadRT);
+    // Sin botón de mando de fábrica: el gatillo derecho lo usan juegos de varias consolas (R2 en CD, por ejemplo).
+    set(Hotkey::FastForward, SDL_SCANCODE_TAB, kPadNone);
     set(Hotkey::Rewind, SDL_SCANCODE_BACKSPACE, kPadLT);
     set(Hotkey::Pause, SDL_SCANCODE_P, kPadNone);
     set(Hotkey::Reset, SDL_SCANCODE_F4, kPadNone);
     set(Hotkey::Meter, SDL_SCANCODE_F3, kPadNone);
     set(Hotkey::Screenshot, SDL_SCANCODE_F12, kPadNone);
     set(Hotkey::Fullscreen, SDL_SCANCODE_F11, kPadNone);
+    set(Hotkey::Screens, SDL_SCANCODE_F2, SDL_GAMEPAD_BUTTON_RIGHT_STICK);
 }
 
 Mapping Input::DefaultMapping(const SystemDef& sys, bool keyboard_keys) {
@@ -270,8 +286,11 @@ void Input::Load(const Ini& ini) {
     for (int pl = 0; pl < kPlayers; ++pl) {
         const std::string b = "jugador." + std::to_string(pl + 1) + ".";
         players[pl].keyboard = ini.GetBool(b + "teclado", pl == 0);
-        players[pl].pad = std::clamp(ini.GetInt(b + "mando", pl), -1, 3);
+        players[pl].want_pos = std::clamp(ini.GetInt(b + "mando", pl), -1, 3);
+        players[pl].guid = ini.Get(b + "mando_id");
+        players[pl].bound = 0;
     }
+    ResolvePads();
     for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i) {
         const std::string b = "atajo." + std::to_string(i) + ".";
         if (ini.Values().count(b + "t")) {
@@ -317,7 +336,8 @@ void Input::Save(Ini& ini) const {
     for (int pl = 0; pl < kPlayers; ++pl) {
         const std::string b = "jugador." + std::to_string(pl + 1) + ".";
         ini.SetBool(b + "teclado", players[pl].keyboard);
-        ini.SetInt(b + "mando", players[pl].pad);
+        ini.SetInt(b + "mando", players[pl].pad >= 0 ? players[pl].pad : players[pl].want_pos);
+        ini.Set(b + "mando_id", players[pl].guid);
     }
     for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i) {
         const std::string b = "atajo." + std::to_string(i) + ".";
@@ -361,7 +381,7 @@ Mapping& Input::Edit(int player, const SystemDef& sys) { return ProfilesOf(sys.i
 
 bool Input::NewProfile(const SystemDef& sys, const std::string& name, int copy_from_player) {
     auto& profs = ProfilesOf(sys.id);
-    if (name.empty() || profs.count(name) || name.find('|') != std::string::npos || name.find('.') != std::string::npos) return false;
+    if (!ValidProfileName(name) || profs.count(name)) return false;
     profs[name] = Edit(copy_from_player, sys);
     player_profile_[copy_from_player][sys.id] = name;
     return true;
@@ -369,9 +389,7 @@ bool Input::NewProfile(const SystemDef& sys, const std::string& name, int copy_f
 
 bool Input::RenameProfile(const SystemDef& sys, const std::string& from, const std::string& to) {
     auto& profs = ProfilesOf(sys.id);
-    if (from == kDefaultProfile || !profs.count(from) || to.empty() || profs.count(to) || to.find('|') != std::string::npos ||
-        to.find('.') != std::string::npos)
-        return false;
+    if (from == kDefaultProfile || !profs.count(from) || !ValidProfileName(to) || profs.count(to)) return false;
     profs[to] = profs[from];
     profs.erase(from);
     for (auto& pp : player_profile_)
@@ -438,6 +456,18 @@ void Input::AssignCaptured(SDL_Scancode key, int pad_code) {
         const int i = capture.button;
         if (capture.pad) hk_pad[i] = pad_code;
         else hk_keys[i] = key;
+        // ¿Esa tecla ya la usa algún perfil de alguna consola?
+        if (!capture.pad && key != SDL_SCANCODE_UNKNOWN) {
+            for (const auto& [sys_id, profs] : profiles_) {
+                const SystemDef* sys = SystemById(sys_id);
+                if (!sys) continue;
+                for (const auto& [name, m] : profs)
+                    for (const auto& [id, label] : sys->buttons)
+                        if (m.keys[id] == key && conflict_.empty())
+                            conflict_ = "Ojo: " + KeyLabel(key) + " también es «" + label + "» en " + sys->full + " (perfil " + name +
+                                        "). Mientras juegas hará las dos cosas.";
+            }
+        }
         capture = {};
         return;
     }
@@ -457,6 +487,10 @@ void Input::AssignCaptured(SDL_Scancode key, int pad_code) {
         for (auto& k : m.keys)
             if (k == key) k = SDL_SCANCODE_UNKNOWN;
         m.keys[id] = key;
+        for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i)
+            if (hk_keys[i] == key && key != SDL_SCANCODE_UNKNOWN)
+                conflict_ = "Ojo: " + KeyLabel(key) + " también es el atajo «" + HotkeyInfo(static_cast<Hotkey>(i)).name +
+                            "». Mientras juegas hará las dos cosas; puedes cambiar el atajo en Controles » Atajos.";
     }
     if (!capture.queue.empty()) {
         capture.button = capture.queue.front();
@@ -485,6 +519,7 @@ void Input::HandleEvent(const SDL_Event& e) {
             if (SDL_Gamepad* pad = SDL_OpenGamepad(e.gdevice.which)) {
                 pads_.push_back({pad, e.gdevice.which, {false, false}});
                 Log::Info("Mando conectado: %s (%s)", SDL_GetGamepadName(pad), FamilyName(FamilyOf(SDL_GetGamepadType(pad))));
+                ResolvePads();
             }
         }
         break;
@@ -494,6 +529,7 @@ void Input::HandleEvent(const SDL_Event& e) {
             Log::Info("Mando desconectado: %s", SDL_GetGamepadName(pads_[s].pad));
             SDL_CloseGamepad(pads_[s].pad);
             pads_.erase(pads_.begin() + s);
+            ResolvePads();
         }
         break;
     }
@@ -508,6 +544,9 @@ void Input::HandleEvent(const SDL_Event& e) {
             }
             break;
         }
+        // Con Alt no cuentan los atajos: Alt+F4 cierra (sin reiniciar el juego por F4) y Alt+Enter
+        // es la pantalla completa.
+        if (e.key.mod & SDL_KMOD_ALT) break;
         for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i)
             if (hk_keys[i] == e.key.scancode && !HotkeyInfo(static_cast<Hotkey>(i)).hold) presses_.push_back(static_cast<Hotkey>(i));
         break;
@@ -642,7 +681,8 @@ void Input::Update(CoreHost& core, const SystemDef& sys, bool keyboard_enabled) 
         }
     }
     if (Capturing()) return;
-    const bool phase = (core.FrameSerial() / 2) % 2 == 0;
+    // Turbo a 15 pulsaciones por segundo (2 cuadros presionado, 2 suelto).
+    const bool phase = (turbo_tick_++ / 2) % 2 == 0;
     for (int pl = 0; pl < kPlayers; ++pl) {
         const bool kb = players[pl].keyboard;
         if (!keyboard_enabled) players[pl].keyboard = false;
@@ -695,6 +735,96 @@ void Input::Update(CoreHost& core, const SystemDef& sys, bool keyboard_enabled) 
             core.pads[pl].analog[0][0] = static_cast<int16_t>(x * 0x7fff);
             core.pads[pl].analog[0][1] = static_cast<int16_t>(y * 0x7fff);
         }
+    }
+}
+
+// ---------------------------------------------------------------- mandos de cada jugador
+
+std::string Input::GuidOfSlot(int slot) const {
+    if (slot < 0 || slot >= static_cast<int>(pads_.size())) return {};
+    char buf[64] = {};
+    SDL_GUIDToString(SDL_GetGamepadGUIDForID(pads_[slot].id), buf, sizeof buf);
+    return buf;
+}
+
+void Input::SetPlayerPad(int player, int slot) {
+    PlayerConfig& pc = players[player];
+    if (slot < 0) {
+        pc.guid.clear();
+        pc.want_pos = -1;
+        pc.bound = 0;
+    } else {
+        pc.want_pos = slot;
+        pc.guid = GuidOfSlot(slot);
+        pc.bound = slot < static_cast<int>(pads_.size()) ? pads_[slot].id : 0;
+        // Si otro jugador tenía ese mando, lo suelta.
+        for (int o = 0; o < kPlayers; ++o)
+            if (o != player && pc.bound && players[o].bound == pc.bound) {
+                players[o].bound = 0;
+                players[o].pad = -1;
+            }
+    }
+    ResolvePads();
+}
+
+void Input::ResolvePads() {
+    const int n = static_cast<int>(pads_.size());
+    std::vector<bool> taken(n, false);
+    int slot_of[kPlayers];
+    for (int pl = 0; pl < kPlayers; ++pl) slot_of[pl] = -1;
+    // 1) Quien ya tiene un mando conectado lo conserva.
+    for (int pl = 0; pl < kPlayers; ++pl) {
+        PlayerConfig& pc = players[pl];
+        if (!pc.bound) continue;
+        for (int i = 0; i < n; ++i)
+            if (pads_[i].id == pc.bound && !taken[i]) {
+                slot_of[pl] = i;
+                taken[i] = true;
+            }
+        if (slot_of[pl] < 0) pc.bound = 0;
+    }
+    // 2) Quien recuerda la identidad de su mando, lo recupera al reconectarlo.
+    for (int pl = 0; pl < kPlayers; ++pl) {
+        PlayerConfig& pc = players[pl];
+        if (slot_of[pl] >= 0 || pc.guid.empty()) continue;
+        for (int i = 0; i < n; ++i)
+            if (!taken[i] && GuidOfSlot(i) == pc.guid) {
+                slot_of[pl] = i;
+                taken[i] = true;
+                pc.bound = pads_[i].id;
+                break;
+            }
+    }
+    // 3) Por posición (configuraciones de antes, o si su mando no está pero hay otro libre en
+    //    esa posición): así nadie se queda sin jugar por haber cambiado de mando.
+    for (int pl = 0; pl < kPlayers; ++pl) {
+        PlayerConfig& pc = players[pl];
+        if (slot_of[pl] >= 0 || pc.want_pos < 0 || pc.want_pos >= n || taken[pc.want_pos]) continue;
+        slot_of[pl] = pc.want_pos;
+        taken[pc.want_pos] = true;
+        if (pc.guid.empty()) {
+            pc.guid = GuidOfSlot(pc.want_pos);
+            pc.bound = pads_[pc.want_pos].id;
+        }
+    }
+    for (int pl = 0; pl < kPlayers; ++pl) players[pl].pad = slot_of[pl];
+}
+
+void Input::ApplyRumble(const CoreHost& core, bool enabled) {
+    const Uint64 now = SDL_GetTicks();
+    for (int pl = 0; pl < kPlayers; ++pl) {
+        SDL_Gamepad* pad = PadAt(players[pl].pad);
+        if (!pad) continue;
+        const uint16_t strong = enabled ? core.rumble[pl][RETRO_RUMBLE_STRONG] : 0;
+        const uint16_t weak = enabled ? core.rumble[pl][RETRO_RUMBLE_WEAK] : 0;
+        const bool changed = strong != rumble_sent_[pl][0] || weak != rumble_sent_[pl][1];
+        // Se repite cada tanto mientras siga vibrando (cada orden dura 250 ms por seguridad:
+        // si el juego se cierra de golpe, el mando no se queda vibrando).
+        if (!changed && (!(strong || weak) || now - rumble_time_[pl] < 150)) continue;
+        SDL_RumbleGamepad(pad, strong, weak, (strong || weak) ? 250 : 0);
+        rumble_sent_[pl][0] = strong;
+        rumble_sent_[pl][1] = weak;
+        rumble_time_[pl] = now;
     }
 }
 

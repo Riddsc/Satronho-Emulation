@@ -218,6 +218,7 @@ void DrawIcon(ImDrawList* dl, Icon icon, ImVec2 c, float sz, ImU32 col) {
     const float t = std::max(1.5f, sz * 0.095f);
     auto P = [&](float x, float y) { return ImVec2(c.x + x * h, c.y + y * h); };
     switch (icon) {
+    case Icon::None: break;
     case Icon::Library:
     case Icon::Grid: {
         const float g = 0.16f, s = 0.68f;

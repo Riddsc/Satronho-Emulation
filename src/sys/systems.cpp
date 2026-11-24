@@ -116,11 +116,15 @@ std::vector<SystemDef> Build() {
     cd.port_device = RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1); // DualShock
     cd.analog = true;
     cd.disc = true;
-    cd.bios = {{"scph5501.bin", 524288, "5501|usa|us|america|ntsc-u"}, {"scph5500.bin", 524288, "5500|jap|jp|japan|ntsc-j"},
-               {"scph5502.bin", 524288, "5502|eur|eu|europe|pal"}, {"scph1001.bin", 524288, "1001"},
-               {"scph7001.bin", 524288, "7001"}, {"scph5552.bin", 524288, "5552"}};
+    // Los nombres que busca Beetle PSX (por región). Una BIOS con otro modelo en el nombre
+    // (SCPH-1001, 7001…) se guarda con el nombre de su región, que el núcleo sí abre.
+    cd.bios = {{"scph5501.bin", 524288, "5501|1001|7001|7501|101|usa|america|ntsc-u|ntscu", "0555c6fae8906f3f09baf5988f00e55f88e9f30b"},
+               {"scph5500.bin", 524288, "5500|1000|3000|3500|7000|jap|japan|ntsc-j|ntscj", "b05def971d8ec59f346f2d9ac21fb742e3eb6917"},
+               {"scph5502.bin", 524288, "5502|1002|7002|7502|eur|europe|pal", "f6bc2d1f5eb6593de7d089c425ac681d6fffd3f0"},
+               {"scph5503.bin", 524288, "5503"}, {"scph7003.bin", 524288, "7003"}, {"scph5552.bin", 524288, "5552"}};
     cd.bios_note = "Sin BIOS se usa OpenBIOS, libre e incluida. Con la original sale el logo de PlayStation y algunos juegos andan mejor.";
     cd.runahead_ok = false; // por probar con juegos reales; el estado pesa varios MB
+    cd.cpu_need = 1;
     // Imagen al doble de resolución (polígonos más finos) y sin el tramado de la época.
     // El desentrelazado adaptativo evita las rayas en los modos de alta resolución (las peleas
     // de Bloody Roar, por ejemplo).
@@ -151,6 +155,7 @@ std::vector<SystemDef> Build() {
     n64.shoulders = {RETRO_DEVICE_ID_JOYPAD_SELECT, RETRO_DEVICE_ID_JOYPAD_R2, RETRO_DEVICE_ID_JOYPAD_L2};
     n64.analog = true;
     n64.runahead_ok = false;
+    n64.cpu_need = 3;
     // Angrylion (dibuja como la consola, sin necesitar OpenGL) con el RSP ParaLLEl.
     n64.core_defaults = {{"mupen64plus-rdp-plugin", "angrylion"},
                          {"mupen64plus-rsp-plugin", "parallel"},
@@ -174,8 +179,16 @@ std::vector<SystemDef> Build() {
     ds.bios = {{"bios7.bin", 16384, "bios7|arm7"}, {"bios9.bin", 4096, "bios9|arm9"}, {"firmware.bin", 262144, "firmware|fw"}};
     ds.bios_note = "Sin BIOS se usa FreeBIOS, libre e incluida. Con la original (bios7, bios9 y firmware) y el modo «Native» en las "
                    "opciones de abajo sale el menú de la DS al arrancar.";
-    ds.core_defaults = {{"melonds_show_current_layout", "disabled"}};
+    // Tres formas de ver las pantallas, que se cambian con el atajo «Cambiar pantallas»
+    // (R3 del RetroPad en melonDS DS): una arriba de la otra, lado a lado y una grande con la
+    // otra pequeña.
+    ds.core_defaults = {{"melonds_show_current_layout", "disabled"},
+                        {"melonds_number_of_screen_layouts", "3"},
+                        {"melonds_screen_layout1", "top-bottom"},
+                        {"melonds_screen_layout2", "left-right"},
+                        {"melonds_screen_layout3", "hybrid-top"}};
     ds.runahead_ok = false;
+    ds.cpu_need = 1;
     v.push_back(ds);
 
     // Sega Saturn con el mando de 6 botones (como el de la Mega, con L y R arriba).
@@ -198,6 +211,7 @@ std::vector<SystemDef> Build() {
     ss.center_title = "START";
     ss.disc = true;
     ss.runahead_ok = false;
+    ss.cpu_need = 2;
     ss.bios = {{"mpr-17933.bin", 524288, "17933|usa|us|eur|eu|america|europe|v1.00"}, {"sega_101.bin", 524288, "101|jap|jp|japan"}};
     ss.bios_required = true;
     ss.bios_note = "La Saturn necesita su BIOS original: mpr-17933.bin para juegos de América y Europa, sega_101.bin para los de "
