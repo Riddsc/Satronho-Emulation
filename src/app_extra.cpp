@@ -1066,40 +1066,49 @@ std::string App::ResLabel(int k) const {
     if (*tag) s += Fmt("  (%dp · %s)", h, tag);
     else s += Fmt("  (%dp)", h);
     // La que más se parece al alto de tu pantalla.
-    if (hw_.display_h > 0 && std::abs(h - hw_.display_h) <= hw_.display_h / 12) s += "  · como tu pantalla";
+    if (hw_.display_h > 0 && std::abs(h - hw_.display_h) <= hw_.display_h / 12) s += std::string("  · ") + Tr("como tu pantalla");
     return s;
+}
+
+// El paso cuyo alto se parece más al de la pantalla (si empatan, el más grande: se ve más nítido).
+int App::NearestResStep(const SystemDef& sys, int api) const {
+    const int want = hw_.display_h > 0 ? hw_.display_h : 1080;
+    int best = 0;
+    for (int k : GpuResSteps(sys, api)) {
+        const int d = std::abs(ResHeight(k) - want), bd = best ? std::abs(ResHeight(best) - want) : 1 << 30;
+        if (d < bd || (d == bd && ResHeight(k) > ResHeight(best))) best = k;
+    }
+    return best ? best : 1;
 }
 
 int App::GpuResFor(const SystemDef& sys, int api) const {
     int res = settings_.GpuRes(sys.id);
     const bool exact = sys.id == "n64" && api == 1;
+    const std::vector<int> steps = GpuResSteps(sys, api);
     if (res > 0) {
-        // Guardado de otra forma (multiplicador vs. alto exacto): se convierte.
-        if (exact && res <= 16) return ResHeight(res);
-        if (!exact && res > 16) return std::max(1, res / 240);
-        return res;
+        // Guardado de otra forma (multiplicador vs. alto exacto): se convierte al paso más cercano.
+        if (exact && res <= 16) res = ResHeight(res);
+        if (!exact && res > 16) res = std::max(1, res / 240);
+        int best = steps.front();
+        for (int k : steps)
+            if (ResHeight(k) <= ResHeight(res)) best = k;
+        return best;
     }
-    if (api == 3) return sys.id == "cd" ? 1 : 1;
-    // Automática: según el alto de la pantalla (240 líneas de la consola) y la tarjeta.
-    const int lines = std::max(480, hw_.display_h > 0 ? hw_.display_h : 1080);
-    res = std::clamp(lines / 240, 1, 8);
+    if (api == 3) return 1;
+    // Automática: el paso más cercano al alto de la pantalla, con un tope según la tarjeta.
+    int cap = 16 * 240;
     std::string g = hw_.gpu;
     for (auto& c : g) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     const bool integrated = g.find("intel") != std::string::npos || g.find("uhd") != std::string::npos || g.find("vega") != std::string::npos ||
                             (hw_.vram_mb > 0 && hw_.vram_mb < 1500);
-    if (integrated) res = std::min(res, 2);
-    else if (hw_.vram_mb > 0 && hw_.vram_mb < 4000) res = std::min(res, 3);
-    else res = std::min(res, 4);
-    res = std::max(1, res);
-    if (exact) {
-        // 64 con OpenGL: el tamaño exacto más cercano al alto de la pantalla (con el mismo tope).
-        const int want = std::min(hw_.display_h > 0 ? hw_.display_h : 1080, res * 240 + (res >= 4 ? 480 : 0));
-        int best = 240;
-        for (int h : GpuResSteps(sys, api))
-            if (h <= want) best = h;
-        return best;
-    }
-    return res;
+    if (integrated) cap = 2 * 240;
+    else if (hw_.vram_mb > 0 && hw_.vram_mb < 4000) cap = 4 * 240;
+    const int nearest = NearestResStep(sys, api);
+    if (ResHeight(nearest) <= cap) return nearest;
+    int best = steps.front();
+    for (int k : steps)
+        if (ResHeight(k) <= cap) best = k;
+    return best;
 }
 
 void App::ApplyGpuChoice(const SystemDef& sys) {
@@ -1144,186 +1153,10 @@ void App::ApplyGpuChoice(const SystemDef& sys) {
             Log::Info("64: Angrylion (procesador)");
         }
     }
-    // Lo elegido en Ajustes » Gráficos (antialiasing, filtros, pantalla ancha…).
-    if (auto it = settings_.gfx.find(sys.id); it != settings_.gfx.end())
-        for (const auto& [k, v] : it->second) core_.SetOption(k, v);
 }
 
 } // namespace Satronho
 
-namespace Satronho {
-
-namespace {
-// Nombre de un valor de opción del núcleo, en español cuando es de los comunes.
-std::string GfxValueLabel(const std::string& v, const std::string& label) {
-    std::string l = label.empty() ? v : label;
-    std::string low = l;
-    for (auto& c : low) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    static const std::map<std::string, std::string> names{
-        {"enabled", "Activado"}, {"disabled", "Desactivado"}, {"on", "Activado"}, {"off", "Desactivado"}, {"true", "Sí"}, {"false", "No"},
-        {"auto", "Automático"}, {"none", "Ninguno"}, {"nearest", "Píxel exacto"}, {"bilinear", "Bilineal (suave)"},
-        {"3-point", "3 puntos (como la consola)"}, {"internal resolution", "Resolución interna"}, {"1x", "Apagado (1×)"},
-        {"memory card 1", "Memory Card 1"}, {"16 bpp (native)", "16 bits (original)"}, {"32 bpp", "32 bits"},
-        {"1x (native)", "Original (1×)"}, {"internal resolution only", "Solo en la resolución interna"}};
-    auto it = names.find(low);
-    return it != names.end() ? it->second : l;
-}
-} // namespace
-
-void App::DrawGpuSettings(bool& changed) {
-    // Motor de la ventana: OpenGL (el de Satronho) o el clásico de SDL.
-    std::vector<std::string> names{"Automático (OpenGL)", "OpenGL"};
-    std::vector<std::string> values{"auto", "opengl"};
-    for (int i = 0; i < SDL_GetNumRenderDrivers(); ++i) {
-        const std::string d = SDL_GetRenderDriver(i);
-        if (d == "software" || d == "gpu" || d == "opengl" || d == "opengles2") continue;
-        std::string n = d == "direct3d11" ? "Direct3D 11" : d == "direct3d12" ? "Direct3D 12" : d == "direct3d" ? "Direct3D 9" : d == "vulkan" ? "Vulkan" : d;
-        names.push_back("Clásico · " + n);
-        values.push_back(d);
-    }
-    int cur = 0;
-    for (size_t i = 0; i < values.size(); ++i)
-        if (values[i] == settings_.renderer) cur = static_cast<int>(i);
-    const std::string now = gl_ ? hw_.renderer : std::string("clásico (") + (renderer_ ? SDL_GetRendererName(renderer_) : "?") + ")";
-    RowBegin("Motor gráfico", Fmt("OpenGL dibuja todo con la tarjeta gráfica y deja que CD y 64 usen OpenGL o Vulkan. El clásico es el de "
-                                  "respaldo. Se aplica al volver a abrir la app. Ahora: %s.", now.c_str()).c_str());
-    if (ComboStyled("##motor", &cur, names, ImGui::GetContentRegionAvail().x)) {
-        settings_.renderer = values[cur];
-        changed = true;
-        Toast("El motor gráfico cambia la próxima vez que abras Satronho Emulation.", GuideId::Troya, 4);
-    }
-    RowEnd();
-
-    // CD y 64: tarjeta, motor, resolución y las opciones de gráficos de cada núcleo (como la
-    // pestaña Graphics de Satronho NX).
-    ImGui::Dummy({0, S(8)});
-    Heading("Tarjeta gráfica", 16);
-    {
-        RowBegin("Tarjeta", "La que usan CD y 64 para dibujar.");
-        FontScope f(GetFonts().semibold, 14);
-        ImGui::TextUnformatted(Tr(hw_.gpu.empty() ? "?" : hw_.gpu.c_str()));
-        RowEnd();
-        RowBegin("Vulkan", nullptr);
-        Muted(hw_render_.VulkanAvailable() ? ("Disponible · " + hw_render_.VulkanGpu()).c_str()
-              : hw_render_.VulkanProbed() ? "Este equipo no tiene Vulkan: se usa OpenGL." : "Revisando…", 14);
-        RowEnd();
-    }
-    if (!gl_) {
-        Muted("Con el motor clásico, CD y 64 dibujan con el procesador. Elige OpenGL arriba para usar la tarjeta gráfica.", 13.5f);
-        return;
-    }
-    struct GfxOpt {
-        const char* key;
-        const char* label;
-        const char* help;
-    };
-    static const GfxOpt kCd[] = {
-        {"beetle_psx_hw_msaa", "Antialiasing (MSAA)", "Bordes más suaves en los polígonos. Pide más a la tarjeta."},
-        {"beetle_psx_hw_super_sampling", "Supermuestreo", "Dibuja grande y lo achica a la resolución original: sin dientes de sierra."},
-        {"beetle_psx_hw_filter", "Filtrado de texturas", "Cómo se suavizan las texturas al agrandarlas."},
-        {"beetle_psx_hw_pgxp_mode", "Geometría precisa (PGXP)", "Quita el temblor de los polígonos típico de la PS1."},
-        {"beetle_psx_hw_pgxp_texture", "Texturas sin deformar (PGXP)", "Corrige la perspectiva de las texturas. Necesita PGXP."},
-        {"beetle_psx_hw_widescreen_hack", "Pantalla ancha (16:9)", "Abre la vista en los juegos 3D. En algunos se ven cosas de más."},
-        {"beetle_psx_hw_dither_mode", "Tramado", "El patrón de puntitos de la PS1. Desactivado se ve más limpio."},
-        {"beetle_psx_hw_depth", "Profundidad de color", "32 bits quita las bandas de color."},
-    };
-    static const GfxOpt kN64[] = {
-        {"mupen64plus-aspect", "Relación de aspecto", "4:3 como la consola, o 16:9 para pantallas anchas."},
-        {"mupen64plus-MultiSampling", "Antialiasing (MSAA)", "Bordes más suaves (OpenGL)."},
-        {"mupen64plus-FXAA", "FXAA", "Suaviza bordes con muy poco costo (OpenGL)."},
-        {"mupen64plus-txFilterMode", "Filtro de texturas", "Suaviza o afila las texturas (OpenGL)."},
-        {"mupen64plus-txEnhancementMode", "Mejora de texturas", "Agranda las texturas con un filtro (OpenGL)."},
-        {"mupen64plus-BilinearMode", "Filtro bilineal", "«3point» es como la consola real; «standard» es más suave."},
-        {"mupen64plus-parallel-rdp-downscaling", "Supermuestreo (Vulkan)", "Dibuja grande y lo achica: imagen más limpia."},
-    };
-    for (const char* id : {"cd", "n64"}) {
-        const SystemDef* sys = SystemById(id);
-        if (!sys) continue;
-        ImGui::PushID(id);
-        ImGui::Dummy({0, S(14)});
-        // Encabezado de la consola, con su control en miniatura.
-        {
-            const ImVec2 p = ImGui::GetCursorScreenPos();
-            ImDrawList* dl = ImGui::GetWindowDrawList();
-            dl->AddRectFilled(p, {p.x + ImGui::GetContentRegionAvail().x, p.y + S(46)}, U32(sys->color, 0.10f), S(12));
-            DrawControllerMini(dl, sys->layout, {p.x + S(28), p.y + S(23)}, S(36), 1.0f);
-            FontScope f(GetFonts().bold, 17);
-            dl->AddText({p.x + S(58), p.y + (S(46) - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), Tr((sys->full + "  ·  " + sys->hint).c_str()));
-            ImGui::Dummy({0, S(52)});
-        }
-        const int api_now = GpuApiFor(*sys);
-        const int res_now = GpuResFor(*sys, api_now);
-        const char* api_names[] = {"", "OpenGL", "Vulkan", "el procesador"};
-        std::string help;
-        if (sys->id == "cd") help = api_now == 3 ? "Beetle PSX dibujando con el procesador." : std::string("Beetle PSX HW con ") + api_names[api_now] + ".";
-        else help = api_now == 1 ? "GLideN64 con OpenGL: acepta tamaños exactos." : api_now == 2 ? "ParaLLEl-RDP con Vulkan: el más fiel a la consola." : "Angrylion con el procesador: fiel, pero pesado.";
-        RowBegin("API", help.c_str());
-        int api = settings_.GpuApi(sys->id);
-        if (Segmented("##api", &api, {"Automática", "OpenGL", "Vulkan", "Procesador"}, ImGui::GetContentRegionAvail().x)) {
-            if (api == 2 && !hw_render_.VulkanAvailable()) Toast("Este equipo no tiene Vulkan; se usará OpenGL.", GuideId::Troya, 4);
-            settings_.gpu_api[sys->id] = api;
-            changed = true;
-            if (in_game_ && sys_ == sys) Toast("Se aplica la próxima vez que abras el juego.", GuideId::Troya, 3);
-        }
-        RowEnd();
-        RowBegin("Resolución", hw_.display_h > 0 ? Fmt("Tu pantalla tiene %d píxeles de alto.", hw_.display_h).c_str() : nullptr);
-        {
-            const std::vector<int> ks = GpuResSteps(*sys, api_now);
-            std::vector<std::string> res_names{"Automática (ahora " + ResLabel(res_now) + ")"};
-            int sel = 0;
-            const int stored = settings_.GpuRes(sys->id);
-            for (size_t i = 0; i < ks.size(); ++i) {
-                res_names.push_back(ResLabel(ks[i]));
-                if (stored > 0 && ResHeight(ks[i]) <= ResHeight(stored)) sel = static_cast<int>(i) + 1;
-            }
-            if (ComboStyled("##res", &sel, res_names, ImGui::GetContentRegionAvail().x)) {
-                settings_.gpu_res[sys->id] = sel == 0 ? 0 : ks[sel - 1];
-                changed = true;
-                if (in_game_ && sys_ == sys) Toast("Se aplica la próxima vez que abras el juego.", GuideId::Troya, 3);
-            }
-        }
-        RowEnd();
-        // Opciones del núcleo: se leen de él mismo (valores reales) y se guardan por consola.
-        const std::vector<CoreOption>* defs = nullptr;
-        if (core_.CoreLoaded() && core_file_ == CoreFile(*sys)) defs = &core_.Options();
-        else if (auto it = core_cache_.find(CoreFile(*sys)); it != core_cache_.end()) defs = &it->second.options;
-        else if (!in_game_ && gfx_probe_tried_.insert(sys->id).second) {
-            std::string err;
-            if (EnsureCore(*sys, &err)) {
-                if (auto it2 = core_cache_.find(CoreFile(*sys)); it2 != core_cache_.end()) defs = &it2->second.options;
-            }
-        }
-        if (!defs) {
-            Muted("Las opciones de gráficos aparecen cuando el núcleo de esta consola está instalado.", 13);
-        } else {
-            const auto& list = sys->id == "cd" ? std::vector<GfxOpt>(std::begin(kCd), std::end(kCd)) : std::vector<GfxOpt>(std::begin(kN64), std::end(kN64));
-            for (const auto& g : list) {
-                auto def = std::find_if(defs->begin(), defs->end(), [&](const CoreOption& o) { return o.key == g.key; });
-                if (def == defs->end() || def->values.empty()) continue;
-                std::string cur = def->current.empty() ? def->def : def->current;
-                if (auto it = settings_.gfx[sys->id].find(g.key); it != settings_.gfx[sys->id].end()) cur = it->second;
-                std::vector<std::string> labels;
-                int sel = 0;
-                for (size_t i = 0; i < def->values.size(); ++i) {
-                    labels.push_back(GfxValueLabel(def->values[i].value, def->values[i].label));
-                    if (def->values[i].value == cur) sel = static_cast<int>(i);
-                }
-                RowBegin(g.label, g.help);
-                ImGui::PushID(g.key);
-                if (ComboStyled("##o", &sel, labels, ImGui::GetContentRegionAvail().x)) {
-                    settings_.gfx[sys->id][g.key] = def->values[sel].value;
-                    if (core_.CoreLoaded() && core_file_ == CoreFile(*sys)) core_.SetOption(g.key, def->values[sel].value);
-                    changed = true;
-                }
-                ImGui::PopID();
-                RowEnd();
-            }
-        }
-        ImGui::PopID();
-    }
-}
-
-} // namespace Satronho
 
 #include "util/archive.h"
 

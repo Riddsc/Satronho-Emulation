@@ -54,3 +54,313 @@ juegos|games|jeux|jogos|giochi
 SELECT Y START|SELECT AND START|SELECT ET START|SELECT E START|SELECT E START
 MODE Y START|MODE AND START|MODE ET START|MODE E START|MODE E START
 Perfil: Predeterminado|Profile: Default|Profil : Par défaut|Perfil: Padrão|Profilo: Predefinito
+Señal de televisor (NTSC)|TV signal (NTSC)|Signal télé (NTSC)|Sinal de TV (NTSC)|Segnale TV (NTSC)
+Imita el cable con el que se conectaba la consola a la tele.|Mimics the cable the console used to connect to the TV.|Imite le câble qui reliait la console à la télé.|Imita o cabo que ligava o console à TV.|Imita il cavo con cui la console si collegava alla TV.
+Apagada|Off|Désactivé|Desligado|Disattivato
+Imagen limpia: píxeles nítidos, como en un monitor.|Clean image: sharp pixels, like on a monitor.|Image propre : pixels nets, comme sur un moniteur.|Imagem limpa: pixels nítidos, como num monitor.|Immagine pulita: pixel nitidi, come su un monitor.
+Compuesto (cable amarillo)|Composite (yellow cable)|Composite (câble jaune)|Composto (cabo amarelo)|Composito (cavo giallo)
+Colores que se mezclan y un poco de borrosidad: como se veía en casa.|Colors bleed a little and it's slightly blurry: how it looked at home.|Couleurs qui bavent et un peu de flou : comme à la maison.|Cores que se misturam e um pouco de desfoque: como se via em casa.|Colori che si mescolano e un po' di sfocatura: come si vedeva a casa.
+Más nítido que el compuesto, con algo de mezcla de colores.|Sharper than composite, with some color bleeding.|Plus net que le composite, avec un peu de mélange de couleurs.|Mais nítido que o composto, com alguma mistura de cores.|Più nitido del composito, con un po' di mescolanza di colori.
+La señal más limpia que daba un televisor de antes.|The cleanest signal an old TV could give.|Le signal le plus propre d'une télé d'antan.|O sinal mais limpo que uma TV antiga dava.|Il segnale più pulito di una TV d'epoca.
+Blanco y negro|Black and white|Noir et blanc|Preto e branco|Bianco e nero
+Como en un televisor sin color.|Like on a TV without color.|Comme sur une télé sans couleur.|Como numa TV sem cor.|Come su una TV senza colore.
+Paleta de colores|Color palette|Palette de couleurs|Paleta de cores|Tavolozza dei colori
+Cada televisor de la época mostraba los colores de la NES un poco distinto.|Every TV of the time showed the NES colors a bit differently.|Chaque télé de l'époque affichait les couleurs de la NES un peu différemment.|Cada TV da época mostrava as cores do NES um pouco diferente.|Ogni TV dell'epoca mostrava i colori del NES in modo un po' diverso.
+Sony CXA2025AS (EE. UU.)|Sony CXA2025AS (USA)|Sony CXA2025AS (États-Unis)|Sony CXA2025AS (EUA)|Sony CXA2025AS (USA)
+Los colores de un televisor Sony americano: cálidos y fieles.|The colors of an American Sony TV: warm and faithful.|Les couleurs d'une télé Sony américaine : chaudes et fidèles.|As cores de uma TV Sony americana: quentes e fiéis.|I colori di una TV Sony americana: caldi e fedeli.
+Sony CXA2025AS (Japón)|Sony CXA2025AS (Japan)|Sony CXA2025AS (Japon)|Sony CXA2025AS (Japão)|Sony CXA2025AS (Giappone)
+La misma, con el ajuste de los televisores japoneses.|The same, with the Japanese TV adjustment.|La même, avec le réglage des télés japonaises.|A mesma, com o ajuste das TVs japonesas.|La stessa, con la regolazione delle TV giapponesi.
+Televisor de casa|Home TV|Télé de salon|TV de casa|TV di casa
+Colores típicos de un televisor común.|Typical colors of an ordinary TV.|Couleurs typiques d'une télé ordinaire.|Cores típicas de uma TV comum.|Colori tipici di una TV comune.
+Canónica|Canonical|Canonique|Canônica|Canonica
+La paleta de referencia de Nestopia.|Nestopia's reference palette.|La palette de référence de Nestopia.|A paleta de referência do Nestopia.|La tavolozza di riferimento di Nestopia.
+Alternativa|Alternative|Alternative|Alternativa|Alternativa
+Otra versión de la canónica, un poco más suave.|Another version of the canonical one, a little softer.|Une autre version de la canonique, un peu plus douce.|Outra versão da canônica, um pouco mais suave.|Un'altra versione della canonica, un po' più morbida.
+RGB (PlayChoice)|RGB (PlayChoice)|RGB (PlayChoice)|RGB (PlayChoice)|RGB (PlayChoice)
+Colores fuertes, como las máquinas de arcade PlayChoice.|Strong colors, like the PlayChoice arcade machines.|Couleurs fortes, comme les bornes d'arcade PlayChoice.|Cores fortes, como as máquinas de arcade PlayChoice.|Colori forti, come i cabinati arcade PlayChoice.
+Europea (PAL)|European (PAL)|Européenne (PAL)|Europeia (PAL)|Europea (PAL)
+Como en las consolas europeas.|Like on European consoles.|Comme sur les consoles européennes.|Como nos consoles europeus.|Come sulle console europee.
+Colores vivos y muy fieles, medidos de una consola real.|Vivid, very faithful colors measured from a real console.|Couleurs vives et très fidèles, mesurées sur une vraie console.|Cores vivas e muito fiéis, medidas de um console real.|Colori vivaci e molto fedeli, misurati da una console vera.
+Más contraste y saturación.|More contrast and saturation.|Plus de contraste et de saturation.|Mais contraste e saturação.|Più contrasto e saturazione.
+Colores suaves, agradables a la vista.|Soft colors, easy on the eyes.|Couleurs douces, agréables à l'œil.|Cores suaves, agradáveis à vista.|Colori morbidi, piacevoli alla vista.
+Compuesto directo (FirebrandX)|Direct composite (FirebrandX)|Composite direct (FirebrandX)|Composto direto (FirebrandX)|Composito diretto (FirebrandX)
+Como la señal compuesta, sin el ajuste de la tele.|Like the composite signal, without the TV's adjustment.|Comme le signal composite, sans le réglage de la télé.|Como o sinal composto, sem o ajuste da TV.|Come il segnale composito, senza la regolazione della TV.
+Monitor profesional (FirebrandX)|Professional monitor (FirebrandX)|Moniteur professionnel (FirebrandX)|Monitor profissional (FirebrandX)|Monitor professionale (FirebrandX)
+Como un monitor de estudio Sony PVM: frío y nítido.|Like a Sony PVM studio monitor: cool and sharp.|Comme un moniteur de studio Sony PVM : froid et net.|Como um monitor de estúdio Sony PVM: frio e nítido.|Come un monitor da studio Sony PVM: freddo e nitido.
+Colores equilibrados, para jugar de todo.|Balanced colors, good for any game.|Couleurs équilibrées, pour jouer à tout.|Cores equilibradas, para jogar de tudo.|Colori equilibrati, per giocare a tutto.
+Proporción|Aspect ratio|Format d'image|Proporção|Proporzioni
+La forma de la imagen.|The shape of the image.|La forme de l'image.|O formato da imagem.|La forma dell'immagine.
+La que corresponde al juego.|The one that matches the game.|Celle qui correspond au jeu.|A que corresponde ao jogo.|Quella adatta al gioco.
+Televisor NTSC|NTSC TV|Télé NTSC|TV NTSC|TV NTSC
+Como se veía en un televisor de América y Japón (un poco más ancha).|How it looked on an American or Japanese TV (a bit wider).|Comme sur une télé d'Amérique ou du Japon (un peu plus large).|Como se via numa TV da América e do Japão (um pouco mais larga).|Come su una TV americana o giapponese (un po' più larga).
+Televisor PAL|PAL TV|Télé PAL|TV PAL|TV PAL
+Como en un televisor europeo.|Like on a European TV.|Comme sur une télé européenne.|Como numa TV europeia.|Come su una TV europea.
+La forma de las pantallas de antes.|The shape of old screens.|La forme des écrans d'antan.|O formato das telas antigas.|La forma degli schermi di una volta.
+Píxeles cuadrados|Square pixels|Pixels carrés|Pixels quadrados|Pixel quadrati
+Sin corregir: cada píxel cuadrado (un poco más angosta).|Uncorrected: every pixel square (a bit narrower).|Non corrigé : chaque pixel carré (un peu plus étroit).|Sem corrigir: cada pixel quadrado (um pouco mais estreita).|Non corretta: ogni pixel quadrato (un po' più stretta).
+Recortar el borde de arriba|Crop the top edge|Rogner le bord du haut|Cortar a borda de cima|Ritaglia il bordo superiore
+Los televisores escondían unas líneas del borde; algunos juegos muestran basura ahí.|TVs hid a few lines at the edge; some games show garbage there.|Les télés cachaient quelques lignes au bord ; certains jeux y affichent des parasites.|As TVs escondiam algumas linhas da borda; alguns jogos mostram lixo ali.|Le TV nascondevano alcune righe del bordo; alcuni giochi lì mostrano disturbi.
+Recortar el borde de abajo|Crop the bottom edge|Rogner le bord du bas|Cortar a borda de baixo|Ritaglia il bordo inferiore
+Igual que el de arriba, para el borde de abajo.|Same as the top one, for the bottom edge.|Comme celui du haut, pour le bord du bas.|Igual ao de cima, para a borda de baixo.|Come quello in alto, per il bordo inferiore.
+Quitar el límite de sprites|Remove the sprite limit|Supprimer la limite de sprites|Tirar o limite de sprites|Rimuovi il limite degli sprite
+La NES solo mostraba 8 objetos por línea y los demás parpadeaban.|The NES only showed 8 objects per line and the rest flickered.|La NES n'affichait que 8 objets par ligne et les autres clignotaient.|O NES só mostrava 8 objetos por linha e os outros piscavam.|Il NES mostrava solo 8 oggetti per riga e gli altri sfarfallavano.
+Como la consola|Like the console|Comme la console|Como o console|Come la console
+Con el parpadeo original cuando hay muchos objetos juntos.|With the original flicker when many objects are together.|Avec le clignotement d'origine quand il y a beaucoup d'objets.|Com o piscar original quando há muitos objetos juntos.|Con lo sfarfallio originale quando ci sono molti oggetti insieme.
+Sin parpadeo|No flicker|Sans clignotement|Sem piscar|Senza sfarfallio
+Se ve todo siempre; en pocos juegos rompe algún efecto.|Everything is always visible; in a few games it breaks an effect.|Tout est toujours visible ; dans quelques jeux, cela casse un effet.|Tudo aparece sempre; em poucos jogos quebra algum efeito.|Si vede sempre tutto; in pochi giochi rompe qualche effetto.
+8:7 (píxeles cuadrados)|8:7 (square pixels)|8:7 (pixels carrés)|8:7 (pixels quadrados)|8:7 (pixel quadrati)
+Cada píxel cuadrado: la imagen queda un poco angosta.|Every pixel square: the image is a little narrow.|Chaque pixel carré : l'image est un peu étroite.|Cada pixel quadrado: a imagem fica um pouco estreita.|Ogni pixel quadrato: l'immagine risulta un po' stretta.
+Como en un televisor de antes.|Like on an old TV.|Comme sur une télé d'antan.|Como numa TV antiga.|Come su una TV di una volta.
+Como se veía en América y Japón.|How it looked in America and Japan.|Comme en Amérique et au Japon.|Como se via na América e no Japão.|Come si vedeva in America e Giappone.
+Como en Europa.|Like in Europe.|Comme en Europe.|Como na Europa.|Come in Europa.
+Modo 7 en HD|HD Mode 7|Mode 7 en HD|Modo 7 em HD|Mode 7 in HD
+Los suelos que giran y se inclinan (Mario Kart, F-Zero, Pilotwings) se dibujan a más resolución.|The floors that rotate and tilt (Mario Kart, F-Zero, Pilotwings) are drawn at a higher resolution.|Les sols qui tournent et s'inclinent (Mario Kart, F-Zero, Pilotwings) sont dessinés en plus haute résolution.|Os pisos que giram e se inclinam (Mario Kart, F-Zero, Pilotwings) são desenhados em resolução maior.|I pavimenti che ruotano e si inclinano (Mario Kart, F-Zero, Pilotwings) vengono disegnati a risoluzione maggiore.
+Original (1×)|Original (1×)|Original (1×)|Original (1×)|Originale (1×)
+Como la consola: los suelos se ven pixelados de lejos.|Like the console: floors look pixelated in the distance.|Comme la console : les sols paraissent pixelisés au loin.|Como o console: os pisos parecem pixelados ao longe.|Come la console: i pavimenti sembrano pixelati in lontananza.
+El doble de nítido.|Twice as sharp.|Deux fois plus net.|O dobro de nitidez.|Il doppio della nitidezza.
+Muy nítido; recomendado en pantallas Full HD o más.|Very sharp; recommended on Full HD screens or larger.|Très net ; conseillé sur les écrans Full HD ou plus.|Muito nítido; recomendado em telas Full HD ou maiores.|Molto nitido; consigliato su schermi Full HD o superiori.
+Lo más nítido; pide más al procesador.|The sharpest; asks more of the processor.|Le plus net ; demande plus au processeur.|O mais nítido; exige mais do processador.|Il più nitido; chiede di più al processore.
+Modo 7: corregir la perspectiva|Mode 7: correct perspective|Mode 7 : corriger la perspective|Modo 7: corrigir a perspectiva|Mode 7: correggi la prospettiva
+Endereza las líneas del suelo en HD.|Straightens the floor lines in HD.|Redresse les lignes du sol en HD.|Endireita as linhas do piso em HD.|Raddrizza le linee del pavimento in HD.
+Activada|On|Activé|Ligado|Attivato
+Suelo más parejo a lo lejos.|Smoother floor in the distance.|Sol plus régulier au loin.|Piso mais uniforme ao longe.|Pavimento più uniforme in lontananza.
+Desactivada|Off|Désactivé|Desligado|Disattivato
+Como lo dibuja la consola.|As the console draws it.|Comme la console le dessine.|Como o console desenha.|Come lo disegna la console.
+Modo 7: supermuestreo|Mode 7: supersampling|Mode 7 : suréchantillonnage|Modo 7: supersampling|Mode 7: supercampionamento
+Suaviza los bordes del suelo en HD.|Smooths the floor edges in HD.|Adoucit les bords du sol en HD.|Suaviza as bordas do piso em HD.|Ammorbidisce i bordi del pavimento in HD.
+Más liviano.|Lighter.|Plus léger.|Mais leve.|Più leggero.
+Más suave; pide más al procesador.|Smoother; asks more of the processor.|Plus doux ; demande plus au processeur.|Mais suave; exige mais do processador.|Più morbido; chiede di più al processore.
+Modo 7: efecto mosaico|Mode 7: mosaic effect|Mode 7 : effet mosaïque|Modo 7: efeito mosaico|Mode 7: effetto mosaico
+Algunos juegos pixelan la pantalla a propósito en las transiciones.|Some games pixelate the screen on purpose during transitions.|Certains jeux pixelisent l'écran exprès pendant les transitions.|Alguns jogos pixelam a tela de propósito nas transições.|Alcuni giochi pixelano lo schermo apposta nelle transizioni.
+Se respeta el mosaico del juego.|The game's mosaic is kept.|La mosaïque du jeu est respectée.|O mosaico do jogo é respeitado.|Il mosaico del gioco viene rispettato.
+Se salta el mosaico.|The mosaic is skipped.|La mosaïque est ignorée.|O mosaico é pulado.|Il mosaico viene saltato.
+Desenfoque de televisor|TV blur|Flou de télé|Desfoque de TV|Sfocatura TV
+Algunos juegos usan el desenfoque de la tele para hacer transparencias.|Some games use the TV's blur to make transparency.|Certains jeux utilisent le flou de la télé pour faire de la transparence.|Alguns jogos usam o desfoque da TV para fazer transparências.|Alcuni giochi usano la sfocatura della TV per fare trasparenze.
+Imagen nítida.|Sharp image.|Image nette.|Imagem nítida.|Immagine nitida.
+Mezcla píxeles vecinos: las transparencias se ven como en la tele.|Blends neighboring pixels: transparency looks like on a TV.|Mélange les pixels voisins : les transparences sont comme à la télé.|Mistura pixels vizinhos: as transparências ficam como na TV.|Mescola i pixel vicini: le trasparenze si vedono come in TV.
+Mostrar los bordes ocultos|Show hidden borders|Afficher les bords cachés|Mostrar as bordas ocultas|Mostra i bordi nascosti
+Las líneas que el televisor escondía arriba y abajo.|The lines the TV used to hide at the top and bottom.|Les lignes que la télé cachait en haut et en bas.|As linhas que a TV escondia em cima e embaixo.|Le righe che la TV nascondeva sopra e sotto.
+Como en la tele.|Like on the TV.|Comme à la télé.|Como na TV.|Come in TV.
+Se ve la imagen completa (a veces con basura).|The full image is shown (sometimes with garbage).|L'image complète est visible (parfois avec des parasites).|A imagem completa aparece (às vezes com lixo).|Si vede l'immagine completa (a volte con disturbi).
+La consola dejaba de dibujar objetos cuando había demasiados en una línea.|The console stopped drawing objects when there were too many on a line.|La console cessait de dessiner des objets quand il y en avait trop sur une ligne.|O console parava de desenhar objetos quando havia muitos numa linha.|La console smetteva di disegnare oggetti quando ce n'erano troppi su una riga.
+Con los objetos que desaparecen o parpadean.|With objects disappearing or flickering.|Avec des objets qui disparaissent ou clignotent.|Com os objetos que somem ou piscam.|Con gli oggetti che spariscono o sfarfallano.
+Sin límite|No limit|Sans limite|Sem limite|Senza limite
+Se ve todo siempre.|Everything is always visible.|Tout est toujours visible.|Tudo aparece sempre.|Si vede sempre tutto.
+Paleta del Game Boy|Game Boy palette|Palette Game Boy|Paleta do Game Boy|Tavolozza del Game Boy
+Los colores de los juegos en blanco y negro del Game Boy original.|The colors for the original Game Boy's black and white games.|Les couleurs des jeux noir et blanc du Game Boy d'origine.|As cores dos jogos em preto e branco do Game Boy original.|I colori dei giochi in bianco e nero del Game Boy originale.
+Corrección de color|Color correction|Correction des couleurs|Correção de cor|Correzione del colore
+La pantalla del Game Boy Color era más apagada que un monitor.|The Game Boy Color screen was duller than a monitor.|L'écran de la Game Boy Color était plus terne qu'un moniteur.|A tela do Game Boy Color era mais apagada que um monitor.|Lo schermo del Game Boy Color era più spento di un monitor.
+Colores tal cual el juego: muy vivos.|Colors exactly as the game has them: very vivid.|Couleurs telles quelles : très vives.|Cores tal como no jogo: muito vivas.|Colori così come nel gioco: molto vivaci.
+Como la pantalla del GBC|Like the GBC screen|Comme l'écran de la GBC|Como a tela do GBC|Come lo schermo del GBC
+Colores más suaves, como los veías en la consola.|Softer colors, as you saw them on the console.|Couleurs plus douces, comme sur la console.|Cores mais suaves, como você via no console.|Colori più morbidi, come li vedevi sulla console.
+Como la pantalla del GBA|Like the GBA screen|Comme l'écran de la GBA|Como a tela do GBA|Come lo schermo del GBA
+Según el juego.|Depending on the game.|Selon le jeu.|Conforme o jogo.|In base al gioco.
+Mezcla de cuadros|Frame blending|Fusion d'images|Mistura de quadros|Fusione dei fotogrammi
+Algunos juegos hacen transparencias parpadeando cada cuadro.|Some games make transparency by flickering every frame.|Certains jeux font de la transparence en clignotant à chaque image.|Alguns jogos fazem transparências piscando a cada quadro.|Alcuni giochi fanno trasparenze sfarfallando a ogni fotogramma.
+Imagen nítida; los efectos que parpadean se ven parpadeando.|Sharp image; flickering effects look like they flicker.|Image nette ; les effets qui clignotent clignotent.|Imagem nítida; os efeitos que piscam aparecem piscando.|Immagine nitida; gli effetti che sfarfallano si vedono sfarfallare.
+Mezcla|Mix|Mélange|Mistura|Fusione
+Quita el parpadeo de las transparencias.|Removes the flicker from transparency.|Supprime le clignotement des transparences.|Tira o piscar das transparências.|Toglie lo sfarfallio dalle trasparenze.
+Mezcla inteligente|Smart mix|Mélange intelligent|Mistura inteligente|Fusione intelligente
+Solo mezcla donde hay parpadeo: lo mejor de las dos.|Only blends where there's flicker: the best of both.|Ne mélange que là où ça clignote : le meilleur des deux.|Só mistura onde há piscar: o melhor dos dois.|Mescola solo dove c'è sfarfallio: il meglio dei due.
+Estela de pantalla LCD|LCD ghosting|Rémanence LCD|Rastro de tela LCD|Scia dello schermo LCD
+Imita el rastro que dejaba la pantalla vieja al moverse.|Mimics the trail the old screen left when things moved.|Imite la traînée que laissait le vieil écran en mouvement.|Imita o rastro que a tela antiga deixava ao se mover.|Imita la scia che lasciava il vecchio schermo in movimento.
+Estela de LCD (rápida)|LCD ghosting (fast)|Rémanence LCD (rapide)|Rastro de LCD (rápido)|Scia LCD (veloce)
+Lo mismo, más liviano.|The same, lighter.|La même chose, plus léger.|O mesmo, mais leve.|Lo stesso, più leggero.
+Marcos de Super Game Boy|Super Game Boy borders|Bordures Super Game Boy|Molduras do Super Game Boy|Cornici del Super Game Boy
+Algunos juegos traen un marco decorado para jugarlos en la tele.|Some games include a decorated border for playing them on the TV.|Certains jeux ont un cadre décoré pour jouer sur la télé.|Alguns jogos trazem uma moldura decorada para jogar na TV.|Alcuni giochi hanno una cornice decorata per giocarli in TV.
+Se muestra el marco alrededor del juego.|The border is shown around the game.|Le cadre est affiché autour du jeu.|A moldura aparece ao redor do jogo.|La cornice si vede intorno al gioco.
+Solo la pantalla del juego.|Just the game screen.|Seulement l'écran du jeu.|Só a tela do jogo.|Solo lo schermo del gioco.
+La pantalla del Game Boy Advance era mucho más apagada que un monitor.|The Game Boy Advance screen was much duller than a monitor.|L'écran de la Game Boy Advance était bien plus terne qu'un moniteur.|A tela do Game Boy Advance era muito mais apagada que um monitor.|Lo schermo del Game Boy Advance era molto più spento di un monitor.
+Colores tal cual el juego: muy vivos (a veces demasiado).|Colors exactly as the game has them: very vivid (sometimes too much).|Couleurs telles quelles : très vives (parfois trop).|Cores tal como no jogo: muito vivas (às vezes demais).|Colori così come nel gioco: molto vivaci (a volte troppo).
+Colores más suaves y naturales, como se diseñaron los juegos.|Softer, more natural colors, as the games were designed.|Couleurs plus douces et naturelles, comme les jeux ont été conçus.|Cores mais suaves e naturais, como os jogos foram feitos.|Colori più morbidi e naturali, come sono stati pensati i giochi.
+Antialiasing (MSAA)|Antialiasing (MSAA)|Anticrénelage (MSAA)|Antialiasing (MSAA)|Antialiasing (MSAA)
+Suaviza los bordes dentados de los polígonos.|Smooths the jagged edges of polygons.|Adoucit les bords crénelés des polygones.|Suaviza as bordas serrilhadas dos polígonos.|Ammorbidisce i bordi seghettati dei poligoni.
+Como la consola: bordes con escalones.|Like the console: stair-stepped edges.|Comme la console : bords en escalier.|Como o console: bordas com degraus.|Come la console: bordi a scaletta.
+Bordes más suaves, casi sin costo.|Smoother edges, almost free.|Bords plus doux, presque sans coût.|Bordas mais suaves, quase sem custo.|Bordi più morbidi, quasi senza costo.
+Muy suaves; recomendado con una tarjeta dedicada.|Very smooth; recommended with a dedicated graphics card.|Très doux ; conseillé avec une carte graphique dédiée.|Muito suaves; recomendado com uma placa dedicada.|Molto morbidi; consigliato con una scheda dedicata.
+Lo más suave; pide bastante a la tarjeta.|The smoothest; asks a lot of the graphics card.|Le plus doux ; demande beaucoup à la carte.|O mais suave; exige bastante da placa.|Il più morbido; chiede parecchio alla scheda.
+Exagerado: solo para tarjetas muy potentes.|Overkill: only for very powerful cards.|Exagéré : seulement pour les cartes très puissantes.|Exagerado: só para placas muito potentes.|Esagerato: solo per schede molto potenti.
+Dibuja a la resolución alta y la achica a la original.|Draws at the high resolution and shrinks it to the original.|Dessine en haute résolution et réduit à l'originale.|Desenha na resolução alta e reduz para a original.|Disegna ad alta risoluzione e la riduce all'originale.
+Se ve a la resolución que elijas arriba.|Shown at the resolution you pick above.|Affiché à la résolution choisie plus haut.|Aparece na resolução que você escolher acima.|Si vede alla risoluzione scelta sopra.
+Aspecto original (240p) pero sin dientes de sierra.|Original look (240p) but without jagged edges.|Aspect d'origine (240p) mais sans crénelage.|Aspecto original (240p) mas sem serrilhado.|Aspetto originale (240p) ma senza seghettature.
+Cómo se ven las texturas (las imágenes pegadas sobre los polígonos).|How textures look (the images painted on polygons).|L'aspect des textures (les images collées sur les polygones).|Como ficam as texturas (as imagens coladas nos polígonos).|Come appaiono le texture (le immagini applicate ai poligoni).
+Como la consola: texturas pixeladas y nítidas.|Like the console: pixelated, sharp textures.|Comme la console : textures pixelisées et nettes.|Como o console: texturas pixeladas e nítidas.|Come la console: texture pixelate e nitide.
+Redondea los píxeles de las texturas sin borronear.|Rounds off texture pixels without blurring.|Arrondit les pixels des textures sans flouter.|Arredonda os pixels das texturas sem borrar.|Arrotonda i pixel delle texture senza sfocare.
+Suaviza las texturas como si fueran dibujadas a mano.|Smooths textures as if they were hand-drawn.|Adoucit les textures comme si elles étaient dessinées à la main.|Suaviza as texturas como se fossem desenhadas à mão.|Ammorbidisce le texture come se fossero disegnate a mano.
+Bilineal|Bilinear|Bilinéaire|Bilinear|Bilineare
+Texturas suaves y algo borrosas, como en la N64.|Soft, slightly blurry textures, like on the N64.|Textures douces et un peu floues, comme sur N64.|Texturas suaves e um pouco borradas, como no N64.|Texture morbide e un po' sfocate, come sul N64.
+3 puntos|3-point|3 points|3 pontos|3 punti
+Suaves, con la técnica de la N64.|Soft, using the N64's technique.|Douces, avec la technique de la N64.|Suaves, com a técnica do N64.|Morbide, con la tecnica del N64.
+Suaves y bastante nítidas.|Soft and fairly sharp.|Douces et assez nettes.|Suaves e bem nítidas.|Morbide e abbastanza nitide.
+Geometría precisa (PGXP)|Precise geometry (PGXP)|Géométrie précise (PGXP)|Geometria precisa (PGXP)|Geometria precisa (PGXP)
+La PS1 redondeaba posiciones y los polígonos tiemblan al moverse.|The PS1 rounded positions, so polygons wobble as they move.|La PS1 arrondissait les positions et les polygones tremblent en bougeant.|O PS1 arredondava posições e os polígonos tremem ao se mover.|La PS1 arrotondava le posizioni e i poligoni tremano muovendosi.
+Como la consola: con el temblor típico.|Like the console: with the typical wobble.|Comme la console : avec le tremblement typique.|Como o console: com o tremor típico.|Come la console: con il tipico tremolio.
+Polígonos firmes; funciona en casi todos los juegos.|Steady polygons; works in almost every game.|Polygones stables ; fonctionne dans presque tous les jeux.|Polígonos firmes; funciona em quase todos os jogos.|Poligoni stabili; funziona in quasi tutti i giochi.
+Activada + procesador|On + processor|Activé + processeur|Ligado + processador|Attivato + processore
+Todavía más precisa, pero rompe algunos juegos.|Even more precise, but breaks some games.|Encore plus précise, mais casse certains jeux.|Ainda mais precisa, mas quebra alguns jogos.|Ancora più precisa, ma rompe alcuni giochi.
+Texturas sin deformar (PGXP)|Undistorted textures (PGXP)|Textures non déformées (PGXP)|Texturas sem deformar (PGXP)|Texture senza deformazioni (PGXP)
+Las texturas de la PS1 se doblan en los polígonos grandes. Necesita la geometría precisa.|PS1 textures warp on large polygons. Needs precise geometry.|Les textures de la PS1 se tordent sur les grands polygones. Nécessite la géométrie précise.|As texturas do PS1 se dobram nos polígonos grandes. Precisa da geometria precisa.|Le texture della PS1 si deformano sui poligoni grandi. Richiede la geometria precisa.
+Como la consola: texturas que se deforman.|Like the console: warping textures.|Comme la console : textures qui se déforment.|Como o console: texturas que se deformam.|Come la console: texture che si deformano.
+Texturas derechas, como en una consola moderna.|Straight textures, like on a modern console.|Textures droites, comme sur une console moderne.|Texturas retas, como num console moderno.|Texture dritte, come su una console moderna.
+Pantalla ancha (16:9)|Widescreen (16:9)|Écran large (16:9)|Tela larga (16:9)|Schermo largo (16:9)
+Abre la vista en los juegos 3D para llenar una pantalla ancha.|Widens the view in 3D games to fill a widescreen.|Élargit la vue des jeux 3D pour remplir un écran large.|Abre a visão nos jogos 3D para preencher uma tela larga.|Allarga la visuale nei giochi 3D per riempire uno schermo largo.
+4:3, como la consola.|4:3, like the console.|4:3, comme la console.|4:3, como o console.|4:3, come la console.
+Ves más a los lados; en algunos juegos aparecen cosas que no debían verse.|You see more to the sides; in some games things show up that weren't meant to be seen.|Vous voyez plus sur les côtés ; dans certains jeux apparaissent des choses qui ne devaient pas être vues.|Você vê mais dos lados; em alguns jogos aparecem coisas que não deviam aparecer.|Vedi di più ai lati; in alcuni giochi compaiono cose che non dovevano vedersi.
+Tramado|Dithering|Tramage|Pontilhado|Retinatura
+La PS1 usaba una trama de puntitos para disimular que tenía pocos colores.|The PS1 used a dot pattern to hide that it had few colors.|La PS1 utilisait une trame de points pour masquer son peu de couleurs.|O PS1 usava uma trama de pontinhos para disfarçar que tinha poucas cores.|La PS1 usava una trama di puntini per nascondere che aveva pochi colori.
+Los puntitos como en la consola.|The dots like on the console.|Les points comme sur la console.|Os pontinhos como no console.|I puntini come sulla console.
+A la resolución alta|At the high resolution|À la haute résolution|Na resolução alta|Alla risoluzione alta
+Puntitos más finos y menos visibles.|Finer, less visible dots.|Points plus fins et moins visibles.|Pontinhos mais finos e menos visíveis.|Puntini più fini e meno visibili.
+Sin puntitos: imagen limpia (a veces con bandas de color).|No dots: clean image (sometimes with color banding).|Sans points : image propre (parfois avec des bandes de couleur).|Sem pontinhos: imagem limpa (às vezes com faixas de cor).|Senza puntini: immagine pulita (a volte con bande di colore).
+Profundidad de color|Color depth|Profondeur de couleur|Profundidade de cor|Profondità di colore
+Cuántos colores se usan para dibujar.|How many colors are used for drawing.|Le nombre de couleurs utilisées pour dessiner.|Quantas cores são usadas para desenhar.|Quanti colori si usano per disegnare.
+Como la consola.|Like the console.|Comme la console.|Como o console.|Come la console.
+Como la consola: con bandas en los degradados.|Like the console: with banding in gradients.|Comme la console : avec des bandes dans les dégradés.|Como o console: com faixas nos degradês.|Come la console: con bande nelle sfumature.
+Degradados suaves, sin bandas. Combínalo con el tramado desactivado.|Smooth gradients, no banding. Combine it with dithering off.|Dégradés doux, sans bandes. À combiner avec le tramage désactivé.|Degradês suaves, sem faixas. Combine com o pontilhado desligado.|Sfumature morbide, senza bande. Abbinalo alla retinatura disattivata.
+Corregida|Corrected|Corrigé|Corrigida|Corretta
+La forma correcta de cada juego (4:3).|The correct shape for each game (4:3).|La forme correcte de chaque jeu (4:3).|O formato correto de cada jogo (4:3).|La forma corretta di ogni gioco (4:3).
+Sin corregir|Uncorrected|Non corrigé|Sem corrigir|Non corretta
+Píxeles cuadrados.|Square pixels.|Pixels carrés.|Pixels quadrados.|Pixel quadrati.
+Siempre 4:3.|Always 4:3.|Toujours 4:3.|Sempre 4:3.|Sempre 4:3.
+Como en una tele de América y Japón.|Like on an American or Japanese TV.|Comme sur une télé d'Amérique ou du Japon.|Como numa TV da América e do Japão.|Come su una TV americana o giapponese.
+Estirada a pantalla ancha (úsala con la pantalla ancha activada).|Stretched to widescreen (use it with widescreen on).|Étiré en écran large (à utiliser avec l'écran large activé).|Esticada para tela larga (use com a tela larga ligada).|Allungata a schermo largo (usala con lo schermo largo attivo).
+Recortar los bordes|Crop the borders|Rogner les bords|Cortar as bordas|Ritaglia i bordi
+Quita los bordes negros que dejaba la consola.|Removes the black borders the console left.|Supprime les bords noirs laissés par la console.|Tira as bordas pretas que o console deixava.|Toglie i bordi neri lasciati dalla console.
+Imagen completa, con bordes.|Full image, with borders.|Image complète, avec bords.|Imagem completa, com bordas.|Immagine completa, con bordi.
+A los lados|On the sides|Sur les côtés|Nos lados|Ai lati
+Quita los bordes laterales.|Removes the side borders.|Supprime les bords latéraux.|Tira as bordas laterais.|Toglie i bordi laterali.
+A los lados y arriba/abajo|Sides and top/bottom|Côtés et haut/bas|Lados e cima/baixo|Ai lati e sopra/sotto
+Quita todos los bordes negros.|Removes all the black borders.|Supprime tous les bords noirs.|Tira todas as bordas pretas.|Toglie tutti i bordi neri.
+Original (4:3)|Original (4:3)|Original (4:3)|Original (4:3)|Originale (4:3)
+Ancha (estirada)|Wide (stretched)|Large (étiré)|Larga (esticada)|Larga (allungata)
+Llena una pantalla ancha estirando la imagen.|Fills a widescreen by stretching the image.|Remplit un écran large en étirant l'image.|Preenche uma tela larga esticando a imagem.|Riempie uno schermo largo allungando l'immagine.
+Ancha (ajustada)|Wide (adjusted)|Large (ajusté)|Larga (ajustada)|Larga (regolata)
+Abre la vista a pantalla ancha sin estirar (OpenGL).|Widens the view to widescreen without stretching (OpenGL).|Élargit la vue en écran large sans étirer (OpenGL).|Abre a visão para tela larga sem esticar (OpenGL).|Allarga la visuale a schermo largo senza allungare (OpenGL).
+Suaviza los bordes dentados de los polígonos (OpenGL).|Smooths the jagged edges of polygons (OpenGL).|Adoucit les bords crénelés des polygones (OpenGL).|Suaviza as bordas serrilhadas dos polígonos (OpenGL).|Ammorbidisce i bordi seghettati dei poligoni (OpenGL).
+Bordes con escalones.|Stair-stepped edges.|Bords en escalier.|Bordas com degraus.|Bordi a scaletta.
+Más suaves, casi sin costo.|Smoother, almost free.|Plus doux, presque sans coût.|Mais suaves, quase sem custo.|Più morbidi, quasi senza costo.
+Muy suaves; recomendado con tarjeta dedicada.|Very smooth; recommended with a dedicated card.|Très doux ; conseillé avec une carte dédiée.|Muito suaves; recomendado com placa dedicada.|Molto morbidi; consigliato con scheda dedicata.
+Otra forma de suavizar bordes, muy liviana (OpenGL).|Another, very light way to smooth edges (OpenGL).|Une autre façon d'adoucir les bords, très légère (OpenGL).|Outra forma de suavizar bordas, muito leve (OpenGL).|Un altro modo di ammorbidire i bordi, molto leggero (OpenGL).
+Bordes más suaves con muy poco costo; la imagen queda un poco más blanda.|Smoother edges at very little cost; the image gets a bit softer.|Bords plus doux pour très peu ; l'image devient un peu plus douce.|Bordas mais suaves com muito pouco custo; a imagem fica um pouco mais macia.|Bordi più morbidi a costo minimo; l'immagine diventa un po' più morbida.
+Filtro de texturas de la consola|Console texture filter|Filtre de textures de la console|Filtro de texturas do console|Filtro texture della console
+La N64 suavizaba sus texturas con un método propio.|The N64 smoothed its textures with its own method.|La N64 adoucissait ses textures avec sa propre méthode.|O N64 suavizava suas texturas com um método próprio.|Il N64 ammorbidiva le texture con un metodo tutto suo.
+3 puntos (como la N64)|3-point (like the N64)|3 points (comme la N64)|3 pontos (como o N64)|3 punti (come il N64)
+El suavizado original de la consola: más fiel.|The console's original smoothing: more faithful.|L'adoucissement d'origine de la console : plus fidèle.|A suavização original do console: mais fiel.|L'ammorbidimento originale della console: più fedele.
+Bilineal estándar|Standard bilinear|Bilinéaire standard|Bilinear padrão|Bilineare standard
+El suavizado de las tarjetas de PC: un poco más borroso.|PC graphics card smoothing: a bit blurrier.|L'adoucissement des cartes PC : un peu plus flou.|A suavização das placas de PC: um pouco mais borrada.|L'ammorbidimento delle schede PC: un po' più sfocato.
+Suavizar o afilar texturas|Smooth or sharpen textures|Adoucir ou affiner les textures|Suavizar ou afiar texturas|Ammorbidisci o affila le texture
+Un filtro extra sobre las texturas (OpenGL).|An extra filter on textures (OpenGL).|Un filtre en plus sur les textures (OpenGL).|Um filtro extra sobre as texturas (OpenGL).|Un filtro in più sulle texture (OpenGL).
+Las texturas tal cual.|Textures as they are.|Les textures telles quelles.|As texturas tal como são.|Le texture così come sono.
+Suave 1|Smooth 1|Doux 1|Suave 1|Morbido 1
+Un poco más suaves.|A bit smoother.|Un peu plus douces.|Um pouco mais suaves.|Un po' più morbide.
+Suave 2|Smooth 2|Doux 2|Suave 2|Morbido 2
+Suave 3|Smooth 3|Doux 3|Suave 3|Morbido 3
+Suave 4|Smooth 4|Doux 4|Suave 4|Morbido 4
+Lo más suave.|The smoothest.|Le plus doux.|O mais suave.|Il più morbido.
+Nítido 1|Sharp 1|Net 1|Nítido 1|Nitido 1
+Texturas más definidas.|More defined textures.|Textures plus définies.|Texturas mais definidas.|Texture più definite.
+Nítido 2|Sharp 2|Net 2|Nítido 2|Nitido 2
+Lo más definido.|The most defined.|Le plus défini.|O mais definido.|Il più definito.
+Agrandar texturas|Upscale textures|Agrandir les textures|Ampliar texturas|Ingrandisci le texture
+Agranda las texturas con un filtro para que se vean menos pixeladas (OpenGL).|Enlarges textures with a filter so they look less pixelated (OpenGL).|Agrandit les textures avec un filtre pour qu'elles soient moins pixelisées (OpenGL).|Amplia as texturas com um filtro para parecerem menos pixeladas (OpenGL).|Ingrandisce le texture con un filtro per farle sembrare meno pixelate (OpenGL).
+Las texturas originales.|The original textures.|Les textures d'origine.|As texturas originais.|Le texture originali.
+Tal cual|As is|Tel quel|Tal como está|Così com'è
+Las originales, sin filtro.|The originals, no filter.|Les originales, sans filtre.|As originais, sem filtro.|Le originali, senza filtro.
+Bordes redondeados, estilo dibujo.|Rounded edges, drawing style.|Bords arrondis, style dessin.|Bordas arredondadas, estilo desenho.|Bordi arrotondati, stile disegno.
+Suaviza sin perder los contornos.|Smooths without losing the outlines.|Adoucit sans perdre les contours.|Suaviza sem perder os contornos.|Ammorbidisce senza perdere i contorni.
+Como HQ2x, más grande.|Like HQ2x, larger.|Comme HQ2x, en plus grand.|Como HQ2x, maior.|Come HQ2x, più grande.
+Muy limpio, estilo dibujo animado.|Very clean, cartoon style.|Très propre, style dessin animé.|Muito limpo, estilo desenho animado.|Molto pulito, stile cartone animato.
+Lo más limpio; pide más a la tarjeta.|The cleanest; asks more of the card.|Le plus propre ; demande plus à la carte.|O mais limpo; exige mais da placa.|Il più pulito; chiede di più alla scheda.
+Supermuestreo (Vulkan)|Supersampling (Vulkan)|Suréchantillonnage (Vulkan)|Supersampling (Vulkan)|Supercampionamento (Vulkan)
+Dibuja grande y lo achica: aspecto original sin dientes de sierra.|Draws large and shrinks it: original look with no jagged edges.|Dessine en grand puis réduit : aspect d'origine sans crénelage.|Desenha grande e reduz: aspecto original sem serrilhado.|Disegna in grande e riduce: aspetto originale senza seghettature.
+Se ve a la resolución elegida.|Shown at the chosen resolution.|Affiché à la résolution choisie.|Aparece na resolução escolhida.|Si vede alla risoluzione scelta.
+A la mitad|Half|À la moitié|Pela metade|A metà
+Más limpio.|Cleaner.|Plus propre.|Mais limpo.|Più pulito.
+A un cuarto|A quarter|Au quart|A um quarto|A un quarto
+A un octavo|An eighth|Au huitième|A um oitavo|A un ottavo
+Aspecto original perfecto con la resolución más alta.|Perfect original look with the highest resolution.|Aspect d'origine parfait avec la plus haute résolution.|Aspecto original perfeito com a resolução mais alta.|Aspetto originale perfetto con la risoluzione più alta.
+Suavizado horizontal|Horizontal blending|Fusion horizontale|Suavização horizontal|Fusione orizzontale
+Algunos juegos de Saturn usaban el desenfoque de la tele para hacer transparencias.|Some Saturn games used the TV's blur to make transparency.|Certains jeux Saturn utilisaient le flou de la télé pour la transparence.|Alguns jogos de Saturn usavam o desfoque da TV para fazer transparências.|Alcuni giochi Saturn usavano la sfocatura della TV per fare trasparenze.
+Mezcla píxeles vecinos: transparencias como en la tele.|Blends neighboring pixels: transparency like on a TV.|Mélange les pixels voisins : transparences comme à la télé.|Mistura pixels vizinhos: transparências como na TV.|Mescola i pixel vicini: trasparenze come in TV.
+Transparencias mejoradas|Improved transparency|Transparences améliorées|Transparências melhoradas|Trasparenze migliorate
+La Saturn dibujaba las transparencias como una malla de puntos.|The Saturn drew transparency as a mesh of dots.|La Saturn dessinait les transparences comme une grille de points.|O Saturn desenhava as transparências como uma malha de pontos.|Il Saturn disegnava le trasparenze come una rete di puntini.
+Se ve la malla de puntos.|The dot mesh is visible.|La grille de points est visible.|A malha de pontos aparece.|Si vede la rete di puntini.
+Transparencias reales|Real transparency|Vraies transparences|Transparências reais|Trasparenze vere
+La malla se convierte en una transparencia suave.|The mesh becomes a smooth transparency.|La grille devient une transparence douce.|A malha vira uma transparência suave.|La rete diventa una trasparenza morbida.
+Desentrelazado|Deinterlacing|Désentrelacement|Desentrelaçamento|Deinterlacciamento
+Algunos juegos usan modo entrelazado (menús en alta resolución).|Some games use interlaced mode (high-resolution menus).|Certains jeux utilisent le mode entrelacé (menus en haute résolution).|Alguns jogos usam modo entrelaçado (menus em alta resolução).|Alcuni giochi usano la modalità interlacciata (menu in alta risoluzione).
+Tejido|Weave|Tissage|Entrelaçado|Intreccio
+Nítido en imágenes quietas; peinado al moverse.|Sharp on still images; combed when moving.|Net sur les images fixes ; effet de peigne en mouvement.|Nítido em imagens paradas; penteado ao se mover.|Nitido sulle immagini ferme; a pettine in movimento.
+Sin peinado, con un leve parpadeo.|No combing, with a slight flicker.|Sans effet de peigne, avec un léger scintillement.|Sem penteado, com um leve piscar.|Senza effetto pettine, con un leggero sfarfallio.
+Bob con ajuste|Bob with offset|Bob avec décalage|Bob com ajuste|Bob con correzione
+Como Bob, más estable.|Like Bob, more stable.|Comme Bob, plus stable.|Como Bob, mais estável.|Come Bob, più stabile.
+Adaptativo|Adaptive|Adaptatif|Adaptativo|Adattivo
+Lo mejor de los dos: nítido quieto y limpio en movimiento.|The best of both: sharp when still and clean in motion.|Le meilleur des deux : net à l'arrêt et propre en mouvement.|O melhor dos dois: nítido parado e limpo em movimento.|Il meglio dei due: nitido da fermo e pulito in movimento.
+Progresivo|Progressive|Progressif|Progressivo|Progressivo
+Para juegos que no lo necesitan.|For games that don't need it.|Pour les jeux qui n'en ont pas besoin.|Para jogos que não precisam.|Per i giochi che non ne hanno bisogno.
+Recortar los bordes laterales|Crop the side borders|Rogner les bords latéraux|Cortar as bordas laterais|Ritaglia i bordi laterali
+Quita columnas de los bordes, que algunas teles escondían.|Removes columns at the edges, which some TVs hid.|Supprime des colonnes sur les bords, que certaines télés cachaient.|Tira colunas das bordas, que algumas TVs escondiam.|Toglie colonne dai bordi, che alcune TV nascondevano.
+Primera línea visible|First visible line|Première ligne visible|Primeira linha visível|Prima riga visibile
+Recorta líneas de arriba (la tele escondía algunas).|Crops lines at the top (the TV hid some).|Rogne des lignes en haut (la télé en cachait).|Corta linhas de cima (a TV escondia algumas).|Ritaglia righe in alto (la TV ne nascondeva alcune).
+Última línea visible|Last visible line|Dernière ligne visible|Última linha visível|Ultima riga visibile
+Recorta líneas de abajo.|Crops lines at the bottom.|Rogne des lignes en bas.|Corta linhas de baixo.|Ritaglia righe in basso.
+La imagen llena la pantalla sin deformarse (puede quedar una franja a los lados).|The image fills the screen without distorting (there may be a strip on the sides).|L'image remplit l'écran sans se déformer (il peut rester une bande sur les côtés).|A imagem preenche a tela sem deformar (pode sobrar uma faixa nos lados).|L'immagine riempie lo schermo senza deformarsi (può restare una fascia ai lati).
+Solo tamaños exactos (2×, 3×…): píxeles perfectos, con un borde alrededor.|Exact sizes only (2×, 3×…): perfect pixels, with a border around.|Tailles exactes seulement (2×, 3×…) : pixels parfaits, avec un bord autour.|Só tamanhos exatos (2×, 3×…): pixels perfeitos, com uma borda ao redor.|Solo dimensioni esatte (2×, 3×…): pixel perfetti, con un bordo intorno.
+Llena toda la pantalla aunque se deforme.|Fills the whole screen even if it distorts.|Remplit tout l'écran même si l'image se déforme.|Preenche a tela toda mesmo que deforme.|Riempie tutto lo schermo anche se si deforma.
+Píxeles duros y cuadrados. Perfecto con tamaño entero; en otros tamaños algunos píxeles salen más gruesos.|Hard, square pixels. Perfect at integer size; at other sizes some pixels come out thicker.|Pixels durs et carrés. Parfait en taille entière ; à d'autres tailles, certains pixels sont plus épais.|Pixels duros e quadrados. Perfeito em tamanho inteiro; em outros tamanhos alguns pixels saem mais grossos.|Pixel netti e quadrati. Perfetto a dimensione intera; ad altre dimensioni alcuni pixel risultano più spessi.
+Píxeles cuadrados y parejos a cualquier tamaño, sin bordes temblorosos. El recomendado.|Square, even pixels at any size, with no shimmering edges. The recommended one.|Pixels carrés et réguliers à toute taille, sans bords qui scintillent. Le recommandé.|Pixels quadrados e uniformes em qualquer tamanho, sem bordas tremidas. O recomendado.|Pixel quadrati e uniformi a qualsiasi dimensione, senza bordi tremolanti. Il consigliato.
+Todo suavizado: sin píxeles visibles, pero más borroso.|Everything smoothed: no visible pixels, but blurrier.|Tout adouci : pas de pixels visibles, mais plus flou.|Tudo suavizado: sem pixels visíveis, mas mais borrado.|Tutto ammorbidito: niente pixel visibili, ma più sfocato.
+Imagen limpia, sin efectos.|Clean image, no effects.|Image propre, sans effets.|Imagem limpa, sem efeitos.|Immagine pulita, senza effetti.
+Líneas horizontales finas, como el barrido de un televisor viejo.|Thin horizontal lines, like an old TV's scan.|Fines lignes horizontales, comme le balayage d'une vieille télé.|Linhas horizontais finas, como a varredura de uma TV antiga.|Sottili linee orizzontali, come la scansione di una vecchia TV.
+Televisor de tubo: líneas, máscara de colores y bordes oscurecidos.|Tube TV: lines, color mask and darkened edges.|Télé cathodique : lignes, masque de couleurs et bords assombris.|TV de tubo: linhas, máscara de cores e bordas escurecidas.|TV a tubo: linee, maschera di colori e bordi scuriti.
+La rejilla de la pantalla de las portátiles.|The grid of handheld screens.|La grille de l'écran des consoles portables.|A grade da tela dos portáteis.|La griglia dello schermo delle portatili.
+CRT en las consolas de TV en 2D, LCD en las portátiles y limpio en las 3D.|CRT on 2D TV consoles, LCD on handhelds and clean on 3D ones.|CRT sur les consoles de salon 2D, LCD sur les portables et propre sur les 3D.|CRT nos consoles de TV em 2D, LCD nos portáteis e limpo nos 3D.|CRT sulle console da TV in 2D, LCD sulle portatili e pulito sulle 3D.
+Aquí ajustas cómo se ve cada consola. Elige una en la barra y cambia su imagen, su resolución y las opciones de su emulador; debajo de cada opción te digo qué hace lo que elegiste.|Here you set how each console looks. Pick one in the bar and change its image, its resolution and its emulator's options; under each option I tell you what your choice does.|Ici, vous réglez l'aspect de chaque console. Choisissez-en une dans la barre et changez son image, sa résolution et les options de son émulateur ; sous chaque option, je vous dis ce que fait votre choix.|Aqui você ajusta como cada console aparece. Escolha um na barra e mude a imagem, a resolução e as opções do emulador; embaixo de cada opção eu digo o que faz o que você escolheu.|Qui regoli come si vede ogni console. Scegline una nella barra e cambia immagine, risoluzione e opzioni del suo emulatore; sotto ogni opzione ti dico cosa fa la tua scelta.
+Cada consola|Each console|Chaque console|Cada console|Ogni console
+Elige la consola que quieres ajustar. Lo que cambies vale solo para ella.|Pick the console you want to adjust. What you change applies to it only.|Choisissez la console à régler. Ce que vous changez ne vaut que pour elle.|Escolha o console que quer ajustar. O que mudar vale só para ele.|Scegli la console da regolare. Ciò che cambi vale solo per lei.
+Imagen|Image|Image|Imagem|Immagine
+Apagado: usa la imagen general (la misma para todas las consolas que no tengan la suya).|Off: uses the general image (the same for every console without its own).|Désactivé : utilise l'image générale (la même pour toutes les consoles sans la leur).|Desligado: usa a imagem geral (a mesma para todos os consoles sem a sua).|Disattivato: usa l'immagine generale (la stessa per tutte le console senza la propria).
+Estás cambiando la imagen general: vale para esta consola y para todas las que no tengan la suya.|You're changing the general image: it applies to this console and to every one without its own.|Vous modifiez l'image générale : elle vaut pour cette console et pour toutes celles sans la leur.|Você está mudando a imagem geral: vale para este console e para todos os que não têm a sua.|Stai cambiando l'immagine generale: vale per questa console e per tutte quelle senza la propria.
+Motor y resolución|Renderer and resolution|Moteur et résolution|Motor e resolução|Motore e risoluzione
+Ahora: OpenGL. Funciona en cualquier tarjeta.|Now: OpenGL. Works on any graphics card.|Actuellement : OpenGL. Fonctionne sur toute carte.|Agora: OpenGL. Funciona em qualquer placa.|Ora: OpenGL. Funziona su qualsiasi scheda.
+Ahora: Vulkan. Más rápido en tarjetas NVIDIA y AMD.|Now: Vulkan. Faster on NVIDIA and AMD cards.|Actuellement : Vulkan. Plus rapide sur les cartes NVIDIA et AMD.|Agora: Vulkan. Mais rápido em placas NVIDIA e AMD.|Ora: Vulkan. Più veloce sulle schede NVIDIA e AMD.
+Ahora: el procesador. Fiel, pero solo hasta 2× y más lento.|Now: the processor. Faithful, but only up to 2× and slower.|Actuellement : le processeur. Fidèle, mais seulement jusqu'à 2× et plus lent.|Agora: o processador. Fiel, mas só até 2× e mais lento.|Ora: il processore. Fedele, ma solo fino a 2× e più lento.
+Ahora: GLideN64 con OpenGL. Acepta resoluciones exactas y tiene más filtros.|Now: GLideN64 with OpenGL. Accepts exact resolutions and has more filters.|Actuellement : GLideN64 avec OpenGL. Accepte des résolutions exactes et a plus de filtres.|Agora: GLideN64 com OpenGL. Aceita resoluções exatas e tem mais filtros.|Ora: GLideN64 con OpenGL. Accetta risoluzioni esatte e ha più filtri.
+Ahora: ParaLLEl-RDP con Vulkan. El más fiel a la consola; sube de 2 en 2.|Now: ParaLLEl-RDP with Vulkan. The most faithful to the console; goes up in steps of 2.|Actuellement : ParaLLEl-RDP avec Vulkan. Le plus fidèle à la console ; monte par paliers de 2.|Agora: ParaLLEl-RDP com Vulkan. O mais fiel ao console; sobe de 2 em 2.|Ora: ParaLLEl-RDP con Vulkan. Il più fedele alla console; sale di 2 in 2.
+Ahora: Angrylion con el procesador. Muy fiel, pero pesado y sin subir la resolución.|Now: Angrylion on the processor. Very faithful, but heavy and with no resolution increase.|Actuellement : Angrylion avec le processeur. Très fidèle, mais lourd et sans hausse de résolution.|Agora: Angrylion com o processador. Muito fiel, mas pesado e sem aumentar a resolução.|Ora: Angrylion con il processore. Molto fedele, ma pesante e senza aumentare la risoluzione.
+como tu pantalla|like your screen|comme votre écran|como a sua tela|come il tuo schermo
+la más cercana a tu pantalla|the closest to your screen|la plus proche de votre écran|a mais próxima da sua tela|la più vicina al tuo schermo
+La PS1 solo sube de 2 en 2 (1×, 2×, 4×, 8× y 16×), así que no siempre hay una igual a tu pantalla. Si eliges una más grande, se dibuja grande y se achica a tu pantalla: se ve más nítida. Automática elige la más cercana.|The PS1 only goes up in steps of 2 (1×, 2×, 4×, 8× and 16×), so there isn't always one equal to your screen. If you pick a larger one, it's drawn large and shrunk to your screen: it looks sharper. Automatic picks the closest.|La PS1 ne monte que par paliers de 2 (1×, 2×, 4×, 8× et 16×), il n'y en a donc pas toujours une égale à votre écran. Si vous en choisissez une plus grande, elle est dessinée en grand puis réduite à votre écran : c'est plus net. Automatique choisit la plus proche.|O PS1 só sobe de 2 em 2 (1×, 2×, 4×, 8× e 16×), então nem sempre há uma igual à sua tela. Se escolher uma maior, ela é desenhada grande e reduzida para a sua tela: fica mais nítida. Automática escolhe a mais próxima.|La PS1 sale solo di 2 in 2 (1×, 2×, 4×, 8× e 16×), quindi non sempre ce n'è una uguale al tuo schermo. Se ne scegli una più grande, viene disegnata in grande e ridotta al tuo schermo: si vede più nitida. Automatica sceglie la più vicina.
+Con Vulkan la 64 sube de 2 en 2 (1×, 2×, 4× y 8×). Si quieres una resolución exacta, usa OpenGL.|With Vulkan the 64 goes up in steps of 2 (1×, 2×, 4× and 8×). For an exact resolution, use OpenGL.|Avec Vulkan, la 64 monte par paliers de 2 (1×, 2×, 4× et 8×). Pour une résolution exacte, utilisez OpenGL.|Com Vulkan o 64 sobe de 2 em 2 (1×, 2×, 4× e 8×). Se quiser uma resolução exata, use OpenGL.|Con Vulkan il 64 sale di 2 in 2 (1×, 2×, 4× e 8×). Per una risoluzione esatta, usa OpenGL.
+Con OpenGL la 64 dibuja exactamente a la resolución que elijas. La marcada «como tu pantalla» es la ideal.|With OpenGL the 64 draws at exactly the resolution you pick. The one marked “like your screen” is ideal.|Avec OpenGL, la 64 dessine exactement à la résolution choisie. Celle marquée « comme votre écran » est l'idéale.|Com OpenGL o 64 desenha exatamente na resolução que você escolher. A marcada «como a sua tela» é a ideal.|Con OpenGL il 64 disegna esattamente alla risoluzione scelta. Quella segnata «come il tuo schermo» è l'ideale.
+Opciones de su emulador|Its emulator's options|Options de son émulateur|Opções do emulador|Opzioni del suo emulatore
+Estas opciones aparecen cuando el emulador de esta consola está instalado.|These options appear when this console's emulator is installed.|Ces options apparaissent quand l'émulateur de cette console est installé.|Essas opções aparecem quando o emulador deste console está instalado.|Queste opzioni compaiono quando l'emulatore di questa console è installato.
+Más opciones de imagen del emulador (%d)|More image options from the emulator (%d)|Plus d'options d'image de l'émulateur (%d)|Mais opções de imagem do emulador (%d)|Altre opzioni immagine dell'emulatore (%d)
+Las trae el propio emulador; su explicación es la suya. Pasa el mouse por el nombre para leerla completa.|They come from the emulator itself; the explanation is its own. Hover over the name to read it in full.|Elles viennent de l'émulateur ; l'explication est la sienne. Survolez le nom pour la lire en entier.|Vêm do próprio emulador; a explicação é dele. Passe o mouse pelo nome para ler completa.|Le fornisce l'emulatore stesso; la spiegazione è la sua. Passa il mouse sul nome per leggerla tutta.
+líneas|lines|lignes|linhas|righe
+Nada|None|Rien|Nada|Niente
+(del emulador)|(emulator's)|(de l'émulateur)|(do emulador)|(dell'emulatore)
+El emulador de esta consola no tiene más opciones de imagen: usa las de arriba.|This console's emulator has no more image options: use the ones above.|L'émulateur de cette console n'a pas d'autres options d'image : utilisez celles du dessus.|O emulador deste console não tem mais opções de imagem: use as de cima.|L'emulatore di questa console non ha altre opzioni immagine: usa quelle sopra.
+Las opciones del emulador se aplican al momento o al volver a abrir el juego. También están en Ajustes » Núcleo.|Emulator options apply right away or when you reopen the game. They're also in Settings » Core.|Les options de l'émulateur s'appliquent tout de suite ou à la réouverture du jeu. Elles sont aussi dans Réglages » Cœur.|As opções do emulador valem na hora ou ao reabrir o jogo. Também estão em Ajustes » Núcleo.|Le opzioni dell'emulatore si applicano subito o riaprendo il gioco. Sono anche in Impostazioni » Core.
+Para toda la app|For the whole app|Pour toute l'app|Para todo o app|Per tutta l'app
+Esto vale para todas las consolas.|This applies to every console.|Ceci vaut pour toutes les consoles.|Isso vale para todos os consoles.|Questo vale per tutte le console.
+Gráficos de %s (todas las opciones)…|%s graphics (all options)…|Graphismes de %s (toutes les options)…|Gráficos do %s (todas as opções)…|Grafica di %s (tutte le opzioni)…
+El juego está en pausa mientras miras esto.|The game is paused while you look at this.|Le jeu est en pause pendant que vous regardez ceci.|O jogo está pausado enquanto você vê isto.|Il gioco è in pausa mentre guardi questo.
+Volver al juego|Back to the game|Retour au jeu|Voltar ao jogo|Torna al gioco
+Más opciones del medidor…|More meter options…|Plus d'options du compteur…|Mais opções do medidor…|Altre opzioni del misuratore…
+El medidor se ve mientras juegas.|The meter shows while you play.|Le compteur s'affiche pendant que vous jouez.|O medidor aparece enquanto você joga.|Il misuratore si vede mentre giochi.
+Sin logo|No logo|Sans logo|Sem logo|Senza logo
+Conocer a los guías…|Meet the guides…|Rencontrer les guides…|Conhecer os guias…|Conosci le guide…
+La biblioteca cierra el juego (guardando dónde quedaste).|The library closes the game (saving where you left off).|La bibliothèque ferme le jeu (en sauvegardant où vous en étiez).|A biblioteca fecha o jogo (salvando onde você parou).|La libreria chiude il gioco (salvando dove eri rimasto).
+Volver a la biblioteca|Back to the library|Retour à la bibliothèque|Voltar à biblioteca|Torna alla libreria
+Abrir un juego…|Open a game…|Ouvrir un jeu…|Abrir um jogo…|Apri un gioco…
+Agregar una carpeta de juegos…|Add a games folder…|Ajouter un dossier de jeux…|Adicionar uma pasta de jogos…|Aggiungi una cartella di giochi…
+Volver a buscar juegos|Search for games again|Rechercher les jeux à nouveau|Procurar jogos de novo|Cerca di nuovo i giochi
+Todas las consolas|All consoles|Toutes les consoles|Todos os consoles|Tutte le console
+Herramientas (Memory Cards, mandos, .chd…)|Tools (Memory Cards, controllers, .chd…)|Outils (Memory Cards, manettes, .chd…)|Ferramentas (Memory Cards, controles, .chd…)|Strumenti (Memory Card, controller, .chd…)
+Novedades de esta build|What's new in this build|Nouveautés de cette build|Novidades desta build|Novità di questa build
+Ver el proyecto en GitHub|View the project on GitHub|Voir le projet sur GitHub|Ver o projeto no GitHub|Vedi il progetto su GitHub
+Archivo|File|Fichier|Arquivo|File
+Consolas|Consoles|Consoles|Consoles|Console
+No|No|Non|Não|No
+Original|Original|Original|Original|Originale

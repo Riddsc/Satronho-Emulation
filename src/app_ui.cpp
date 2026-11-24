@@ -108,6 +108,7 @@ void App::DrawUi() {
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     if (in_game_) {
         DrawGameLayer();
+        DrawGameOverlay();
         DrawToasts();
         if (!pending_start_.empty()) DrawLoading();
         DrawTouchPad();
@@ -115,8 +116,9 @@ void App::DrawUi() {
         return;
     }
 
-    ImGui::SetNextWindowPos(vp->Pos);
-    ImGui::SetNextWindowSize(vp->Size);
+    const float home_bar = HomeBarHeight();
+    ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y + home_bar});
+    ImGui::SetNextWindowSize({vp->Size.x, vp->Size.y - home_bar});
     ImGui::PushStyleColor(ImGuiCol_WindowBg, V4(Color::Bg));
     ImGui::Begin("##principal", nullptr, kFull);
     ImGui::PopStyleColor();
@@ -156,6 +158,7 @@ void App::DrawUi() {
     ImGui::EndChild();
     ImGui::End();
 
+    DrawHomeBar();
     if (page_ == Page::Library && !compact_) DrawGuideBubble();
     DrawToasts();
     if (show_welcome_) DrawWelcome();
@@ -1195,6 +1198,7 @@ void App::DrawSettings() {
     ImGui::BeginChild("##panel_ajustes", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
+    if (qa_.count("bajar") && qa_frames_ > 5) ImGui::SetScrollY(S(static_cast<float>(std::atof(qa_["bajar"].c_str()))));
     switch (tab_) {
     case SettingsTab::Video: DrawSettingsVideo(); break;
     case SettingsTab::Audio: DrawSettingsAudio(); break;
@@ -1212,92 +1216,6 @@ void App::DrawSettings() {
     }
     ImGui::Dummy({0, S(10)});
     ImGui::EndChild();
-}
-
-void App::DrawSettingsVideo() {
-    GuideSays(GuideId::Troya,
-              "«Nítido suave» deja los píxeles cuadrados y sin bordes temblorosos a cualquier tamaño. "
-              "Para sentirte frente al televisor de antes, prueba la «Pantalla CRT».");
-    ImGui::Dummy({0, S(16)});
-    bool changed = false;
-
-    RowBegin("Pantalla completa", "También con F11 o Alt+Enter.");
-    bool fs = settings_.fullscreen;
-    if (Toggle("##fs", &fs)) {
-        SetFullscreen(fs);
-        changed = true;
-    }
-    RowEnd();
-
-    RowBegin("Pantalla completa a 60 Hz", "Si tu pantalla es de 120 o 144 Hz, al jugar en pantalla completa la cambio a 60 Hz: las consolas "
-                                          "van a 60 cuadros y así el movimiento queda perfectamente parejo.");
-    if (Toggle("##fs60", &settings_.fullscreen_60hz)) {
-        if (settings_.fullscreen) SetFullscreen(true);
-        changed = true;
-    }
-    RowEnd();
-
-    RowBegin("Tamaño de la imagen", "Ajustar llena la pantalla sin deformar. Entero usa solo múltiplos exactos (píxeles perfectos, con bordes).");
-    changed |= Segmented("##escala", &settings_.scale_mode, {"Ajustar", "Entero", "Estirar"}, S(320));
-    RowEnd();
-
-    RowBegin("Filtro", "Cómo se agrandan los píxeles.");
-    changed |= Segmented("##filtro", &settings_.filter, {"Píxel exacto", "Nítido suave", "Suave"}, S(320));
-    RowEnd();
-
-    RowBegin("Efecto de pantalla", "«Auto» usa televisor CRT en las consolas de casa en 2D, pantalla LCD en las portátiles y la imagen limpia en las 3D (CD, 64, Anillo y Dual).");
-    changed |= Segmented("##efecto", &settings_.effect, {"Ninguno", "Líneas", "CRT", "LCD", "Auto"}, S(340));
-    RowEnd();
-
-    if (settings_.effect != 0) {
-        RowBegin("Intensidad del efecto", nullptr);
-        changed |= SliderPercent("##intensidad", &settings_.effect_strength, S(320));
-        RowEnd();
-    }
-
-    {
-        int own = 0;
-        for (const auto& [id, v] : settings_.video_for) own += v.on;
-        if (own > 0) {
-            RowBegin(Fmt("%d %s su propia imagen", own, own == 1 ? "consola tiene" : "consolas tienen").c_str(),
-                     "Se elige desde el menú del juego » Ajustes rápidos » «Imagen propia». Ahí manda sobre lo de esta página.");
-            if (Button("Usar la general en todas", ButtonKind::Ghost, {0, 0}, Icon::Refresh, true)) {
-                for (auto& [id, v] : settings_.video_for) v.on = false;
-                changed = true;
-            }
-            RowEnd();
-        } else {
-            Muted("Cada consola puede tener su propia imagen: menú del juego » Ajustes rápidos » «Imagen propia».", 13);
-            ImGui::Dummy({0, S(6)});
-        }
-    }
-
-    RowBegin("Fondo ambiente", "Llena los bordes con los colores del juego, suaves y desenfocados.");
-    changed |= Toggle("##amb", &settings_.ambient);
-    RowEnd();
-
-    RowBegin("Sincronización vertical", "Evita que la imagen se corte. Déjala activada salvo que sepas lo que haces.");
-    if (Toggle("##vsync", &settings_.vsync)) {
-        ApplyVsync();
-        changed = true;
-    }
-    RowEnd();
-
-    DrawGpuSettings(changed);
-
-    static const float scales[] = {0.0f, 0.9f, 1.0f, 1.15f, 1.3f, 1.5f};
-    int si = 0;
-    for (int i = 0; i < 6; ++i)
-        if (std::fabs(settings_.ui_scale - scales[i]) < 0.02f) si = i;
-    RowBegin("Tamaño de la interfaz", "«Auto» la agranda en pantallas 1440p y 4K para que todo se lea cómodo.");
-    if (Segmented("##ui", &si, {"Auto", "90 %", "100 %", "115 %", "130 %", "150 %"}, S(400))) {
-        settings_.ui_scale = scales[si];
-        UpdateScale();
-        changed = true;
-    }
-    RowEnd();
-
-    if (changed) SaveConfig();
 }
 
 void App::DrawSettingsAudio() {

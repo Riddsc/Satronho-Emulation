@@ -51,6 +51,7 @@ set(SATRONHO_SOURCES
   src/app.cpp
   src/app_ui.cpp
   src/app_extra.cpp
+  src/app_graphics.cpp
   src/app_touch.cpp
   src/app_bar.cpp
   src/app_tools.cpp

@@ -3,6 +3,35 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (build 17)
+
+Ridds probó la build 16: la resolución automática de CD no coincidía con su pantalla (1440p → 4×), pidió
+gráficos **por consola** con las mismas opciones donde sirvan, todo mejor explicado, una barra de consolas
+para elegir cuál ajustar y el módulo Satronho como en NX (Medidor, Configuración sugerida, con imágenes).
+Rama `build-17`. Lo siguiente: **agregar consolas** (parte C, ver abajo).
+
+- **Gráficos por consola** (`src/app_graphics.cpp`, reemplaza `DrawSettingsVideo`/`DrawGpuSettings`):
+  barra de consolas (`gfx_sys_`, QA `gfx=cd`), imagen propia o general (`video_for`), motor y resolución
+  (CD/64), opciones conocidas de cada núcleo con explicación por valor (`KnownOptions`) y las demás de
+  imagen del núcleo plegadas («Más opciones», `gfx_more_`; las de HDR se ocultan). Abajo, «Para toda la app».
+- Las opciones del núcleo se guardan en `nucleo.<consola>.<opción>` (como Ajustes » Núcleo) con
+  `SetCoreOptionFor`; `MigrateGfxOptions` pasa las `graficos.*` de la build 16 y las borra.
+- **Resolución automática**: `NearestResStep` (la más parecida al alto de la pantalla; empate → la mayor),
+  con tope por tarjeta (integrada 2×, <4 GB 4×, si no 16×). En 1440p CD queda en 8×.
+- **Módulo Satronho** (`SatronhoModuleMenu`, `app_bar.cpp`): el mismo menú en la barra del juego y en la
+  barra de inicio, con la carita de cada guía. En el juego, Novedades/Sugerida/Guías/Gráficos/Ajustes se
+  abren **encima** (`overlay_page_`, `DrawGameOverlay`), el juego espera; Esc o «Volver al juego» cierra.
+  QA: `encima=3` (número de `Page`).
+- **Barra de inicio en PC** (`DrawHomeBar`, no en Android/compacto): Archivo, Vista, Consolas,
+  Herramientas, Satronho, Ayuda. QA: `inicio_menu=Satronho`. QA nuevo `bajar=N` desplaza Ajustes.
+- Traducciones de todo lo nuevo en `scripts/idiomas/traducciones/extra.txt`.
+
+### Falta probar (pedírselo a Ridds)
+
+1. CD en automático en su pantalla 1440p (debería decir 8×) y que se vea bien. 2. Cambiar opciones de
+cada consola y ver que se apliquen al jugar. 3. Módulo Satronho dentro del juego (pantalla completa y
+ventana) y en Android con el dedo.
+
 ## Estado al 24 de noviembre de 2026 (build 16)
 
 Ridds probó la build 15 y pidió: la X cerraba sin preguntar, Controles y Gráficos como en Satronho NX

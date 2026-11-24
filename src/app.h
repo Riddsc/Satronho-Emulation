@@ -148,7 +148,6 @@ private:
     bool splash_done_ = false;
     double game_enter_t_ = -10;            // para el fundido al entrar a un juego
     void DrawSettingsAppearance();
-    void DrawGpuSettings(bool& changed);
     void DrawLibraryCarousel(const std::vector<const Game*>& list, const SystemDef* lib_sys);
     bool DrawCover(ImDrawList* dl, const Game& g, ImVec2 a, ImVec2 b, float rounding, bool hovered);
     void DrawConfirm();
@@ -163,7 +162,14 @@ private:
     bool bar_menu_active_ = false;   // un menú de la barra está abierto: el juego espera
     bool fast_forward_toggle_ = false;
     float muted_volume_ = 0.0f;
-    int pending_page_ = -1;          // pantalla a la que ir al terminar de salir del juego
+    int pending_page_ = -1;
+    int overlay_page_ = -1;          // pantalla de Satronho abierta encima del juego (el juego espera)
+    bool overlay_focus_ = false;
+    void DrawGameOverlay();
+    void SatronhoModuleMenu(bool in_game); // el menú «Satronho» (barra del juego y de inicio)
+    void DrawHomeBar();
+    float HomeBarHeight() const;
+    void OpenOverlay(Page p);          // pantalla a la que ir al terminar de salir del juego
     Settings VideoSettings() const;   // imagen del juego actual (con «según la consola» resuelto)
     int confirm_frames_ = 0;
     Uint64 quit_request_ms_ = 0;
@@ -266,6 +272,14 @@ private:
     std::vector<int> GpuResSteps(const SystemDef& sys, int api) const; // pasos que admite cada núcleo
     std::string ResLabel(int k) const;  // «4× · 1280 × 960 (960p · Full HD)» o «1440 × 1080 (1080p · Full HD)»
     static int ResHeight(int k);        // alto en píxeles de un valor de resolución
+    int NearestResStep(const SystemDef& sys, int api) const; // el paso más parecido al alto de la pantalla
+    // Ajustes » Gráficos por consola (app_graphics.cpp).
+    std::string gfx_sys_;               // consola elegida en la barra de Gráficos
+    bool gfx_more_ = false;             // «Más opciones de imagen del emulador» desplegadas
+    std::string CoreOptionValue(const SystemDef& sys, const CoreOption& def) const;
+    void SetCoreOptionFor(const SystemDef& sys, const std::string& key, const std::string& value);
+    const std::vector<CoreOption>* CoreDefsFor(const SystemDef& sys);
+    void MigrateGfxOptions();           // build 16 guardaba las opciones de gráficos aparte
     bool running_ = true;
     Uint64 last_ns_ = 0;
     double loop_ema_ = 1.0 / 60.0;
