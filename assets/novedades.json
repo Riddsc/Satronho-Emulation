@@ -3,6 +3,37 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "Gráficos por consola, todo explicado, y el módulo Satronho encima del juego",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Ajustes » Gráficos ahora es por consola: eliges una en la barra de arriba y le cambias su imagen (tamaño, filtro, efecto), su motor y resolución (CD y 64) y las opciones de imagen de su emulador. Cada opción dice qué hace y, debajo, qué hace lo que elegiste."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Opciones explicadas para cada consola: paletas y señal de televisor en Octa, Modo 7 en HD en Hexa, corrección de color y mezcla de cuadros en Bolsillo, PGXP, antialiasing, tramado y pantalla ancha en CD, filtros y agrandado de texturas en 64, transparencias y desentrelazado en Anillo. Las demás del emulador quedan plegadas en «Más opciones»."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "El módulo Satronho, como en Satronho NX: Novedades, Configuración sugerida, Pregúntale a los guías, Medidor, Logo de fondo, Guías, Gráficos y Ajustes, cada uno con la carita de su guía. Dentro del juego se abren encima, con el juego en pausa, sin cerrarlo."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "En PC, la pantalla de inicio tiene su barra de menús arriba: Archivo, Vista, Consolas, Herramientas, Satronho y Ayuda."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "La resolución automática de CD ahora elige la más parecida a tu pantalla (en 1440p, 8×) y te explica que la PS1 sube de 2 en 2. Antes se quedaba en 4× (960p)."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Las opciones de imagen de la build 16 se guardaban aparte y no siempre se aplicaban; ahora van con las del núcleo y se pasan solas."
+        }
+      ]
+    },
+    {
+      "version": "Build 16",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "Satronho en cinco idiomas, Controles y Gráficos como en Satronho NX, y menús nuevos",
       "cambios": [
         {

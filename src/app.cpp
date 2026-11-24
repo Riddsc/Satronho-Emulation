@@ -158,6 +158,7 @@ bool App::Init() {
         if (!moved.empty()) Log::Info("Opciones de CD pasadas a Beetle PSX HW: %zu", moved.size());
     }
     settings_.Load(ini_);
+    MigrateGfxOptions();
     if (qa_.count("fresh")) settings_ = Settings{};
     if (qa_.count("gpu")) settings_.gpu_api["cd"] = settings_.gpu_api["n64"] = std::atoi(qa_["gpu"].c_str());
     if (qa_.count("res")) settings_.gpu_res["cd"] = settings_.gpu_res["n64"] = std::atoi(qa_["res"].c_str());
@@ -332,6 +333,7 @@ bool App::Init() {
     }
     if (qa_.count("salir")) confirm_ = std::atoi(qa_["salir"].c_str());
     if (qa_.count("barra")) bar_open_ = true;
+    if (qa_.count("encima")) { overlay_page_ = std::atoi(qa_["encima"].c_str()); overlay_focus_ = true; }
     if (qa_.count("ventana")) {
         int w = 0, h = 0;
         if (std::sscanf(qa_["ventana"].c_str(), "%dx%d", &w, &h) == 2) SDL_SetWindowSize(window_, w, h);
@@ -341,6 +343,7 @@ bool App::Init() {
         lib_system_ = qa_["sistema"];
         ctrl_system_ = qa_["sistema"];
     }
+    if (qa_.count("gfx")) gfx_sys_ = qa_["gfx"];
     if (qa_.count("ctrl")) ctrl_tab_ = std::atoi(qa_["ctrl"].c_str());
     if (qa_.count("tab")) tab_ = static_cast<SettingsTab>(std::clamp(std::atoi(qa_["tab"].c_str()), 0, static_cast<int>(SettingsTab::Count) - 1));
     if (qa_.count("rom")) {
@@ -607,7 +610,7 @@ void App::Frame() {
 
     // El cursor se esconde mientras se juega.
     // En Satronho Dual el mouse es el lápiz de la pantalla táctil: no se esconde.
-    const bool want_hidden = in_game_ && !menu_open_ && !bar_menu_active_ && !bar_open_ && !sys_->touch && SDL_GetTicks() - last_mouse_move_ > 2000;
+    const bool want_hidden = in_game_ && overlay_page_ < 0 && !menu_open_ && !bar_menu_active_ && !bar_open_ && !sys_->touch && SDL_GetTicks() - last_mouse_move_ > 2000;
     if (want_hidden != cursor_hidden_) {
         cursor_hidden_ = want_hidden;
         if (want_hidden) SDL_HideCursor();
@@ -627,7 +630,7 @@ void App::Frame() {
     if ((in_game_ && !menu_open_ && confirm_ == 0) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0 && !touch_edit_ && !bar_menu_active_) EmulateTick(dt);
+    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0) EmulateTick(dt);
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) {
         if (gl_) video_gl_.Upload(core_);
@@ -1030,6 +1033,10 @@ void App::DoHotkey(Hotkey h) {
     }
     if (!in_game_) {
         if (h == Hotkey::Menu && page_ != Page::Library && !show_welcome_ && !input_.Capturing()) page_ = Page::Library;
+        return;
+    }
+    if (h == Hotkey::Menu && overlay_page_ >= 0) { // Esc cierra la ventana de Satronho y vuelve al juego
+        overlay_page_ = -1;
         return;
     }
     switch (h) {

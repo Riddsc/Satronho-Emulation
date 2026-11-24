@@ -284,9 +284,10 @@ void App::DrawGameBar() {
                 }
             }
             ImGui::Separator();
-            if (item("Más ajustes de gráficos…")) {
-                SetMenuOpen(true);
-                menu_section_ = 1;
+            if (item(Fmt("Gráficos de %s (todas las opciones)…", sys_->name.c_str()).c_str())) {
+                gfx_sys_ = sys_->id;
+                tab_ = SettingsTab::Video;
+                OpenOverlay(Page::Settings);
             }
             if (changed) SaveConfig();
             ImGui::EndMenu();
@@ -361,44 +362,7 @@ void App::DrawGameBar() {
 
         // ---------------- Satronho (como el módulo de Satronho NX)
         if (menu("Satronho")) {
-            auto go = [&](Page p) {
-                bar_open_ = false;
-                pending_page_ = static_cast<int>(p);
-                RequestExitGame();
-            };
-            if (item("Novedades")) go(Page::News);
-            if (item("Configuración sugerida")) go(Page::Suggested);
-            if (item("Pregúntale a los guías")) go(Page::Guides);
-            ImGui::Separator();
-            bool changed = false;
-            if (sub("Medidor")) {
-                const char* n[] = {"Apagado", "Compacto", "Detallado"};
-                for (int i = 0; i < 3; ++i)
-                    if (item(n[i], nullptr, settings_.meter == i)) { settings_.meter = i; changed = true; }
-                ImGui::Separator();
-                const char* corners[] = {"Arriba a la izquierda", "Arriba a la derecha", "Abajo a la izquierda", "Abajo a la derecha"};
-                for (int i = 0; i < 4; ++i)
-                    if (item(corners[i], nullptr, settings_.meter_corner == i)) { settings_.meter_corner = i; changed = true; }
-                ImGui::EndMenu();
-            }
-            if (sub("Logo de fondo")) {
-                for (int pct : {10, 25, 50, 75, 100})
-                    if (item(Fmt("%d %%", pct).c_str(), nullptr, std::lround(settings_.watermark * 100) == pct)) {
-                        settings_.watermark = pct / 100.0f;
-                        changed = true;
-                    }
-                ImGui::EndMenu();
-            }
-            if (sub("Guías")) {
-                if (item("Mostrar a los guías", nullptr, settings_.guides)) { settings_.guides = !settings_.guides; changed = true; }
-                if (item("Burbuja de consejos", nullptr, settings_.bubble)) { settings_.bubble = !settings_.bubble; changed = true; }
-                ImGui::EndMenu();
-            }
-            ImGui::Separator();
-            note("Estas pantallas cierran el juego (guardando dónde quedaste).");
-            if (item("Biblioteca")) go(Page::Library);
-            if (item("Ajustes")) go(Page::Settings);
-            if (changed) SaveConfig();
+            SatronhoModuleMenu(true);
             ImGui::EndMenu();
         }
 
@@ -484,6 +448,320 @@ void App::DrawGameBar() {
         fg->AddText({s1.x - tw - S(14), s0.y + (bh - ImGui::GetFontSize()) * 0.5f}, U32(Color::Green), Tr(rt.c_str()));
     }
 
+    ImGui::PopStyleColor(7);
+    ImGui::PopStyleVar(5);
+}
+
+// ---------------------------------------------------------------- pantallas de Satronho encima del juego
+// Como el módulo Satronho de Satronho NX: Novedades, Configuración sugerida, los guías y Ajustes se
+// abren en una ventana sobre el juego, que espera quieto hasta que vuelvas.
+
+void App::OpenOverlay(Page p) {
+    bar_open_ = false;
+    overlay_page_ = static_cast<int>(p);
+    overlay_focus_ = true;
+    Log::Info("Encima del juego: pantalla %d", overlay_page_);
+}
+
+void App::DrawGameOverlay() {
+    if (overlay_page_ < 0 || menu_open_) return;
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    // Velo oscuro sobre el juego.
+    ImGui::SetNextWindowPos(vp->Pos);
+    ImGui::SetNextWindowSize(vp->Size);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(4, 3, 12, 185));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+    ImGui::Begin("##velo_encima", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                                            ImGuiWindowFlags_NoBringToFrontOnFocus);
+    const bool click_out = ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+    ImGui::End();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+
+    const bool small = compact_ || touch_mode_;
+    const ImVec2 size = small ? vp->Size : ImVec2(std::min(vp->Size.x * 0.92f, S(1320)), vp->Size.y * 0.9f);
+    ImGui::SetNextWindowPos({vp->Pos.x + (vp->Size.x - size.x) * 0.5f, vp->Pos.y + (vp->Size.y - size.y) * 0.5f});
+    ImGui::SetNextWindowSize(size);
+    // Solo al abrirla: tomar el foco en cada cuadro cerraría las listas desplegables de adentro.
+    if (overlay_focus_) {
+        ImGui::SetNextWindowFocus();
+        overlay_focus_ = false;
+    }
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, V4(Color::Bg));
+    ImGui::PushStyleColor(ImGuiCol_Border, V4(Color::Accent, 0.35f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, small ? 0 : S(18));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, small ? 0 : S(1.5f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, small ? ImVec2(S(16), S(12)) : ImVec2(S(30), S(22)));
+    ImGui::Begin("##encima", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
+
+    // Encabezado: «Satronho · Novedades» y el botón para volver al juego.
+    const Page p = static_cast<Page>(overlay_page_);
+    const char* title = p == Page::News ? "Novedades" : p == Page::Suggested ? "Configuración sugerida" : p == Page::Guides ? "Pregúntale a los guías"
+                      : p == Page::Settings ? "Ajustes" : p == Page::Controls ? "Controles" : "Satronho";
+    {
+        FontScope f(GetFonts().bold, small ? 17.0f : 20.0f);
+        ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Accent2));
+        ImGui::TextUnformatted("Satronho");
+        ImGui::PopStyleColor();
+        ImGui::SameLine(0, S(10));
+        ImGui::TextUnformatted(Tr(title));
+    }
+    {
+        FontScope f(GetFonts().medium, 12.5f);
+        ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
+        ImGui::TextUnformatted(Tr("El juego está en pausa mientras miras esto."));
+        ImGui::PopStyleColor();
+    }
+    const float bw = S(small ? 150 : 190);
+    ImGui::SetCursorPos({ImGui::GetWindowWidth() - bw - (small ? S(16) : S(30)), small ? S(14) : S(24)});
+    bool close = Button("Volver al juego", ButtonKind::Primary, {bw, 0}, Icon::Play, true);
+    ImGui::SetCursorPosY((small ? S(12) : S(22)) + S(56));
+    ImGui::Separator();
+    ImGui::Dummy({0, S(6)});
+
+    const Page saved = page_;
+    page_ = p;
+    ImGui::BeginChild("##encima_contenido", {0, 0}, 0);
+    switch (p) {
+    case Page::News: DrawNews(); break;
+    case Page::Suggested: DrawSuggested(); break;
+    case Page::Guides: DrawGuideChat(); break;
+    case Page::Settings: DrawSettings(); break;
+    case Page::Controls: DrawControls(); break;
+    default: close = true; break;
+    }
+    ImGui::Dummy({0, S(16)});
+    ImGui::EndChild();
+    // Si la pantalla pidió ir a otra (Ajustes » Controles), se muestra ahí mismo.
+    if (page_ != p && (page_ == Page::Controls || page_ == Page::Settings || page_ == Page::News || page_ == Page::Suggested || page_ == Page::Guides))
+        overlay_page_ = static_cast<int>(page_);
+    else if (page_ != p) { // otra pantalla (biblioteca…): sale del juego como antes
+        pending_page_ = static_cast<int>(page_);
+        overlay_page_ = -1;
+        RequestExitGame();
+    }
+    page_ = saved;
+    ImGui::End();
+    if (close || click_out) overlay_page_ = -1;
+}
+
+// ---------------------------------------------------------------- módulo Satronho
+// El menú «Satronho» de la barra del juego y de la barra de la pantalla de inicio: lo mismo en las dos,
+// con la carita del guía que te atiende en cada cosa.
+
+void App::SatronhoModuleMenu(bool in_game) {
+    const bool touch = touch_mode_;
+    const float fs = touch ? 16.0f : 14.0f;
+    auto open = [&](Page p) {
+        if (in_game) OpenOverlay(p);
+        else page_ = p;
+    };
+    // Ítem con la carita del guía a la izquierda.
+    auto gitem = [&](GuideId g, const char* label) {
+        FontScope f(GetFonts().medium, fs);
+        const float ih = S(touch ? 44 : 34), d = ih - S(8);
+        const std::string l = std::string("##g_") + label;
+        ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, {0.0f, 0.5f});
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        ImGui::Dummy({0, 0});
+        ImGui::SetCursorScreenPos(p);
+        const bool r = ImGui::Selectable(l.c_str(), false, 0, {std::max(S(240), ImGui::GetContentRegionAvail().x), ih});
+        const bool hov = ImGui::IsItemHovered();
+        ImGui::PopStyleVar();
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const ImVec2 c = {p.x + d * 0.5f + S(2), p.y + ih * 0.5f};
+        const Ui::Image& img = guides_[static_cast<int>(g)];
+        dl->AddCircleFilled(c, d * 0.5f + S(2), U32(Guide(g).color, hov ? 1.0f : 0.75f));
+        if (img) dl->AddImageRounded(img.Ref(), {c.x - d * 0.5f, c.y - d * 0.5f}, {c.x + d * 0.5f, c.y + d * 0.5f}, {0, 0}, {1, 1}, IM_COL32_WHITE, d * 0.5f);
+        dl->AddText({p.x + d + S(14), p.y + (ih - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), Tr(label));
+        return r;
+    };
+    auto item = [&](const char* label, const char* shortcut = nullptr, bool selected = false, bool enabled = true) {
+        FontScope f(GetFonts().medium, fs);
+        return ImGui::MenuItem(Tr(label), touch ? nullptr : shortcut, selected, enabled);
+    };
+    auto sub = [&](const char* label) {
+        FontScope f(GetFonts().medium, fs);
+        return ImGui::BeginMenu(Tr(label));
+    };
+    auto note = [&](const char* text) {
+        FontScope f(GetFonts().regular, touch ? 14.0f : 12.5f);
+        ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Dim));
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + S(300));
+        ImGui::TextWrapped("%s", Tr(text));
+        ImGui::PopTextWrapPos();
+        ImGui::PopStyleColor();
+    };
+
+    bool changed = false;
+    if (gitem(GuideId::Juana, "Novedades")) open(Page::News);
+    if (gitem(GuideId::Nono, "Configuración sugerida")) open(Page::Suggested);
+    if (gitem(GuideId::Samy, "Pregúntale a los guías")) open(Page::Guides);
+    ImGui::Separator();
+    if (sub("Medidor")) {
+        const char* n[] = {"Apagado", "Compacto", "Detallado"};
+        for (int i = 0; i < 3; ++i)
+            if (item(n[i], i == 1 ? "F3" : nullptr, settings_.meter == i)) { settings_.meter = i; changed = true; }
+        ImGui::Separator();
+        const char* corners[] = {"Arriba a la izquierda", "Arriba a la derecha", "Abajo a la izquierda", "Abajo a la derecha"};
+        for (int i = 0; i < 4; ++i)
+            if (item(corners[i], nullptr, settings_.meter_corner == i)) { settings_.meter_corner = i; changed = true; }
+        ImGui::Separator();
+        if (item("Más opciones del medidor…")) {
+            tab_ = SettingsTab::Meter;
+            open(Page::Settings);
+        }
+        if (!in_game) note("El medidor se ve mientras juegas.");
+        ImGui::EndMenu();
+    }
+    if (sub("Logo de fondo")) {
+        for (int pct : {0, 10, 25, 50, 75, 100})
+            if (item(pct == 0 ? Tr("Sin logo") : Fmt("%d %%", pct).c_str(), nullptr, std::lround(settings_.watermark * 100) == pct)) {
+                settings_.watermark = pct / 100.0f;
+                changed = true;
+            }
+        ImGui::EndMenu();
+    }
+    if (sub("Guías")) {
+        if (item("Mostrar a los guías", nullptr, settings_.guides)) { settings_.guides = !settings_.guides; changed = true; }
+        if (item("Burbuja de consejos", nullptr, settings_.bubble)) { settings_.bubble = !settings_.bubble; changed = true; }
+        if (item("Conocer a los guías…")) {
+            tab_ = SettingsTab::Guides;
+            open(Page::Settings);
+        }
+        ImGui::EndMenu();
+    }
+    ImGui::Separator();
+    if (gitem(GuideId::Troya, "Gráficos")) {
+        if (in_game) gfx_sys_ = sys_->id;
+        tab_ = SettingsTab::Video;
+        open(Page::Settings);
+    }
+    if (gitem(GuideId::MechaRidds, "Ajustes")) open(Page::Settings);
+    if (in_game) {
+        ImGui::Separator();
+        note("La biblioteca cierra el juego (guardando dónde quedaste).");
+        if (item("Volver a la biblioteca")) {
+            bar_open_ = false;
+            pending_page_ = static_cast<int>(Page::Library);
+            RequestExitGame();
+        }
+    }
+    if (changed) SaveConfig();
+}
+
+// ---------------------------------------------------------------- barra de la pantalla de inicio
+// En PC, arriba de todo, como la de Satronho NX: Archivo, Vista, Herramientas, Satronho y Ayuda.
+
+float App::HomeBarHeight() const { return compact_ || touch_mode_ ? 0.0f : S(36); }
+
+void App::DrawHomeBar() {
+    const float h = HomeBarHeight();
+    if (h <= 0) return;
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {S(12), S(8)});
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {S(10), S(8)});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(12), S(8)});
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, S(14));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, V4(Color::Surface, 0.98f));
+    ImGui::PushStyleColor(ImGuiCol_Border, V4(Color::Accent, 0.28f));
+    ImGui::PushStyleColor(ImGuiCol_Header, V4(Color::Accent, 0.22f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, V4(Color::Accent, 0.30f));
+    ImGui::PushStyleColor(ImGuiCol_MenuBarBg, V4(0, 0));
+    ImGui::PushStyleColor(ImGuiCol_Separator, V4(Color::Border));
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled, V4(Color::Dim));
+    ImGui::SetNextWindowPos(vp->Pos);
+    ImGui::SetNextWindowSize({vp->Size.x, h});
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, V4(Color::Surface, 0.97f));
+    ImGui::Begin("##barra_inicio", nullptr,
+                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                     ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::PopStyleColor();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    dl->AddRectFilledMultiColor({vp->Pos.x, vp->Pos.y + h - S(1.5f)}, {vp->Pos.x + vp->Size.x, vp->Pos.y + h}, U32(Color::Accent, 0.0f),
+                                U32(Color::Accent2, 0.5f), U32(Color::Accent2, 0.5f), U32(Color::Accent, 0.0f));
+    if (ImGui::BeginMenuBar()) {
+        auto menu = [&](const char* label) {
+            FontScope f(GetFonts().semibold, 14.0f);
+            if (qa_.count("inicio_menu") && qa_["inicio_menu"] == label && qa_frames_ > 20) ImGui::OpenPopup(label); // modo de revisión
+            return ImGui::BeginMenu(Tr(label));
+        };
+        auto item = [&](const char* label, const char* shortcut = nullptr, bool selected = false, bool enabled = true) {
+            FontScope f(GetFonts().medium, 14.0f);
+            return ImGui::MenuItem(Tr(label), shortcut, selected, enabled);
+        };
+        if (menu("Archivo")) {
+            if (item("Abrir un juego…")) OpenRomDialog();
+            if (item("Agregar una carpeta de juegos…")) AddFolderDialog();
+            if (item("Volver a buscar juegos")) Rescan();
+            ImGui::Separator();
+            if (item("Abrir la carpeta de datos")) OpenFolder(Paths::User());
+            if (item("Abrir la carpeta de capturas")) OpenFolder(Paths::User() / "capturas");
+            ImGui::Separator();
+            if (item("Cerrar Satronho Emulation", "Alt+F4")) RequestQuit();
+            ImGui::EndMenu();
+        }
+        if (menu("Vista")) {
+            if (item("Pantalla completa", "F11", settings_.fullscreen)) DoHotkey(Hotkey::Fullscreen);
+            ImGui::Separator();
+            const std::string vk = lib_system_.empty() ? "todas" : lib_system_;
+            int& view = settings_.lib_view[vk];
+            const char* views[] = {"Cuadrícula", "En lista", "Carrusel"};
+            bool changed = false;
+            for (int i = 0; i < 3; ++i)
+                if (item(views[i], nullptr, view == i)) { view = i; page_ = Page::Library; changed = true; }
+            ImGui::Separator();
+            {
+                FontScope f(GetFonts().medium, 14.0f);
+                if (ImGui::BeginMenu(Tr("Tamaño de la interfaz"))) {
+                    static const float scales[] = {0.0f, 0.9f, 1.0f, 1.15f, 1.3f, 1.5f};
+                    const char* names[] = {"Auto", "90 %", "100 %", "115 %", "130 %", "150 %"};
+                    for (int i = 0; i < 6; ++i)
+                        if (item(names[i], nullptr, std::fabs(settings_.ui_scale - scales[i]) < 0.02f)) {
+                            settings_.ui_scale = scales[i];
+                            UpdateScale();
+                            changed = true;
+                        }
+                    ImGui::EndMenu();
+                }
+            }
+            if (changed) SaveConfig();
+            ImGui::EndMenu();
+        }
+        if (menu("Consolas")) {
+            if (item("Todas las consolas", nullptr, lib_system_.empty())) { lib_system_.clear(); page_ = Page::Library; }
+            ImGui::Separator();
+            for (const auto& sd : Systems())
+                if (item(Fmt("%s · %s", sd.full.c_str(), sd.hint.c_str()).c_str(), nullptr, lib_system_ == sd.id)) {
+                    lib_system_ = sd.id;
+                    page_ = Page::Library;
+                }
+            ImGui::EndMenu();
+        }
+        if (menu("Herramientas")) {
+            if (item("Herramientas (Memory Cards, mandos, .chd…)")) page_ = Page::Tools;
+            if (item("Controles")) page_ = Page::Controls;
+            if (item("Gráficos")) { tab_ = SettingsTab::Video; page_ = Page::Settings; }
+            if (item("Ajustes")) page_ = Page::Settings;
+            ImGui::EndMenu();
+        }
+        if (menu("Satronho")) {
+            SatronhoModuleMenu(false);
+            ImGui::EndMenu();
+        }
+        if (menu("Ayuda")) {
+            if (item("Acerca de Satronho Emulation")) page_ = Page::About;
+            if (item("Novedades de esta build")) page_ = Page::News;
+            if (item("Abrir el registro (satronho.log)")) OpenFolder(Paths::User());
+            if (item("Ver el proyecto en GitHub")) SDL_OpenURL("https://github.com/Riddsc/Satronho-Emulation");
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+    ImGui::End();
     ImGui::PopStyleColor(7);
     ImGui::PopStyleVar(5);
 }
