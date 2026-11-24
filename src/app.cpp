@@ -156,6 +156,7 @@ bool App::Init() {
     if (qa_.count("fresh")) settings_ = Settings{};
     if (qa_.count("gpu")) settings_.gpu_api["cd"] = settings_.gpu_api["n64"] = std::atoi(qa_["gpu"].c_str());
     if (qa_.count("res")) settings_.gpu_res["cd"] = settings_.gpu_res["n64"] = std::atoi(qa_["res"].c_str());
+    if (qa_.count("escala")) settings_.ui_scale = static_cast<float>(std::atof(qa_["escala"].c_str()));
     if (qa_.count("tema")) settings_.theme = std::atoi(qa_["tema"].c_str());
     if (qa_.count("vista")) settings_.lib_view[qa_.count("sistema") ? qa_["sistema"] : "todas"] = std::atoi(qa_["vista"].c_str());
     Ui::ApplyTheme(settings_.theme);
@@ -334,6 +335,9 @@ bool App::Init() {
         if (qa_.count("continuar")) RequestStart(Paths::FromUtf8(qa_["rom"]), true);
         else StartGame(Paths::FromUtf8(qa_["rom"]));
     }
+    if (qa_.count("tactil")) touch_mode_ = true;
+    if (qa_.count("explorador")) OpenBrowser(qa_["explorador"] == "1");
+    if (qa_.count("editar_tactil")) touch_edit_ = true;
     if (qa_.count("abrir")) RequestStart(Paths::FromUtf8(qa_["abrir"]));
     if (qa_.count("carpeta")) {
         std::lock_guard lock(pending_mutex_);
@@ -597,7 +601,7 @@ void App::Frame() {
     if ((in_game_ && !menu_open_ && confirm_ == 0) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0) EmulateTick(dt);
+    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0 && !touch_edit_) EmulateTick(dt);
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) {
         if (gl_) video_gl_.Upload(core_);
@@ -615,6 +619,8 @@ void App::Frame() {
     else ImGui_ImplSDLRenderer3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
+    UpdateTouchMode();
+    TouchScroll();
     DrawUi();
     ImGui::Render();
 
@@ -670,7 +676,12 @@ void App::PollUpdater() {
     case Updater::State::Ready:
         if (updater_.LaunchInstaller()) {
             Log::Info("Instalando la build %d…", updater_.LatestBuild());
+#ifdef __ANDROID__
+            // Android abre su instalador; la app la cierra el sistema al instalar.
+            Toast("Confirma la instalación en la ventana de Android.", GuideId::Juana, 8);
+#else
             running_ = false;
+#endif
         } else {
             Toast("No se pudo abrir el instalador. Descárgala desde GitHub.", GuideId::Juana, 6);
         }
@@ -843,10 +854,18 @@ void App::ImportBios(const std::string& sys_id, const fs::path& file) {
 }
 
 void App::AddFolderDialog() {
+#ifdef __ANDROID__
+    OpenBrowser(true);
+    return;
+#endif
     SDL_ShowOpenFolderDialog(&FolderDialogCallback, this, window_, nullptr, false);
 }
 
 void App::OpenRomDialog() {
+#ifdef __ANDROID__
+    OpenBrowser(false);
+    return;
+#endif
     // Los filtros salen de la lista de consolas; tienen que vivir mientras el diálogo esté abierto.
     static std::vector<std::string> names, patterns;
     static std::vector<SDL_DialogFileFilter> filters;
@@ -856,6 +875,7 @@ void App::OpenRomDialog() {
             std::string pat;
             for (const auto& e : s.extensions) pat += (pat.empty() ? "" : ";") + e;
             all += (all.empty() ? "" : ";") + pat;
+            if (&s == &Systems().back()) all += ";zip;7z";
             names.push_back(s.full + " (" + s.games + ")");
             patterns.push_back(pat);
         }
@@ -873,6 +893,7 @@ void App::HandleEvent(const SDL_Event& e) {
     const bool was_capturing = input_.Capturing();
     ImGui_ImplSDL3_ProcessEvent(&e);
     input_.HandleEvent(e);
+    TouchEvent(e);
     switch (e.type) {
     case SDL_EVENT_QUIT:
         RequestQuit();
@@ -1225,6 +1246,7 @@ void App::EmulateTick(double dt) {
 
 void App::Step(bool rewinding, bool fast_forward) {
     input_.Update(core_, *sys_, !ImGui::GetIO().WantTextInput);
+    ApplyTouchPad();
     if (screens_pulse_ > 0) {
         core_.pads[0].buttons |= 1u << RETRO_DEVICE_ID_JOYPAD_R3;
         --screens_pulse_;

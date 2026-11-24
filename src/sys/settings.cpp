@@ -71,6 +71,16 @@ void Settings::Load(const Ini& ini) {
     watermark = std::clamp(ini.GetFloat("interfaz.marca_agua", watermark), 0.10f, 1.0f);
     confirm_exit_app = ini.GetBool("avisos.salir_app", confirm_exit_app);
     confirm_exit_game = ini.GetBool("avisos.salir_juego", confirm_exit_game);
+    touch_show = std::clamp(ini.GetInt("tactil.mostrar", touch_show), 0, 2);
+    touch_scale = std::clamp(ini.GetFloat("tactil.tamano", touch_scale), 0.6f, 1.6f);
+    touch_opacity = std::clamp(ini.GetFloat("tactil.opacidad", touch_opacity), 0.15f, 1.0f);
+    touch_haptics = ini.GetBool("tactil.vibracion", touch_haptics);
+    touch_offsets.clear();
+    for (const auto& [k, v] : ini.Values()) {
+        if (k.rfind("tactil.pos.", 0) != 0) continue;
+        float x = 0, y = 0;
+        if (std::sscanf(v.c_str(), "%f,%f", &x, &y) == 2) touch_offsets[k.substr(11)] = {x, y};
+    }
 
     folders.clear();
     const int n = ini.GetInt("biblioteca.carpetas", 0);
@@ -141,6 +151,15 @@ void Settings::Save(Ini& ini) const {
     ini.SetFloat("interfaz.marca_agua", watermark);
     ini.SetBool("avisos.salir_app", confirm_exit_app);
     ini.SetBool("avisos.salir_juego", confirm_exit_game);
+    ini.SetInt("tactil.mostrar", touch_show);
+    ini.SetFloat("tactil.tamano", touch_scale);
+    ini.SetFloat("tactil.opacidad", touch_opacity);
+    ini.SetBool("tactil.vibracion", touch_haptics);
+    for (const auto& [k, v] : touch_offsets) {
+        char buf[64];
+        std::snprintf(buf, sizeof buf, "%.4f,%.4f", v.first, v.second);
+        ini.Set("tactil.pos." + k, buf);
+    }
     ini.SetBool("biblioteca.caratulas", covers);
     for (const auto& [k, v] : lib_view) ini.SetInt("biblioteca.vista." + k, v);
     ini.Erase("interfaz.escala");

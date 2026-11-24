@@ -138,6 +138,33 @@ void App::DrawSettingsAppearance() {
     }
     RowEnd();
     ImGui::Dummy({0, S(10)});
+    Heading("Control en pantalla", 16);
+    ImGui::Dummy({0, S(2)});
+    RowBegin("Mostrar el control en pantalla", "Automático: con pantalla táctil y sin mando conectado. Se acomoda en el menú del juego » «Control en pantalla».");
+    if (Segmented("##tactil_ver", &settings_.touch_show, {"Automático", "Siempre", "Nunca"}, ImGui::GetContentRegionAvail().x)) SaveConfig();
+    RowEnd();
+    RowBegin("Tamaño de los botones", "");
+    {
+        int v = static_cast<int>(std::lround(settings_.touch_scale * 100));
+        if (SliderIntStyled("##tactil_tam", &v, 60, 160, "%d %%", ImGui::GetContentRegionAvail().x)) {
+            settings_.touch_scale = v / 100.0f;
+            SaveConfig();
+        }
+    }
+    RowEnd();
+    RowBegin("Opacidad de los botones", "");
+    {
+        int v = static_cast<int>(std::lround(settings_.touch_opacity * 100));
+        if (SliderIntStyled("##tactil_op", &v, 15, 100, "%d %%", ImGui::GetContentRegionAvail().x)) {
+            settings_.touch_opacity = v / 100.0f;
+            SaveConfig();
+        }
+    }
+    RowEnd();
+    RowBegin("Vibrar al tocar", "Una vibración cortita cada vez que aprietas un botón en pantalla.");
+    if (Toggle("##tactil_vib", &settings_.touch_haptics)) SaveConfig();
+    RowEnd();
+    ImGui::Dummy({0, S(10)});
     Heading("Al salir", 16);
     ImGui::Dummy({0, S(2)});
     RowBegin("Preguntar antes de cerrar la app", "Así un clic de más en la X no te saca de golpe.");
