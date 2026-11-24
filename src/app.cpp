@@ -15,6 +15,7 @@
 #include "imgui_impl_sdlrenderer3.h"
 #include "imgui_impl_opengl3.h"
 
+#include "util/chd.h"
 #include "util/hash.h"
 #include "util/log.h"
 
@@ -336,6 +337,14 @@ bool App::Init() {
         // «continuar=1»: como el botón Continuar (pasa por «Cargando…» y la ranura automática).
         if (qa_.count("continuar")) RequestStart(Paths::FromUtf8(qa_["rom"]), true);
         else StartGame(Paths::FromUtf8(qa_["rom"]));
+    }
+    if (qa_.count("chd")) {
+        std::string err;
+        fs::path in = Paths::FromUtf8(qa_["chd"]);
+        fs::path out = in;
+        out.replace_extension(".chd");
+        const bool ok = Chd::FromCue(in, out, &err);
+        Log::Info("Revisión: conversión a CHD %s %s", ok ? "bien" : "falló:", err.c_str());
     }
     if (qa_.count("tactil")) touch_mode_ = true;
     // La presentación animada se salta en las revisiones automáticas (salvo que se pida).
