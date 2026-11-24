@@ -69,6 +69,7 @@ set(SATRONHO_SOURCES
   src/ui/controllers.cpp
   src/sys/systems.cpp
   src/util/hash.cpp
+  src/util/i18n.cpp
   src/util/ini.cpp
   src/util/json.cpp
   src/util/log.cpp

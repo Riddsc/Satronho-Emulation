@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Ridds (Satronho Emulation)
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app.h"
+#include "util/i18n.h"
 
 #include <algorithm>
 #include <cctype>
@@ -163,6 +164,8 @@ bool App::Init() {
     if (qa_.count("escala")) settings_.ui_scale = static_cast<float>(std::atof(qa_["escala"].c_str()));
     if (qa_.count("tema")) settings_.theme = std::atoi(qa_["tema"].c_str());
     if (qa_.count("vista")) settings_.lib_view[qa_.count("sistema") ? qa_["sistema"] : "todas"] = std::atoi(qa_["vista"].c_str());
+    if (qa_.count("idioma")) settings_.language = qa_["idioma"];
+    I18n::Load(Paths::Assets() / "idiomas", settings_.language);
     Ui::ApplyTheme(settings_.theme);
 
     // Motor gráfico: OpenGL (el de Satronho, con sombreadores y dibujo por tarjeta gráfica para
@@ -568,7 +571,8 @@ void App::SetFullscreen(bool on) {
     SDL_SetWindowFullscreen(window_, on);
 }
 
-void App::Toast(const std::string& text, GuideId guide, double seconds) {
+void App::Toast(const std::string& text_es, GuideId guide, double seconds) {
+    const std::string text = Tr(text_es);
     const double now = SDL_GetTicks() / 1000.0;
     // Si el mismo aviso sigue en pantalla, solo se alarga.
     for (auto& t : toasts_) {

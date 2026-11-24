@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Ridds (Satronho Emulation)
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "sys/library.h"
+#include "util/i18n.h"
 
 #include <algorithm>
 #include <cctype>
@@ -433,24 +434,35 @@ void Library::MarkPlayed(const std::string& key) {
     meta_.Save(Paths::LibraryFile());
 }
 
+// Textos de tiempo traducidos (los formatos son las claves de los idiomas).
+namespace {
+std::string TrFmt(const char* fmt, long long n) {
+    char buf[128];
+    std::snprintf(buf, sizeof buf, Tr(fmt), n);
+    return buf;
+}
+} // namespace
+
 std::string FormatPlaytime(long long s) {
-    if (s < 60) return s <= 0 ? "Sin jugar" : "Menos de 1 min";
+    if (s < 60) return Tr(s <= 0 ? "Sin jugar" : "Menos de 1 min");
     const long long h = s / 3600, m = (s % 3600) / 60;
-    if (h == 0) return std::to_string(m) + " min";
-    return std::to_string(h) + " h " + std::to_string(m) + " min";
+    if (h == 0) return TrFmt("%lld min", m);
+    char buf[64];
+    std::snprintf(buf, sizeof buf, "%lld h %lld min", h, m);
+    return buf;
 }
 
 std::string FormatLastPlayed(long long t) {
-    if (t <= 0) return "Nunca";
+    if (t <= 0) return Tr("Nunca");
     const long long diff = static_cast<long long>(std::time(nullptr)) - t;
-    if (diff < 120) return "Hace un momento";
-    if (diff < 3600) return "Hace " + std::to_string(diff / 60) + " min";
-    if (diff < 86400) return "Hace " + std::to_string(diff / 3600) + " h";
+    if (diff < 120) return Tr("Hace un momento");
+    if (diff < 3600) return TrFmt("Hace %lld min", diff / 60);
+    if (diff < 86400) return TrFmt("Hace %lld h", diff / 3600);
     const long long d = diff / 86400;
-    if (d == 1) return "Ayer";
-    if (d < 30) return "Hace " + std::to_string(d) + " días";
-    if (d < 365) return "Hace " + std::to_string(d / 30) + (d / 30 == 1 ? " mes" : " meses");
-    return "Hace más de un año";
+    if (d == 1) return Tr("Ayer");
+    if (d < 30) return TrFmt("Hace %lld días", d);
+    if (d < 365) return d / 30 == 1 ? Tr(std::string("Hace 1 mes")) : TrFmt("Hace %lld meses", d / 30);
+    return Tr("Hace más de un año");
 }
 
 } // namespace Satronho

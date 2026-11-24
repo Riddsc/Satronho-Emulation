@@ -11,6 +11,7 @@
 #include <random>
 
 #include "app.h"
+#include "util/i18n.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "ui/controllers.h"
@@ -25,21 +26,23 @@ std::string Fmt(const char* fmt, ...) {
     char buf[512];
     va_list args;
     va_start(args, fmt);
-    std::vsnprintf(buf, sizeof buf, fmt, args);
+    std::vsnprintf(buf, sizeof buf, Tr(fmt), args);
     va_end(args);
     return buf;
 }
 
 void Muted(const char* text, float size = 13.5f) {
+    text = Tr(text);
     FontScope f(GetFonts().regular, size);
     ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
-    ImGui::TextWrapped("%s", text);
+    ImGui::TextWrapped("%s", Tr(text));
     ImGui::PopStyleColor();
 }
 
 void Heading(const char* text, float size = 18) {
+    text = Tr(text);
     FontScope f(GetFonts().semibold, size);
-    ImGui::TextUnformatted(text);
+    ImGui::TextUnformatted(Tr(text));
 }
 
 unsigned Rng() {
@@ -70,17 +73,36 @@ void App::DrawWatermark(ImVec2 p0, ImVec2 p1) {
     const ImVec2 c(p0.x + w * 0.5f, p0.y + h * 0.47f);
     const float fs = size * 0.30f;
     const char* word = "Satronho";
-    const ImVec2 ts = GetFonts().bold->CalcTextSizeA(fs, FLT_MAX, 0, word);
+    const ImVec2 ts = GetFonts().bold->CalcTextSizeA(fs, FLT_MAX, 0, Tr(word));
     const float total = size + fs * 0.9f;
     const float top = c.y - total * 0.5f;
     dl->AddImage(logo_.Ref(), {c.x - size * 0.5f, top}, {c.x + size * 0.5f, top + size}, {0, 0}, {1, 1}, IM_COL32(255, 255, 255, static_cast<int>(255 * a)));
-    dl->AddText(GetFonts().bold, fs, {c.x - ts.x * 0.5f, top + size - fs * 0.05f}, U32(Color::Text, a), word);
+    dl->AddText(GetFonts().bold, fs, {c.x - ts.x * 0.5f, top + size - fs * 0.05f}, U32(Color::Text, a), Tr(word));
 }
 
 void App::DrawSettingsAppearance() {
     GuideSays(GuideId::Troya, "Elige el tema que más te guste. El logo de Satronho siempre queda de fondo: súbele o bájale la opacidad, "
                               "pero nunca menos del 10 %.");
     ImGui::Dummy({0, S(14)});
+    Heading("Idioma", 16);
+    {
+        // Idioma de la interfaz: automático (el del sistema) o uno fijo. Se cambia al momento.
+        std::vector<std::string> names{"Automático (el de tu sistema)"};
+        int cur = 0;
+        const auto& langs = I18n::Languages();
+        for (size_t i = 0; i < langs.size(); ++i) {
+            names.push_back(langs[i].second);
+            if (settings_.language == langs[i].first) cur = static_cast<int>(i) + 1;
+        }
+        RowBegin("Idioma de Satronho", "Español, English, Français, Português o Italiano. Los nombres de los juegos no cambian.");
+        if (ComboStyled("##idioma", &cur, names, S(320))) {
+            settings_.language = cur == 0 ? "" : langs[cur - 1].first;
+            I18n::Load(Paths::Assets() / "idiomas", settings_.language);
+            SaveConfig();
+        }
+        RowEnd();
+    }
+    ImGui::Dummy({0, S(10)});
     Heading("Tema", 16);
     ImGui::Dummy({0, S(2)});
     const auto& themes = Themes();
@@ -111,11 +133,11 @@ void App::DrawSettingsAppearance() {
         dl->AddRectFilled({cx, p.y + S(70)}, {cx + S(44), p.y + S(78)}, U32(t.accent), S(4));
         {
             FontScope f(GetFonts().semibold, 14);
-            dl->AddText({cx, p.y + ch - S(36)}, U32(t.text), t.name);
+            dl->AddText({cx, p.y + ch - S(36)}, U32(t.text), Tr(t.name));
         }
         {
             FontScope f(GetFonts().regular, 11.5f);
-            Ellipsize(dl, GetFonts().regular, S(11.5f), {cx, p.y + ch - S(18)}, U32(t.muted), t.blurb, cw - (cx - p.x) - S(8), 1);
+            Ellipsize(dl, GetFonts().regular, S(11.5f), {cx, p.y + ch - S(18)}, U32(t.muted), Tr(t.blurb), cw - (cx - p.x) - S(8), 1);
         }
         dl->AddRect(p, {p.x + cw, p.y + ch}, sel ? U32(Color::Accent) : U32(Color::Border, hov ? 1.0f : 0.6f), r, S(sel ? 2.5f : 1.0f));
         if (sel) {
@@ -144,7 +166,7 @@ void App::DrawSettingsAppearance() {
         bool changed = false;
         RowBegin("Vista de la biblioteca", "Cómo se ven tus juegos. Cada consola puede tener la suya desde el botón «Vista» de la biblioteca; esto la pone en todas.");
         int v = std::clamp(settings_.LibView(""), 0, 2);
-        if (Segmented("##vista_todas", &v, {"Cuadrícula", "Carrusel", "Lista"}, S(360))) {
+        if (Segmented("##vista_todas", &v, {"Cuadrícula", "Carrusel", "En lista"}, S(360))) {
             settings_.lib_view.clear();
             settings_.lib_view["todas"] = v;
             for (const auto& sd : Systems()) settings_.lib_view[sd.id] = v;
@@ -279,7 +301,7 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
             const bool cur = sd->id == list[carousel_index_]->system;
             FontScope f(GetFonts().semibold, 13.5f);
             const std::string t = sd->name + Fmt("  %d", counts[sd->id]);
-            const float w = ImGui::CalcTextSize(t.c_str()).x + S(58);
+            const float w = ImGui::CalcTextSize(Tr(t.c_str())).x + S(58);
             if (x + w > x_end) break;
             ImGui::SetCursorScreenPos({x, tp.y});
             ImGui::PushID(sd->id.c_str());
@@ -292,7 +314,7 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
             tdl->AddRectFilled({x, tp.y}, {x + w, tp.y + th}, U32(cur ? sd->color : Color::Surface2, cur ? 0.22f : h ? 1.0f : 0.8f), th * 0.5f);
             if (cur) tdl->AddRect({x, tp.y}, {x + w, tp.y + th}, U32(sd->color, 0.9f), th * 0.5f, S(1.5f));
             DrawControllerMini(tdl, sd->layout, {x + S(22), tp.y + th * 0.5f}, sd->handheld ? S(16) : S(24), cur || h ? 1.0f : 0.7f);
-            tdl->AddText({x + S(40), tp.y + (th - ImGui::GetFontSize()) * 0.5f}, U32(cur ? Color::Text : Color::Muted), t.c_str());
+            tdl->AddText({x + S(40), tp.y + (th - ImGui::GetFontSize()) * 0.5f}, U32(cur ? Color::Text : Color::Muted), Tr(t.c_str()));
             x += w + S(8);
         }
         ImGui::SetCursorScreenPos({tp.x, tp.y + th + S(12)});
@@ -390,10 +412,10 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
         if (!lib_sys)
             if (const SystemDef* gs = SystemById(list[i]->system)) {
                 FontScope f(GetFonts().bold, 11.5f * std::max(0.7f, k));
-                const ImVec2 ts = ImGui::CalcTextSize(gs->name.c_str());
+                const ImVec2 ts = ImGui::CalcTextSize(Tr(gs->name.c_str()));
                 const ImVec2 c0(a.x + S(10), a.y + S(10)), c1(c0.x + ts.x + S(16), c0.y + ts.y + S(8));
                 dl->AddRectFilled(c0, c1, U32(gs->color, 0.92f * std::max(0.4f, k)), (c1.y - c0.y) * 0.5f);
-                dl->AddText({c0.x + S(8), c0.y + S(4)}, IM_COL32(16, 12, 28, static_cast<int>(255 * std::max(0.5f, k))), gs->name.c_str());
+                dl->AddText({c0.x + S(8), c0.y + S(4)}, IM_COL32(16, 12, 28, static_cast<int>(255 * std::max(0.5f, k))), Tr(gs->name.c_str()));
             }
     }
     dl->PopClipRect();
@@ -435,9 +457,9 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
     {
         FontScope f(GetFonts().medium, 12.5f);
         const std::string pos = Fmt("%d de %d", carousel_index_ + 1, n);
-        dl->AddText({ip.x, ip.y + S(66)}, U32(Color::Dim), pos.c_str());
+        dl->AddText({ip.x, ip.y + S(66)}, U32(Color::Dim), Tr(pos.c_str()));
         // Barrita de avance.
-        const float bw = S(160), bx = ip.x + ImGui::CalcTextSize(pos.c_str()).x + S(12), by = ip.y + S(74);
+        const float bw = S(160), bx = ip.x + ImGui::CalcTextSize(Tr(pos.c_str())).x + S(12), by = ip.y + S(74);
         dl->AddRectFilled({bx, by}, {bx + bw, by + S(4)}, U32(Color::Surface3), S(2));
         const float t = n > 1 ? carousel_pos_ / (n - 1) : 1.0f;
         dl->AddRectFilled({bx, by}, {bx + std::max(S(8), bw * t), by + S(4)}, U32(gs ? gs->color : Color::Accent), S(2));
@@ -561,7 +583,7 @@ void App::DrawConfirm() {
             {
                 FontScope f(GetFonts().bold, 20);
                 ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + inner - av - S(18));
-                ImGui::TextWrapped("%s", app ? "¿Cerrar Satronho Emulation?" : ("¿Salir de «" + current_.title + "»?").c_str());
+                ImGui::TextWrapped("%s", Tr(app ? "¿Cerrar Satronho Emulation?" : ("¿Salir de «" + current_.title + "»?").c_str()));
                 ImGui::PopTextWrapPos();
             }
             {
@@ -583,7 +605,7 @@ void App::DrawConfirm() {
             ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, p.y + S(3)});
             FontScope f(GetFonts().medium, 13.5f);
             ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
-            ImGui::TextUnformatted("No volver a preguntar");
+            ImGui::TextUnformatted(Tr("No volver a preguntar"));
             ImGui::PopStyleColor();
         }
         ImGui::Dummy({0, S(14)});
@@ -643,13 +665,13 @@ void App::DrawWhatsNew() {
             {
                 FontScope f(GetFonts().semibold, 12.5f);
                 ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Pink));
-                ImGui::TextUnformatted(build_ > 0 ? Fmt("BUILD %d INSTALADA", build_).c_str() : "LO NUEVO");
+                ImGui::TextUnformatted(Tr(build_ > 0 ? Fmt("BUILD %d INSTALADA", build_).c_str() : "LO NUEVO"));
                 ImGui::PopStyleColor();
             }
             {
                 FontScope f(GetFonts().bold, 22);
                 ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + inner - av - S(22));
-                ImGui::TextWrapped("%s", b["titulo"].String().c_str());
+                ImGui::TextWrapped("%s", Tr(b["titulo"].String().c_str()));
                 ImGui::PopTextWrapPos();
             }
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + inner - av - S(22));
@@ -669,7 +691,7 @@ void App::DrawWhatsNew() {
             ImGui::SetCursorScreenPos({p.x + S(78), p.y - S(1)});
             FontScope f(GetFonts().regular, 14);
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - S(8));
-            ImGui::TextWrapped("%s", c["texto"].String().c_str());
+            ImGui::TextWrapped("%s", Tr(c["texto"].String().c_str()));
             ImGui::PopTextWrapPos();
             ImGui::Dummy({0, S(2)});
         }
@@ -818,7 +840,7 @@ void App::DrawGuideChat() {
         FontScope f(GetFonts().medium, 13.5f);
         auto chip = [&](int id, const char* name, unsigned color) {
             const float av = S(28);
-            const ImVec2 ts = ImGui::CalcTextSize(name);
+            const ImVec2 ts = ImGui::CalcTextSize(Tr(name));
             const float w = ts.x + (id >= 0 ? av + S(26) : S(28)), h = S(40);
             const ImVec2 p = ImGui::GetCursorScreenPos();
             ImGui::PushID(id + 10);
@@ -834,7 +856,7 @@ void App::DrawGuideChat() {
                 dl->AddImageRounded(guides_[id].Ref(), {p.x + S(6), p.y + (h - av) * 0.5f}, {p.x + S(6) + av, p.y + (h + av) * 0.5f}, {0, 0}, {1, 1}, IM_COL32_WHITE, av * 0.5f);
                 x = p.x + av + S(14);
             }
-            dl->AddText({x, p.y + (h - ts.y) * 0.5f}, U32(sel ? Color::Text : Color::Muted), name);
+            dl->AddText({x, p.y + (h - ts.y) * 0.5f}, U32(sel ? Color::Text : Color::Muted), Tr(name));
             if (click && chat_guide_ != id) {
                 chat_guide_ = id;
                 const ChatReply hello = ChatGreeting(BuildChatContext(), id >= 0 ? id : 0);
@@ -885,12 +907,12 @@ void App::DrawGuideChat() {
         if (m.guide < 0) {
             // Lo que escribió la persona: a la derecha, color del acento.
             FontScope f(GetFonts().medium, 14.5f);
-            const ImVec2 ts = ImGui::CalcTextSize(m.text.c_str(), nullptr, false, max_w - S(32));
+            const ImVec2 ts = ImGui::CalcTextSize(Tr(m.text.c_str()), nullptr, false, max_w - S(32));
             const float bw = ts.x + S(32), bh = ts.y + S(22);
             const ImVec2 p = ImGui::GetCursorScreenPos();
             const ImVec2 b0(p.x + full_w - bw, p.y + (1 - ease) * S(8)), b1(b0.x + bw, b0.y + bh);
             dl->AddRectFilled(b0, b1, U32(Color::Accent, 0.9f * ease), S(18));
-            dl->AddText(nullptr, 0.0f, {b0.x + S(16), b0.y + S(11)}, U32(LightTheme() ? 0xFFFFFF : 0x14101F, ease), m.text.c_str(), nullptr, max_w - S(32));
+            dl->AddText(nullptr, 0.0f, {b0.x + S(16), b0.y + S(11)}, U32(LightTheme() ? 0xFFFFFF : 0x14101F, ease), Tr(m.text.c_str()), nullptr, max_w - S(32));
             ImGui::Dummy({full_w, bh + S(12)});
         } else {
             const GuideInfo& g = Guide(static_cast<GuideId>(m.guide));
@@ -904,12 +926,12 @@ void App::DrawGuideChat() {
             ImVec2 ts;
             {
                 FontScope f(GetFonts().regular, 14.5f);
-                ts = ImGui::CalcTextSize(m.text.c_str(), nullptr, false, max_w - S(36));
+                ts = ImGui::CalcTextSize(Tr(m.text.c_str()), nullptr, false, max_w - S(36));
             }
             float nw;
             {
                 FontScope f(GetFonts().bold, 13);
-                nw = ImGui::CalcTextSize(g.name).x;
+                nw = ImGui::CalcTextSize(Tr(g.name)).x;
             }
             const float name_h = S(20);
             const float bh = ts.y + name_h + S(26);
@@ -919,11 +941,11 @@ void App::DrawGuideChat() {
             dl->AddRectFilled({b0.x, b0.y + S(14)}, {b0.x + S(3), b1.y - S(14)}, U32(g.color, ease), S(2));
             {
                 FontScope f(GetFonts().bold, 13);
-                dl->AddText({b0.x + S(18), b0.y + S(11)}, U32(g.color, ease), g.name);
+                dl->AddText({b0.x + S(18), b0.y + S(11)}, U32(g.color, ease), Tr(g.name));
             }
             {
                 FontScope f(GetFonts().regular, 14.5f);
-                dl->AddText(nullptr, 0.0f, {b0.x + S(18), b0.y + S(11) + name_h}, U32(Color::Text, ease), m.text.c_str(), nullptr, max_w - S(36));
+                dl->AddText(nullptr, 0.0f, {b0.x + S(18), b0.y + S(11) + name_h}, U32(Color::Text, ease), Tr(m.text.c_str()), nullptr, max_w - S(36));
             }
             ImGui::Dummy({full_w, bh + S(8)});
             if (!m.buttons.empty()) {
@@ -954,7 +976,7 @@ void App::DrawGuideChat() {
         const auto sugg = SuggestedQuestions(chat_guide_ >= 0 ? chat_guide_ : 0);
         for (size_t i = 0; i < sugg.size(); ++i) {
             if (i) ImGui::SameLine(0, S(8));
-            const ImVec2 ts = ImGui::CalcTextSize(sugg[i].c_str());
+            const ImVec2 ts = ImGui::CalcTextSize(Tr(sugg[i].c_str()));
             if (ImGui::GetCursorScreenPos().x + ts.x + S(28) > ImGui::GetWindowPos().x + ImGui::GetWindowWidth() - S(30)) break;
             ImGui::PushID(static_cast<int>(i) + 500);
             if (Button(sugg[i].c_str(), ButtonKind::Secondary, {0, S(34)})) AskGuides(sugg[i]);
@@ -975,7 +997,7 @@ void App::DrawGuideChat() {
             chat_focus_ = false;
         }
         const char* hint = chat_guide_ >= 0 ? "Escríbele tu pregunta…" : "Escribe tu pregunta: «¿cómo va el 64 en mi PC?»";
-        const bool enter = ImGui::InputTextWithHint("##pregunta", hint, chat_input_, sizeof chat_input_, ImGuiInputTextFlags_EnterReturnsTrue);
+        const bool enter = ImGui::InputTextWithHint("##pregunta", Tr(hint), chat_input_, sizeof chat_input_, ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::PopStyleVar(2);
         ImGui::SameLine(0, S(10));
         FontScope f(GetFonts().semibold, 15);
@@ -1179,7 +1201,7 @@ void App::DrawGpuSettings(bool& changed) {
     {
         RowBegin("Tarjeta", "La que usan CD y 64 para dibujar.");
         FontScope f(GetFonts().semibold, 14);
-        ImGui::TextUnformatted(hw_.gpu.empty() ? "?" : hw_.gpu.c_str());
+        ImGui::TextUnformatted(Tr(hw_.gpu.empty() ? "?" : hw_.gpu.c_str()));
         RowEnd();
         RowBegin("Vulkan", nullptr);
         Muted(hw_render_.VulkanAvailable() ? ("Disponible · " + hw_render_.VulkanGpu()).c_str()
@@ -1226,7 +1248,7 @@ void App::DrawGpuSettings(bool& changed) {
             dl->AddRectFilled(p, {p.x + ImGui::GetContentRegionAvail().x, p.y + S(46)}, U32(sys->color, 0.10f), S(12));
             DrawControllerMini(dl, sys->layout, {p.x + S(28), p.y + S(23)}, S(36), 1.0f);
             FontScope f(GetFonts().bold, 17);
-            dl->AddText({p.x + S(58), p.y + (S(46) - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), (sys->full + "  ·  " + sys->hint).c_str());
+            dl->AddText({p.x + S(58), p.y + (S(46) - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), Tr((sys->full + "  ·  " + sys->hint).c_str()));
             ImGui::Dummy({0, S(52)});
         }
         const int api_now = GpuApiFor(*sys);
@@ -1412,7 +1434,7 @@ void App::DrawArchivePicker() {
             Ellipsize(dl, GetFonts().medium, S(14), {p.x + S(52), p.y + S(8)}, U32(Color::Text), base, inner - S(80), 1);
             {
                 FontScope f(GetFonts().regular, 12);
-                dl->AddText({p.x + S(52), p.y + S(27)}, U32(sys ? sys->color : Color::Muted), sys ? sys->full.c_str() : "");
+                dl->AddText({p.x + S(52), p.y + S(27)}, U32(sys ? sys->color : Color::Muted), Tr(sys ? sys->full.c_str() : ""));
             }
             ImGui::PopID();
             ImGui::Dummy({0, S(2)});
@@ -1540,11 +1562,11 @@ void App::DrawSplash() {
     {
         const char* name = "Satronho Emulation";
         const float fs = std::max(S(28), size * 0.2f);
-        const ImVec2 ts = GetFonts().bold->CalcTextSizeA(fs, FLT_MAX, 0, name);
-        dl->AddText(GetFonts().bold, fs, {c.x - ts.x * 0.5f, c.y + ring + S(34) + (1 - tx) * S(14)}, U32(Color::Text, tx * out), name);
+        const ImVec2 ts = GetFonts().bold->CalcTextSizeA(fs, FLT_MAX, 0, Tr(name));
+        dl->AddText(GetFonts().bold, fs, {c.x - ts.x * 0.5f, c.y + ring + S(34) + (1 - tx) * S(14)}, U32(Color::Text, tx * out), Tr(name));
         const char* by = "por Ridds";
-        const ImVec2 bs = GetFonts().semibold->CalcTextSizeA(S(15), FLT_MAX, 0, by);
-        dl->AddText(GetFonts().semibold, S(15), {c.x - bs.x * 0.5f, c.y + ring + S(34) + ts.y + S(6) + (1 - tx) * S(14)}, U32(Color::Accent, tx * out), by);
+        const ImVec2 bs = GetFonts().semibold->CalcTextSizeA(S(15), FLT_MAX, 0, Tr(by));
+        dl->AddText(GetFonts().semibold, S(15), {c.x - bs.x * 0.5f, c.y + ring + S(34) + ts.y + S(6) + (1 - tx) * S(14)}, U32(Color::Accent, tx * out), Tr(by));
     }
 }
 

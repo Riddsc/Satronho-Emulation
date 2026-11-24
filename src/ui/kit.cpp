@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Ridds (Satronho Emulation)
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/kit.h"
+#include "util/i18n.h"
 
 #include <algorithm>
 #include <cctype>
@@ -548,6 +549,7 @@ void DrawIcon(ImDrawList* dl, Icon icon, ImVec2 c, float sz, ImU32 col) {
 }
 
 void IconText(Icon icon, const char* text, ImU32 color) {
+    text = Tr(text);
     const float sz = ImGui::GetFontSize();
     const ImVec2 p = ImGui::GetCursorScreenPos();
     DrawIcon(ImGui::GetWindowDrawList(), icon, {p.x + sz * 0.5f, p.y + sz * 0.55f}, sz * 0.85f, color);
@@ -561,6 +563,7 @@ void IconText(Icon icon, const char* text, ImU32 color) {
 // ---------------------------------------------------------------- controles
 
 bool Button(const char* label, ButtonKind kind, ImVec2 size, Icon icon, bool with_icon) {
+    label = Tr(label);
     const char* end = ImGui::FindRenderedTextEnd(label);
     const ImVec2 ts = ImGui::CalcTextSize(label, end);
     const float icon_w = with_icon ? ImGui::GetFontSize() + S(8) : 0;
@@ -598,6 +601,7 @@ bool Button(const char* label, ButtonKind kind, ImVec2 size, Icon icon, bool wit
 }
 
 bool IconButton(const char* id, Icon icon, float size, ImU32 color, const char* tooltip, bool active) {
+    tooltip = Tr(tooltip);
     const ImVec2 p = ImGui::GetCursorScreenPos();
     const bool pressed = ImGui::InvisibleButton(id, {size, size});
     const bool hovered = ImGui::IsItemHovered();
@@ -610,6 +614,9 @@ bool IconButton(const char* id, Icon icon, float size, ImU32 color, const char* 
 }
 
 bool NavItem(const char* label, Icon icon, bool selected, const char* badge, bool disabled, unsigned accent, const char* hint) {
+    label = Tr(label);
+    badge = Tr(badge);
+    hint = Tr(hint);
     const float w = ImGui::GetContentRegionAvail().x;
     const float hgt = S(42);
     const ImVec2 p = ImGui::GetCursorScreenPos();
@@ -699,13 +706,13 @@ bool Segmented(const char* id, int* value, const std::vector<const char*>& items
         else if (hovered) dl->AddRectFilled({x, p.y + S(4)}, {x + ws[i], p.y + h - S(4)}, U32(Color::Surface3, 0.45f), S(9));
         ImFont* font = sel ? GetFonts().semibold : GetFonts().medium;
         float fs = S(13.5f);
-        ImVec2 ts = font->CalcTextSizeA(fs, FLT_MAX, 0, items[i]);
+        ImVec2 ts = font->CalcTextSizeA(fs, FLT_MAX, 0, Tr(items[i]));
         // Si el texto no cabe en su casilla, se achica un poco (hasta 75 %).
         if (ts.x > ws[i] - S(10)) {
             fs *= std::max(0.75f, (ws[i] - S(10)) / ts.x);
-            ts = font->CalcTextSizeA(fs, FLT_MAX, 0, items[i]);
+            ts = font->CalcTextSizeA(fs, FLT_MAX, 0, Tr(items[i]));
         }
-        dl->AddText(font, fs, {x + (ws[i] - ts.x) * 0.5f, p.y + (h - ts.y) * 0.5f}, U32(sel ? Color::Text : Color::Muted), items[i]);
+        dl->AddText(font, fs, {x + (ws[i] - ts.x) * 0.5f, p.y + (h - ts.y) * 0.5f}, U32(sel ? Color::Text : Color::Muted), Tr(items[i]));
         x += ws[i];
     }
     ImGui::SetCursorScreenPos(p);
@@ -782,7 +789,7 @@ bool SliderIntStyled(const char* id, int* value, int min, int max, const char* f
 bool ComboStyled(const char* id, int* current, const std::vector<std::string>& items, float width) {
     ImGui::SetNextItemWidth(width);
     bool changed = false;
-    std::string preview = *current >= 0 && *current < static_cast<int>(items.size()) ? items[*current] : "";
+    std::string preview = *current >= 0 && *current < static_cast<int>(items.size()) ? Tr(items[*current]) : "";
     // El texto no pisa la flecha: si no cabe, se corta con «…».
     const float max_w = width - S(12) - S(40);
     if (ImGui::CalcTextSize(preview.c_str()).x > max_w) {
@@ -813,7 +820,7 @@ bool ComboStyled(const char* id, int* current, const std::vector<std::string>& i
     if (open) {
         for (int i = 0; i < static_cast<int>(items.size()); ++i) {
             const bool sel = i == *current;
-            if (ImGui::Selectable(items[i].c_str(), sel, 0, {0, S(26)})) {
+            if (ImGui::Selectable(Tr(items[i]).c_str(), sel, 0, {0, S(26)})) {
                 *current = i;
                 changed = true;
             }
@@ -830,6 +837,8 @@ float g_row_y = 0, g_row_text_bottom = 0, g_row_x = 0, g_row_w = 0;
 }
 
 void RowBegin(const char* title, const char* help) {
+    title = Tr(title);
+    help = Tr(help);
     g_row_w = ImGui::GetContentRegionAvail().x;
     const ImVec2 p = ImGui::GetCursorScreenPos();
     g_row_x = p.x;
@@ -864,6 +873,7 @@ void RowEnd() {
 }
 
 void Chip(const char* text, unsigned color, bool filled) {
+    text = Tr(text);
     FontScope f(GetFonts().semibold, 11.5f);
     const ImVec2 ts = ImGui::CalcTextSize(text);
     const ImVec2 p = ImGui::GetCursorScreenPos();
@@ -875,6 +885,7 @@ void Chip(const char* text, unsigned color, bool filled) {
 }
 
 void SectionLabel(const char* text) {
+    text = Tr(text);
     FontScope f(GetFonts().semibold, 11.5f);
     ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Dim));
     ImGui::TextUnformatted(text);
@@ -882,6 +893,8 @@ void SectionLabel(const char* text) {
 }
 
 void Title(const char* title, const char* subtitle) {
+    title = Tr(title);
+    subtitle = Tr(subtitle);
     {
         FontScope f(GetFonts().bold, 27);
         ImGui::TextUnformatted(title);
@@ -906,6 +919,7 @@ void Spinner(float radius, unsigned color) {
 }
 
 void HelpTooltip(const char* text) {
+    text = Tr(text);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(12), S(8)});
     ImGui::BeginTooltip();
     ImGui::PushTextWrapPos(S(320));
@@ -939,6 +953,8 @@ float GuideBob(const char* seed) {
 }
 
 void GuideBanner(const Image& avatar, const char* name, const char* role, unsigned color, const char* text, float width) {
+    role = Tr(role);
+    text = Tr(text);
     if (width <= 0) width = ImGui::GetContentRegionAvail().x;
     const float av = S(58);
     const float pad = S(16);
