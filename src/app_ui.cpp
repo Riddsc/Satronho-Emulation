@@ -185,6 +185,7 @@ void App::DrawUi() {
     else if (show_whats_new_) DrawWhatsNew();
     if (!pending_start_.empty()) DrawLoading();
     DrawArchivePicker();
+    DrawGameSettings();
     DrawUnpack();
     DrawDataMove();
     DrawBrowser();
@@ -715,6 +716,19 @@ void App::DrawContinueHero(const Game& g, float width) {
     ImGui::Dummy({width, h});
 }
 
+// Con el dedo no hay clic derecho: dejar el dedo quieto sobre un juego medio segundo abre su menú.
+void App::LongPressMenu(const Game& g) {
+    if (!touch_mode_ || !ImGui::IsItemActive()) return;
+    ImGuiIO& io = ImGui::GetIO();
+    const ImVec2 d(io.MousePos.x - io.MouseClickedPos[0].x, io.MousePos.y - io.MouseClickedPos[0].y);
+    if (io.MouseDownDuration[0] > 0.55f && d.x * d.x + d.y * d.y < S(14) * S(14)) {
+        ImGui::ClearActiveID(); // al soltar no cuenta como toque (no abre el juego)
+        ImGui::OpenPopup("##menu");
+        selected_key_ = g.key;
+        Android::Vibrate(18, 110);
+    }
+}
+
 bool App::GameContextMenu(const Game& g) {
     // Clic derecho en un juego (como en Satronho NX): todo lo que se puede hacer con él.
     bool play = false;
@@ -735,6 +749,7 @@ bool App::GameContextMenu(const Game& g) {
         if (ImGui::MenuItem(Tr("Jugar"))) play = true;
         if (HasAutoState(g) && ImGui::MenuItem(Tr("Continuar donde quedé"))) RequestStart(g.path, true);
         ImGui::Separator();
+        if (ImGui::MenuItem(Tr("Ajustes de este juego…"))) game_settings_ = g;
         if (ImGui::MenuItem(Tr("Abrir la carpeta del juego"))) OpenFolder(g.path.parent_path());
         if (ImGui::MenuItem(Tr("Abrir la carpeta de partidas"))) OpenFolder(Paths::Saves() / g.system);
         if (ImGui::MenuItem(Tr("Abrir la carpeta de estados"))) OpenFolder(StatePathFor(g, 1).parent_path());
@@ -827,6 +842,7 @@ bool App::DrawGameRow(const Game& g, float w, float h, bool selected) {
     if (clicked) selected_key_ = g.key;
     if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) play = true;
     if (ImGui::IsItemFocused() && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown))) play = true;
+    LongPressMenu(g);
     if (GameContextMenu(g)) play = true;
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const SystemDef* sys = SystemById(g.system);
@@ -883,6 +899,7 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     if (clicked) selected_key_ = g.key;
     if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) play = true;
     if (focused && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown))) play = true;
+    LongPressMenu(g);
     if (GameContextMenu(g)) play = true;
 
     const ImGuiID anim_id = ImGui::GetID("##anim");
@@ -961,6 +978,82 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
 }
 
 // Una consola sin juegos (pero la biblioteca sí tiene): se dice eso, con lo que esa consola abre.
+// Ventana con los ajustes de un solo juego. Lo que se deja en «Como la consola» sigue lo de Ajustes.
+void App::DrawGameSettings() {
+    if (game_settings_.key.empty()) return;
+    const Game g = game_settings_;
+    const SystemDef* sys = SystemById(g.system);
+    if (!sys) {
+        game_settings_ = Game{};
+        return;
+    }
+    ImGui::OpenPopup("##ajustes_juego");
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    const float w = std::min(S(600), vp->Size.x - S(32));
+    ImGui::SetNextWindowPos({vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f}, ImGuiCond_Always, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({w, 0});
+    ImGui::SetNextWindowSizeConstraints({w, 0}, {w, vp->Size.y - S(32)});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(24), S(22)});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(22));
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, V4(Color::Bg));
+    ImGui::PushStyleColor(ImGuiCol_Border, V4(sys->color, 0.45f));
+    if (ImGui::BeginPopupModal("##ajustes_juego", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
+        const float inner = w - S(48);
+        {
+            FontScope f(GetFonts().bold, 19);
+            ImGui::TextUnformatted(Tr("Ajustes de este juego"));
+        }
+        Muted((g.title + "  ·  " + Tr(sys->full.c_str())).c_str(), 13.5f);
+        ImGui::Dummy({0, S(6)});
+        GuideSays(GuideId::Nono, "Lo que cambies aquí vale solo para este juego. «Como la consola» usa lo de Ajustes.", inner);
+        ImGui::Dummy({0, S(8)});
+        bool any = false;
+        // Tipo de mando (consolas que conectan un mando especial, como el DualShock en CD).
+        if (sys->port_device != RETRO_DEVICE_JOYPAD) {
+            any = true;
+            int v = library_.GameOption(g.key, "mando") == "normal" ? 1 : 0;
+            RowBegin("Tipo de mando",
+                     "Algunos juegos viejos no aceptan el mando con palancas (DualShock) y dicen que el mando está mal conectado. Con «Mando normal» se conecta "
+                     "uno sin palancas, como el original.");
+            if (Segmented("##mando_juego", &v, {"DualShock", "Mando normal"}, S(260))) library_.SetGameOption(g.key, "mando", v == 1 ? "normal" : "");
+            RowEnd();
+        }
+        // Motor gráfico y resolución (consolas que dibujan con la tarjeta gráfica).
+        if (sys->id == "cd" || sys->id == "n64") {
+            any = true;
+            int api = std::atoi(library_.GameOption(g.key, "motor").c_str());
+            RowBegin("Motor gráfico", "Si un juego se ve mal o se cierra con un motor, prueba otro solo para él.");
+            std::vector<std::string> apis = {Tr("Como la consola"), "OpenGL", "Vulkan", Tr("Procesador")};
+            if (ComboStyled("##motor_juego", &api, apis, S(240))) {
+                library_.SetGameOption(g.key, "motor", api > 0 ? std::to_string(api) : "");
+                library_.SetGameOption(g.key, "res", ""); // los pasos cambian con el motor
+            }
+            RowEnd();
+            const int real_api = api > 0 ? api : GpuApiFor(*sys);
+            const std::vector<int> steps = GpuResSteps(*sys, real_api);
+            int res = std::atoi(library_.GameOption(g.key, "res").c_str());
+            std::vector<std::string> labels = {Tr("Como la consola")};
+            int cur = 0;
+            for (size_t i = 0; i < steps.size(); ++i) {
+                labels.push_back(ResLabel(steps[i]));
+                if (steps[i] == res) cur = static_cast<int>(i) + 1;
+            }
+            RowBegin("Resolución", "Más alta se ve más nítido pero pide más a la tarjeta gráfica.");
+            if (ComboStyled("##res_juego", &cur, labels, S(240))) library_.SetGameOption(g.key, "res", cur > 0 ? std::to_string(steps[cur - 1]) : "");
+            RowEnd();
+        }
+        if (!any) Muted("Esta consola todavía no tiene ajustes propios por juego.", 14);
+        ImGui::Dummy({0, S(10)});
+        if (Button("Listo##ajustes_juego", ButtonKind::Primary, {inner, S(46)}, Icon::Check, true) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            game_settings_ = Game{};
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
+}
+
 void App::DrawEmptySystem(const SystemDef& sys) {
     const float w = std::min(S(640), ImGui::GetContentRegionAvail().x);
     ImGui::Dummy({0, S(20)});

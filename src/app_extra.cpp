@@ -1098,7 +1098,7 @@ int Floor(int want, std::initializer_list<int> allowed) {
 int App::GpuApiFor(const SystemDef& sys) const {
     // 1 OpenGL, 2 Vulkan, 3 procesador.
     if (!gl_) return 3;
-    int api = settings_.GpuApi(sys.id);
+    int api = game_api_ > 0 ? game_api_ : settings_.GpuApi(sys.id);
     if (api == 0 && hw_.software) return 3; // sin tarjeta gráfica de verdad
     if (api == 0) {
         // Automático: Vulkan en tarjetas NVIDIA y AMD (dedicadas), OpenGL en el resto (Intel,
@@ -1151,7 +1151,7 @@ int App::NearestResStep(const SystemDef& sys, int api) const {
 }
 
 int App::GpuResFor(const SystemDef& sys, int api) const {
-    int res = settings_.GpuRes(sys.id);
+    int res = game_res_ > 0 ? game_res_ : settings_.GpuRes(sys.id);
     const bool exact = sys.id == "n64" && api == 1;
     const std::vector<int> steps = GpuResSteps(sys, api);
     if (res > 0) {
