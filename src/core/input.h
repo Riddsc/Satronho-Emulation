@@ -20,6 +20,11 @@ class Ini;
 constexpr int kPadNone = -1;
 constexpr int kPadLT = 200;
 constexpr int kPadRT = 201;
+// Direcciones de las palancas usadas como botones (p. ej. los C de la 64 en la palanca derecha):
+// 202..205 palanca izquierda arriba/abajo/izquierda/derecha; 206..209 la derecha.
+constexpr int kPadStick = 202;
+constexpr int kPadStickEnd = 210;
+inline bool IsStickCode(int c) { return c >= kPadStick && c < kPadStickEnd; }
 
 // Asignación de una consola: tecla y botón de mando para cada botón del RetroPad.
 struct Mapping {
@@ -86,6 +91,7 @@ public:
 
     // Vista en vivo: botones del RetroPad presionados ahora mismo por el jugador.
     uint16_t LiveButtons(int player, const SystemDef& sys);
+    void LiveSticks(int player, float out[4]) const; // izq. x/y y der. x/y, de -1 a 1 (vista en vivo)
     std::string last_input;    // «Mando 1 · View» — el último botón que llegó, para la vista en vivo
     double last_input_time = 0;
 
@@ -147,6 +153,7 @@ private:
         SDL_Gamepad* pad;
         SDL_JoystickID id;
         bool trig[2];
+        bool stick[8] = {}; // direcciones de las palancas pasadas del umbral (para asignar)
     };
     SDL_Gamepad* PadAt(int slot) const;
     bool PadCodeDown(SDL_Gamepad* pad, int code) const;

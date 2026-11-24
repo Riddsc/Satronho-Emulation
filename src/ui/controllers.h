@@ -17,6 +17,9 @@ int DrawController(ImDrawList* dl, Layout layout, ImVec2 pos, ImVec2 size, uint1
 // Versión en miniatura, sin textos: ícono de cada consola en la barra lateral.
 void DrawControllerMini(ImDrawList* dl, Layout layout, ImVec2 center, float width, float alpha);
 
+// Posición de las palancas del mando real (izq. x/y, der. x/y, de -1 a 1): el dibujo las mueve.
+void SetLiveSticks(const float sticks[4]);
+
 // Proporción ancho/alto del dibujo de cada control.
 float ControllerAspect(Layout layout);
 

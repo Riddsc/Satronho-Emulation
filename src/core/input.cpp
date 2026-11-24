@@ -14,9 +14,13 @@ namespace Satronho {
 namespace {
 constexpr float kTrigger = 0.55f;
 
+const char* kStickIds[] = {"leftstick_up", "leftstick_down", "leftstick_left", "leftstick_right",
+                           "rightstick_up", "rightstick_down", "rightstick_left", "rightstick_right"};
+
 const char* PadCodeId(int code) {
     if (code == kPadLT) return "lefttrigger";
     if (code == kPadRT) return "righttrigger";
+    if (IsStickCode(code)) return kStickIds[code - kPadStick];
     if (code < 0) return "";
     const char* s = SDL_GetGamepadStringForButton(static_cast<SDL_GamepadButton>(code));
     return s ? s : "";
@@ -26,6 +30,8 @@ int PadCodeFromId(const std::string& s) {
     if (s.empty()) return kPadNone;
     if (s == "lefttrigger") return kPadLT;
     if (s == "righttrigger") return kPadRT;
+    for (int i = 0; i < 8; ++i)
+        if (s == kStickIds[i]) return kPadStick + i;
     const SDL_GamepadButton b = SDL_GetGamepadButtonFromString(s.c_str());
     return b == SDL_GAMEPAD_BUTTON_INVALID ? kPadNone : static_cast<int>(b);
 }
@@ -97,7 +103,7 @@ void Input::Init() {
     SDL_JoystickID* ids = SDL_GetGamepads(&count);
     for (int i = 0; i < count; ++i) {
         if (SDL_Gamepad* pad = SDL_OpenGamepad(ids[i])) {
-            pads_.push_back({pad, ids[i], {false, false}});
+            pads_.push_back({pad, ids[i], {false, false}, {}});
             Log::Info("Mando conectado: %s (%s)", SDL_GetGamepadName(pad), FamilyName(FamilyOf(SDL_GetGamepadType(pad))));
         }
     }
@@ -208,10 +214,11 @@ Mapping Input::DefaultMapping(const SystemDef& sys, bool keyboard_keys) {
         m.pad[RETRO_DEVICE_ID_JOYPAD_L2] = kPadLT;
         m.pad[RETRO_DEVICE_ID_JOYPAD_SELECT] = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
         m.pad[RETRO_DEVICE_ID_JOYPAD_R2] = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
-        m.pad[RETRO_DEVICE_ID_JOYPAD_X] = SDL_GAMEPAD_BUTTON_NORTH;
-        m.pad[RETRO_DEVICE_ID_JOYPAD_A] = SDL_GAMEPAD_BUTTON_EAST;
-        m.pad[RETRO_DEVICE_ID_JOYPAD_L] = kPadNone;
-        m.pad[RETRO_DEVICE_ID_JOYPAD_R] = kPadNone;
+        // Los cuatro C en la palanca derecha, como en cualquier mando moderno.
+        m.pad[RETRO_DEVICE_ID_JOYPAD_X] = kPadStick + 4;     // C arriba
+        m.pad[RETRO_DEVICE_ID_JOYPAD_A] = kPadStick + 5;     // C abajo
+        m.pad[RETRO_DEVICE_ID_JOYPAD_L] = kPadStick + 6;     // C izquierda
+        m.pad[RETRO_DEVICE_ID_JOYPAD_R] = kPadStick + 7;     // C derecha
         m.pad[RETRO_DEVICE_ID_JOYPAD_START] = SDL_GAMEPAD_BUTTON_START;
     }
     if (sys.layout == Layout::Genesis || sys.layout == Layout::Saturn) {
@@ -261,6 +268,12 @@ void Input::Load(const Ini& ini) {
                     m.keys[id] = kv.empty() ? SDL_SCANCODE_UNKNOWN : SDL_GetScancodeFromName(kv.c_str());
                 }
                 if (ini.Values().count(p)) m.pad[id] = PadCodeFromId(ini.Get(p));
+            }
+            // Build 15: en la 64, los C sin botón del mando pasan a la palanca derecha.
+            if (sys.id == "n64") {
+                const int cs[] = {RETRO_DEVICE_ID_JOYPAD_X, RETRO_DEVICE_ID_JOYPAD_A, RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R};
+                if (m.pad[RETRO_DEVICE_ID_JOYPAD_L] == kPadNone && m.pad[RETRO_DEVICE_ID_JOYPAD_R] == kPadNone)
+                    for (int i = 0; i < 4; ++i) m.pad[cs[i]] = kPadStick + 4 + i;
             }
             profs[name] = m;
         }
@@ -517,7 +530,7 @@ void Input::HandleEvent(const SDL_Event& e) {
     case SDL_EVENT_GAMEPAD_ADDED:
         if (slot_of(e.gdevice.which) < 0) {
             if (SDL_Gamepad* pad = SDL_OpenGamepad(e.gdevice.which)) {
-                pads_.push_back({pad, e.gdevice.which, {false, false}});
+                pads_.push_back({pad, e.gdevice.which, {false, false}, {}});
                 Log::Info("Mando conectado: %s (%s)", SDL_GetGamepadName(pad), FamilyName(FamilyOf(SDL_GetGamepadType(pad))));
                 ResolvePads();
             }
@@ -574,7 +587,30 @@ void Input::HandleEvent(const SDL_Event& e) {
         break;
     }
     case SDL_EVENT_GAMEPAD_AXIS_MOTION: {
-        if (e.gaxis.axis != SDL_GAMEPAD_AXIS_LEFT_TRIGGER && e.gaxis.axis != SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) break;
+        if (e.gaxis.axis != SDL_GAMEPAD_AXIS_LEFT_TRIGGER && e.gaxis.axis != SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) {
+            // Palancas: al pasar del 60 % en una dirección cuentan como «botón» para asignar.
+            const int s = slot_of(e.gaxis.which);
+            if (s < 0) break;
+            const bool right = e.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHTX || e.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHTY;
+            const bool vertical = e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY || e.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHTY;
+            const float v = e.gaxis.value / 32767.0f;
+            for (int neg = 0; neg < 2; ++neg) {
+                // Orden: arriba, abajo, izquierda, derecha.
+                const int dir = vertical ? (neg ? 0 : 1) : (neg ? 2 : 3);
+                const int idx = (right ? 4 : 0) + dir;
+                const bool down = neg ? v < -0.6f : v > 0.6f;
+                if (down && !pads_[s].stick[idx]) {
+                    const int code = kPadStick + idx;
+                    Note("Mando " + std::to_string(s + 1) + " · " + PadCodeLabel(code, FamilyOfSlot(s)));
+                    if (Capturing() && (capture.pad || capture.any) && !capture.hotkey) {
+                        capture.pad = true;
+                        AssignCaptured(SDL_SCANCODE_UNKNOWN, code);
+                    }
+                }
+                pads_[s].stick[idx] = down;
+            }
+            break;
+        }
         const int s = slot_of(e.gaxis.which);
         if (s < 0) break;
         const int t = e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER ? 0 : 1;
@@ -617,6 +653,15 @@ bool Input::PadCodeDown(SDL_Gamepad* pad, int code) const {
     if (!pad || code == kPadNone) return false;
     if (code == kPadLT) return SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER) / 32767.0f > kTrigger;
     if (code == kPadRT) return SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) / 32767.0f > kTrigger;
+    if (IsStickCode(code)) {
+        const int idx = code - kPadStick;
+        const bool right = idx >= 4;
+        const int dir = idx % 4;
+        const SDL_GamepadAxis ax = dir < 2 ? (right ? SDL_GAMEPAD_AXIS_RIGHTY : SDL_GAMEPAD_AXIS_LEFTY)
+                                           : (right ? SDL_GAMEPAD_AXIS_RIGHTX : SDL_GAMEPAD_AXIS_LEFTX);
+        const float v = SDL_GetGamepadAxis(pad, ax) / 32767.0f;
+        return (dir == 0 || dir == 2) ? v < -0.5f : v > 0.5f;
+    }
     return SDL_GetGamepadButton(pad, static_cast<SDL_GamepadButton>(code));
 }
 
@@ -647,6 +692,14 @@ bool Input::MenuComboPressed() {
 }
 
 // ---------------------------------------------------------------- estado para el núcleo
+
+void Input::LiveSticks(int player, float out[4]) const {
+    out[0] = out[1] = out[2] = out[3] = 0;
+    if (SDL_Gamepad* pad = PadAt(players[player].pad)) {
+        const SDL_GamepadAxis ax[] = {SDL_GAMEPAD_AXIS_LEFTX, SDL_GAMEPAD_AXIS_LEFTY, SDL_GAMEPAD_AXIS_RIGHTX, SDL_GAMEPAD_AXIS_RIGHTY};
+        for (int i = 0; i < 4; ++i) out[i] = SDL_GetGamepadAxis(pad, ax[i]) / 32767.0f;
+    }
+}
 
 uint16_t Input::LiveButtons(int player, const SystemDef& sys) {
     const PlayerConfig& pc = players[player];
@@ -918,6 +971,11 @@ std::string Input::PadCodeLabel(int code, PadFamily f) {
     const bool ps = f == PadFamily::PlayStation, sw = f == PadFamily::Switch;
     if (code == kPadLT) return ps ? "L2" : sw ? "ZL" : "LT";
     if (code == kPadRT) return ps ? "R2" : sw ? "ZR" : "RT";
+    if (IsStickCode(code)) {
+        static const char* dirs[] = {"arriba", "abajo", "izquierda", "derecha"};
+        const int idx = code - kPadStick;
+        return std::string(idx >= 4 ? "Palanca der. " : "Palanca izq. ") + dirs[idx % 4];
+    }
     switch (static_cast<SDL_GamepadButton>(code)) {
     case SDL_GAMEPAD_BUTTON_SOUTH: return ps ? "Cruz" : sw ? "B" : "A";
     case SDL_GAMEPAD_BUTTON_EAST: return ps ? "Círculo" : sw ? "A" : "B";
