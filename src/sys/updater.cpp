@@ -153,7 +153,7 @@ void Updater::Install() {
             state_ = State::Failed;
             return;
         }
-        // Huella del zip (desde la build 11 cada Release la publica): si no coincide, el archivo
+        // Huella del zip (desde la build 12 cada Release la publica): si no coincide, el archivo
         // llegó incompleto o dañado y no se instala.
         if (!sha_url.empty()) {
             const fs::path sha_file = dir / "update.zip.sha256";

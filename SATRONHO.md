@@ -28,7 +28,7 @@ Mega (Genesis), Anillo (Saturn), Sueño (Dreamcast), CD (PS1), CD2 (PS2), Portá
 
 `src/sys/updater.cpp` (solo Windows): consulta `releases/latest` con urlmon, compara `build-N`,
 descarga el zip, comprueba su SHA-256 con el asset `…windows-x64.zip.sha256` (lo publica el CI desde
-la build 11) y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre la app, hace
+la build 12) y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre la app, hace
 `Expand-Archive`, aparta `cores/`, `assets/` y `licencias/` como `.viejo`, copia lo nuevo (si falla,
 las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
 
@@ -94,7 +94,7 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
 - `satronho.ini`: ajustes, controles (`perfil.<consola>.<perfil>.tN/mN`, `jugador.N.mando_id` = GUID
   del mando), atajos (`atajo.N`, N = orden del enum `Hotkey`: **los nuevos van al final**), opciones
   de núcleo por consola (`nucleo.<consola>.<clave>` y `nucleo.<consola>.@migrado`; antes de la build
-  11 eran por núcleo, `nucleo.<NombreDelNúcleo>.…`, y se siguen leyendo hasta la migración) e imagen
+  12 eran por núcleo, `nucleo.<NombreDelNúcleo>.…`, y se siguen leyendo hasta la migración) e imagen
   por consola (`video.<consola>.propio/escala/filtro/efecto/intensidad`).
 - `biblioteca.ini`: por clave de juego (`favorito`, `tiempo`, `ultima`, `oculto`). La clave es el
   FNV-1a de la ruta en minúsculas; en modo portátil, de la ruta relativa a la carpeta del programa

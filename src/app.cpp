@@ -343,7 +343,7 @@ std::vector<CoreOption> App::OptionsFor(const SystemDef& sys, std::vector<CoreOp
     for (const auto& [key, value] : sys.core_defaults) OverrideDefault(opts, key, value);
     const std::string prefix = "nucleo." + sys.id + ".";
     const bool migrated = ini_.GetBool(prefix + "@migrado", false);
-    // Antes de la build 11 las opciones se guardaban por núcleo («nucleo.mGBA.…»); se siguen
+    // Antes de la build 12 las opciones se guardaban por núcleo («nucleo.mGBA.…»); se siguen
     // leyendo hasta que la consola guarde las suyas.
     auto it = core_cache_.find(CoreFile(sys));
     const std::string legacy = "nucleo." + Paths::SafeName(it != core_cache_.end() ? it->second.name : core_name_) + ".";

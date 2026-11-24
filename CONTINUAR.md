@@ -3,13 +3,13 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
-## Estado al 23 de noviembre de 2026 (build 11)
+## Estado al 23 de noviembre de 2026 (build 12)
 
 **Fase actual:** hub con 9 emuladores (Octa, Mega, Hexa, CD, 64, Dual, Anillo, Bolsillo, Bolsillo
 Plus). Solo Windows x64 se publica; Linux compila para pruebas. Android y las consolas pesadas
 (Cubo, Sueño, CD2, Portátil, 3DS) son fases siguientes: **no empezarlas sin que Ridds lo pida.**
 
-### Qué se hizo en la build 11 (revisión completa + mejoras, sin cambiar de fase)
+### Qué se hizo en la build 12 (revisión completa + mejoras, sin cambiar de fase)
 
 Arreglos:
 - Partidas `.srm` por consola (`partidas/<consola>/`), con migración desde la carpeta vieja (solo si
