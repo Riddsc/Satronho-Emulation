@@ -3,6 +3,49 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "Satronho llega a Android, juegos en .zip y .7z, discos a .chd y una presentación nueva",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Emulation para Android (8 o más nuevo, 64 bits): las mismas consolas, los mismos guías y la misma biblioteca, con un control en pantalla para cada consola. Se descarga como APK en la misma página de cada build y se actualiza solo desde la app."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Control en pantalla: cruceta o palanca, botones con la forma de cada consola, gatillos y un botón de menú. Vibra al tocar y lo puedes acomodar a tu gusto: arrastra cada grupo, cambia su tamaño y su transparencia en Ajustes » Apariencia."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Juegos en .zip y .7z sin descomprimir nada: se abren directo desde la biblioteca. Si un archivo trae varios juegos, te pregunto cuál quieres. Los discos se descomprimen una sola vez en una caché que se limpia sola (y que puedes vaciar en Ajustes » Biblioteca)."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Discos a .chd (siempre opcional): en Ajustes » Biblioteca conviertes tus discos .cue/.bin a .chd, que ocupa menos y abre igual. Tus originales se quedan, salvo que marques borrarlos."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Presentación animada al abrir la app: el logo de Satronho con los guías en órbita."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El fondo de la biblioteca toma los colores de la carátula del juego que señalas, con un fundido suave."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Los guías se mueven y brillan en sus burbujas, y el juego aparece con un fundido al empezar."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "En pantallas pequeñas la barra lateral se vuelve una columna de íconos para dejar más espacio a tus juegos."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Ñoño te explica en el chat cómo funcionan los .zip, los .7z y los .chd."
+        }
+      ]
+    },
+    {
+      "version": "Build 13",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "Motor gráfico nuevo, CD y 64 en HD, temas, carrusel, carátulas y guías con las que puedes hablar",
       "cambios": [
         {
