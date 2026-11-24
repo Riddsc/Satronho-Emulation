@@ -4,6 +4,8 @@
 
 #include <SDL3/SDL.h>
 
+#include "sys/android.h"
+
 namespace Satronho::Paths {
 namespace {
 fs::path g_base, g_assets, g_cores, g_user;
@@ -85,6 +87,24 @@ std::string StableId(const fs::path& file) {
 }
 
 void Init() {
+#ifdef __ANDROID__
+    // Android: los assets se copian a files/assets (SatronhoActivity), los núcleos están donde
+    // Android instala las librerías de la app y los datos en la carpeta de la app en la memoria.
+    {
+        const char* internal = SDL_GetAndroidInternalStoragePath();
+        const char* external = SDL_GetAndroidExternalStoragePath();
+        g_base = FromUtf8(internal ? internal : ".");
+        g_assets = g_base / "assets";
+        g_cores = FromUtf8(Android::CoresDir());
+        g_user = FromUtf8(external ? external : (internal ? internal : "."));
+        std::error_code ec;
+        fs::create_directories(g_user, ec);
+        const fs::path db_src = g_assets / "system" / "NstDatabase.xml";
+        const fs::path db_dst = System() / "NstDatabase.xml";
+        if (fs::exists(db_src, ec) && !fs::exists(db_dst, ec)) fs::copy_file(db_src, db_dst, ec);
+        return;
+    }
+#endif
     const char* base = SDL_GetBasePath();
     g_base = base ? FromUtf8(base) : fs::current_path();
     g_assets = g_base / "assets";

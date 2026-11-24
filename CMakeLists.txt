@@ -20,8 +20,14 @@ if(NOT SDL3_FOUND)
     message(FATAL_ERROR "No se encontró SDL3")
   endif()
   include(FetchContent)
-  set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-  set(SDL_STATIC ON CACHE BOOL "" FORCE)
+  if(ANDROID)
+    # En Android la actividad de Java carga libSDL3.so y luego libmain.so (la app).
+    set(SDL_SHARED ON CACHE BOOL "" FORCE)
+    set(SDL_STATIC OFF CACHE BOOL "" FORCE)
+  else()
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+  endif()
   set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
   set(SDL_TESTS OFF CACHE BOOL "" FORCE)
   set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -40,7 +46,7 @@ set_target_properties(satronho_archivos PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # ---------------------------------------------------------------- programa
 set(IMGUI external/imgui)
-add_executable(satronho-emulation WIN32
+set(SATRONHO_SOURCES
   src/main.cpp
   src/app.cpp
   src/app_ui.cpp
@@ -78,31 +84,41 @@ add_executable(satronho-emulation WIN32
   ${IMGUI}/backends/imgui_impl_sdlrenderer3.cpp
   ${IMGUI}/backends/imgui_impl_opengl3.cpp
 )
-target_include_directories(satronho-emulation PRIVATE src ${IMGUI} ${IMGUI}/backends external/stb external/libretro external/vulkan)
-target_compile_definitions(satronho-emulation PRIVATE SATRONHO_BUILD=${SATRONHO_BUILD} IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
-target_link_libraries(satronho-emulation PRIVATE satronho_archivos)
-if(TARGET SDL3::SDL3-static)
-  target_link_libraries(satronho-emulation PRIVATE SDL3::SDL3-static)
+if(ANDROID)
+  set(SATRONHO_TARGET main)
+  add_library(main SHARED ${SATRONHO_SOURCES} src/sys/android.cpp)
+  target_link_libraries(main PRIVATE log android GLESv3 EGL)
 else()
-  target_link_libraries(satronho-emulation PRIVATE SDL3::SDL3)
+  set(SATRONHO_TARGET satronho-emulation)
+  add_executable(${SATRONHO_TARGET} WIN32 ${SATRONHO_SOURCES})
+endif()
+target_include_directories(${SATRONHO_TARGET} PRIVATE src ${IMGUI} ${IMGUI}/backends external/stb external/libretro external/vulkan)
+target_compile_definitions(${SATRONHO_TARGET} PRIVATE SATRONHO_BUILD=${SATRONHO_BUILD} IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+target_link_libraries(${SATRONHO_TARGET} PRIVATE satronho_archivos)
+if(TARGET SDL3::SDL3-static)
+  target_link_libraries(${SATRONHO_TARGET} PRIVATE SDL3::SDL3-static)
+else()
+  target_link_libraries(${SATRONHO_TARGET} PRIVATE SDL3::SDL3)
 endif()
 
 if(WIN32)
   # El .rc lleva el número de build (Propiedades del .exe) y la ruta completa del ícono.
   set(SATRONHO_ICON "${CMAKE_SOURCE_DIR}/dist/windows/satronho.ico")
   configure_file(dist/windows/satronho.rc.in ${CMAKE_BINARY_DIR}/satronho.rc @ONLY)
-  target_sources(satronho-emulation PRIVATE ${CMAKE_BINARY_DIR}/satronho.rc)
-  target_link_libraries(satronho-emulation PRIVATE dxgi psapi)
-  target_compile_definitions(satronho-emulation PRIVATE NOMINMAX)
+  target_sources(${SATRONHO_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/satronho.rc)
+  target_link_libraries(${SATRONHO_TARGET} PRIVATE dxgi psapi)
+  target_compile_definitions(${SATRONHO_TARGET} PRIVATE NOMINMAX)
   if(MINGW)
-    target_link_options(satronho-emulation PRIVATE -static)
+    target_link_options(${SATRONHO_TARGET} PRIVATE -static)
   endif()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(satronho-emulation PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
+  target_compile_options(${SATRONHO_TARGET} PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
 endif()
 
-# Junto al ejecutable: assets/ (fuentes, guías, logo) y cores/.
-add_custom_command(TARGET satronho-emulation POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:satronho-emulation>/assets)
+# Junto al ejecutable: assets/ (fuentes, guías, logo) y cores/. En Android los empaqueta Gradle.
+if(NOT ANDROID)
+  add_custom_command(TARGET ${SATRONHO_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${SATRONHO_TARGET}>/assets)
+endif()

@@ -12,7 +12,9 @@ on:
       - "cmake/**"
       - "scripts/**"
       - "CMakeLists.txt"
+      - "android/**"
       - ".github/workflows/build.yml"
+      - ".github/workflows/android.yml"
   workflow_dispatch:
 
 permissions:
@@ -174,3 +176,13 @@ jobs:
             --target "${{ github.sha }}" \
             --title "Satronho Emulation · build $N" \
             --notes-file release-notes.md
+
+  # La versión de Android sale en el mismo Release (después de crearlo la de Windows).
+  android:
+    needs: windows
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/android.yml
+    with:
+      tag: build-${{ github.run_number }}
+      build: ${{ github.run_number }}
+    secrets: inherit

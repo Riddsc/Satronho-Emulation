@@ -7,7 +7,26 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifdef __ANDROID__
+// Android: OpenGL ES 3 (las constantes y tipos de GLES3; las funciones se toman directo).
+#include <GLES3/gl3.h>
+#include <GLES2/gl2ext.h>
+#define SATRONHO_GLES 1
+#ifndef GL_BGRA
+#define GL_BGRA 0x80E1
+#endif
+#ifndef GL_UNSIGNED_INT_8_8_8_8_REV
+#define GL_UNSIGNED_INT_8_8_8_8_REV 0x8367
+#endif
+#ifndef GL_UNSIGNED_SHORT_1_5_5_5_REV
+#define GL_UNSIGNED_SHORT_1_5_5_5_REV 0x8366
+#endif
+#ifndef GL_RGB5_A1
+#define GL_RGB5_A1 0x8057
+#endif
+#else
 #include <SDL3/SDL_opengl.h>
+#endif
 
 #ifndef APIENTRY
 #define APIENTRY
@@ -84,6 +103,10 @@ SATRONHO_GL_FUNCS(SATRONHO_GL_DECL)
 
 // Carga las funciones del contexto actual. false si falta alguna.
 bool Load();
+// true con OpenGL ES (Android): sin BGRA, sombreadores «#version 300 es».
+bool Es();
+// Comienzo de cada sombreador según la versión («#version 330 core» o «#version 300 es»).
+const char* Header();
 // Compila un programa de sombreado (vértices + píxeles). 0 si falla (se anota en el registro).
 GLuint Program(const char* vs, const char* fs, const char* name);
 

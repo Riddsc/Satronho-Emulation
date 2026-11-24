@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <cstdio>
 
+#include "sys/android.h"
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -38,6 +40,8 @@ bool Download(const std::string& url, const fs::path& file) {
         if (auto fn = reinterpret_cast<Fn>(GetProcAddress(urlmon, "URLDownloadToFileW")))
             ok = SUCCEEDED(fn(nullptr, Wide(url).c_str(), part.c_str(), 0, nullptr));
     }
+#elif defined(__ANDROID__)
+    ok = Android::Download(url, Paths::ToUtf8(part));
 #else
     auto quote = [](const std::string& v) {
         std::string q = "'";
