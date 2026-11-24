@@ -1204,15 +1204,37 @@ void Ellipsize(ImDrawList* dl, ImFont* font, float size, ImVec2 pos, ImU32 color
     }
 }
 
+KeepContentSize::KeepContentSize() {
+    ImGuiWindow* w = ImGui::GetCurrentWindow();
+    max_x_ = w->DC.CursorMaxPos.x;
+    max_y_ = w->DC.CursorMaxPos.y;
+    ideal_x_ = w->DC.IdealMaxPos.x;
+    ideal_y_ = w->DC.IdealMaxPos.y;
+}
+
+KeepContentSize::~KeepContentSize() {
+    ImGuiWindow* w = ImGui::GetCurrentWindow();
+    w->DC.CursorMaxPos = {max_x_, max_y_};
+    w->DC.IdealMaxPos = {ideal_x_, ideal_y_};
+}
+
 void BackToTop() {
     ImGuiWindow* w = ImGui::GetCurrentWindow();
     if (w->Scroll.y < w->Size.y * 0.8f) return;
     const float d = S(46);
-    const ImVec2 keep = ImGui::GetCursorPos();
-    ImGui::SetCursorPos({w->Scroll.x + w->Size.x - d - S(18), w->Scroll.y + w->Size.y - d - S(18)});
-    const ImVec2 p = ImGui::GetCursorScreenPos();
+    // El botón flota sobre la página, en la esquina de abajo a la derecha de lo que se ve. Es un
+    // botón de verdad (así gana el clic a la tarjeta que tenga debajo), pero no cuenta como
+    // contenido: se guarda hasta dónde llegaba la página y se devuelve igual. Si contara, la página
+    // crecería con cada desplazamiento y se podría mover de lado y hacia abajo sin fin (pasaba
+    // hasta la build 19).
+    const ImVec2 keep = w->DC.CursorPos, keep_max = w->DC.CursorMaxPos, keep_ideal = w->DC.IdealMaxPos;
+    const ImVec2 p(w->InnerRect.Max.x - d - S(18), w->InnerRect.Max.y - d - S(18));
+    ImGui::SetCursorScreenPos(p);
     const bool click = ImGui::InvisibleButton("##arriba", {d, d});
     const bool hov = ImGui::IsItemHovered();
+    w->DC.CursorPos = keep;
+    w->DC.CursorMaxPos = keep_max;
+    w->DC.IdealMaxPos = keep_ideal;
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const ImVec2 c = {p.x + d * 0.5f, p.y + d * 0.5f};
     dl->AddCircleFilled({c.x, c.y + S(2)}, d * 0.5f, IM_COL32(0, 0, 0, 90));
@@ -1221,8 +1243,6 @@ void BackToTop() {
     dl->AddTriangleFilled({c.x - a, c.y + a * 0.45f}, {c.x + a, c.y + a * 0.45f}, {c.x, c.y - a * 0.65f}, U32(0x15121F));
     if (hov) ImGui::SetTooltip("%s", Tr("Volver arriba"));
     if (click) ImGui::SetScrollY(0);
-    ImGui::SetCursorPos(keep);
-    ImGui::Dummy({0, 0}); // ImGui pide un elemento después de mover el cursor
 }
 
 } // namespace Satronho::Ui

@@ -4,6 +4,7 @@
 // Acabados de la etapa 1: temas y logo de fondo, carrusel, carátulas, preguntas al salir,
 // novedades de Juana y la conversación con los guías.
 #include <algorithm>
+#include <optional>
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
@@ -448,6 +449,9 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
     for (int i = lo; i <= hi; ++i) order.push_back(i);
     std::sort(order.begin(), order.end(), [&](int x, int y) { return std::fabs(x - carousel_pos_) > std::fabs(y - carousel_pos_); });
     int clicked = -1;
+    // Las carátulas de los bordes se salen del escenario: no deben agrandar la página.
+    std::optional<Ui::KeepContentSize> keep_size;
+    keep_size.emplace();
     for (int i : order) {
         const float d = i - carousel_pos_;
         const float ad = std::min(std::fabs(d), 4.0f);
@@ -480,6 +484,9 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
             }
     }
     dl->PopClipRect();
+    keep_size.reset();
+    ImGui::SetCursorScreenPos(area.Min); // el escenario sí cuenta: va justo hasta su borde
+    ImGui::Dummy(area.GetSize());
     if (dragging || (car_moved_ && !car_drag_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left))) clicked = -1;
     if (clicked >= 100000) {
         RequestStart(list[clicked - 100000]->path);

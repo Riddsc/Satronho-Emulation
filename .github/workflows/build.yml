@@ -144,6 +144,18 @@ jobs:
             done
           done
           grep -h "Motor gráfico" build-linux/user/satronho.log | tail -2 || true
+          # Desplazamiento: cada pantalla se baja mucho y se mueve de lado, como con el dedo. Si la
+          # página crece sin fin o se corre de lado, la app sale con código 2 y no se publica.
+          mkdir -p /tmp/juegos-prueba
+          for i in $(seq 1 40); do head -c 40976 /dev/zero > "/tmp/juegos-prueba/Juego de prueba $i.nes"; done
+          for q in "page=biblioteca" "page=biblioteca;vista=1" "page=biblioteca;vista=1;sistema=octa" "page=biblioteca;vista=2;sistema=octa" \
+                   "page=biblioteca;ventana=1000x460" "page=biblioteca;ventana=720x1560" "page=ajustes" "page=herramientas" \
+                   "page=controles" "page=sugerida" "page=novedades" "page=guias" "page=acerca"; do
+            echo "Desplazamiento: $q"
+            rm -rf build-linux/user
+            SDL_RENDER_DRIVER=software SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy \
+              SATRONHO_QA="$q;carpeta=/tmp/juegos-prueba;fresh=1;desplazar=1;frames=90" timeout 120 build-linux/satronho-emulation
+          done
 
       - name: Empaquetar
         id: pack

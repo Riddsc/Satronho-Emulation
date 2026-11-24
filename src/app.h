@@ -161,6 +161,8 @@ private:
     void ToggleGameBar();
     bool bar_open_ = false;
     bool edge_swipe_ = false;
+    bool page_scroll_reset_ = false; // la pantalla cambió: la próxima vez empieza arriba
+    std::string shown_lib_system_;   // consola que se mostraba en la biblioteca (para volver arriba al cambiar)
     // Carrusel: arrastrar con el mouse o el dedo.
     bool car_drag_ = false, car_moved_ = false;
     float car_x0_ = 0, car_y0_ = 0, car_pos0_ = 0, car_vel_ = 0;
@@ -479,6 +481,10 @@ private:
     // Modo de revisión automática (SATRONHO_QA).
     std::map<std::string, std::string> qa_;
     int qa_frames_ = 0;
+    bool qa_failed_ = false;   // una prueba del modo de revisión falló (la app sale con código 2)
+    float qa_scroll_ref_ = -1; // prueba de desplazamiento: hasta dónde llegaba la página al empezar
+    float qa_scroll_mid_ = -1; // …y a mitad de la prueba
+    void QaScrollTest();       // «desplazar=1»: baja y mueve de lado; la página no debe crecer
 
     friend void FolderDialogCallback(void*, const char* const*, int);
     friend void FileDialogCallback(void*, const char* const*, int);

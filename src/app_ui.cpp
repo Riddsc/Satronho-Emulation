@@ -142,11 +142,22 @@ void App::DrawUi() {
         Log::Info("Pantalla: %s", pi >= 0 && pi < 8 ? kPageNames[pi] : "?");
         shown_page_ = page_;
         BeginPageTransition();
+        page_scroll_reset_ = true;
     }
     const float tr = std::clamp(static_cast<float>((ImGui::GetTime() - page_anim_t_) / 0.22), 0.0f, 1.0f);
     const float ease = 1.0f - (1.0f - tr) * (1.0f - tr);
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.35f + 0.65f * ease);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, compact_ ? ImVec2(S(18), S(14) + (1.0f - ease) * S(10)) : ImVec2(S(38), S(30) + (1.0f - ease) * S(10)));
+    // Cada pantalla (y cada consola de la biblioteca) empieza arriba: antes heredaba lo bajado en
+    // la anterior y se veía vacía.
+    if (lib_system_ != shown_lib_system_) {
+        shown_lib_system_ = lib_system_;
+        page_scroll_reset_ = true;
+    }
+    if (page_scroll_reset_) {
+        ImGui::SetNextWindowScroll({0.0f, 0.0f});
+        page_scroll_reset_ = false;
+    }
     ImGui::BeginChild("##contenido", {0, -bottom_nav}, ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PopStyleVar(2);
     switch (page_) {
@@ -161,6 +172,7 @@ void App::DrawUi() {
     }
     ImGui::Dummy({0, S(24)});
     BackToTop();
+    if (qa_.count("desplazar")) QaScrollTest();
     ImGui::EndChild();
     if (portrait) DrawBottomNav(bottom_nav);
     ImGui::End();
@@ -425,7 +437,9 @@ void App::DrawLibrary() {
         DrawIcon(ImGui::GetWindowDrawList(), Icon::Search, {sp.x + S(20), sp.y + S(21)}, S(15), U32(Color::Dim));
         search_bottom = ImGui::GetItemRectMax().y;
     }
-    ImGui::SetCursorScreenPos({top.x, std::max({after_title, top.y + S(56), narrow ? search_bottom : 0.0f}) + S(14)});
+    // Ojo: todo en posiciones de la pantalla. Al bajar, el título queda arriba de la pantalla y
+    // sus posiciones son negativas; por eso no se compara con 0 (eso pegaba los juegos arriba).
+    ImGui::SetCursorScreenPos({top.x, std::max({after_title, top.y + S(56), narrow ? search_bottom : after_title}) + S(14)});
 
     if (shown.empty()) {
         if (library_.Scanning()) {
@@ -3026,4 +3040,39 @@ void App::DrawWelcome() {
     ImGui::PopStyleVar(2);
 }
 
+
+// Prueba automática (modo de revisión, «desplazar=1»): a mitad de la prueba se anota hasta dónde
+// llega la página; después se baja mucho y se mueve de lado varias veces, como un dedo. La página no
+// debe crecer al desplazarla ni poder moverse de lado. Si pasa, la app sale con código 2 y el CI no
+// publica (así se coló el error de la build 18, que nadie vio hasta probar en el celular).
+void App::QaScrollTest() {
+    ImGuiWindow* w = ImGui::GetCurrentWindow();
+    const int wanted = qa_.count("frames") ? std::atoi(qa_["frames"].c_str()) : 30;
+    const int start = wanted / 3;
+    if (qa_frames_ < start) return;
+    if (qa_frames_ == start) {
+        qa_scroll_ref_ = w->ScrollMax.y;
+        return;
+    }
+    if (qa_frames_ == (start + wanted - 3) / 2) qa_scroll_mid_ = w->ScrollMax.y;
+    if (qa_frames_ < wanted - 3) {
+        ImGui::SetScrollY(w, w->Scroll.y + S(400));
+        ImGui::SetScrollX(w, w->Scroll.x + S(200));
+        return;
+    }
+    if (qa_frames_ == wanted - 3) {
+        const bool lado = w->ScrollMax.x > 1.0f;
+        // Que crezca un poco una vez es normal (los paneles que no se veían se miden al verlos); lo
+        // que no puede pasar es que siga creciendo mientras se baja.
+        const bool crece = w->ScrollMax.y > qa_scroll_ref_ + S(40) && w->ScrollMax.y > qa_scroll_mid_ + S(10);
+        if (lado || crece) {
+            qa_failed_ = true;
+            Log::Error("Revisión de desplazamiento: FALLA (de lado %.0f, alto al empezar %.0f, al terminar %.0f)", w->ScrollMax.x, qa_scroll_ref_, w->ScrollMax.y);
+            std::fprintf(stderr, "Revisión de desplazamiento: FALLA (de lado %.0f, alto %.0f -> %.0f)\n", w->ScrollMax.x, qa_scroll_ref_, w->ScrollMax.y);
+        } else {
+            Log::Info("Revisión de desplazamiento: bien (alto %.0f)", w->ScrollMax.y);
+            std::fprintf(stderr, "Revisión de desplazamiento: bien (alto %.0f)\n", w->ScrollMax.y);
+        }
+    }
+}
 } // namespace Satronho
