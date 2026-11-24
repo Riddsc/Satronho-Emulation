@@ -407,8 +407,14 @@ void App::RequestQuit() {
         running_ = false;
         return;
     }
-    if (confirm_ == 1) return;
+    // Segunda vez que se pide cerrar (otra X o Alt+F4) mientras la pregunta está pendiente: se cierra
+    // de una vez. Así nunca hace falta el Administrador de tareas.
+    if (confirm_ == 1) {
+        running_ = false;
+        return;
+    }
     confirm_ = 1;
+    confirm_frames_ = 0;
     confirm_dont_ask_ = false;
     if (in_game_) audio_.SetPaused(true);
 }
@@ -419,6 +425,7 @@ void App::RequestExitGame() {
         return;
     }
     confirm_ = 2;
+    confirm_frames_ = 0;
     confirm_dont_ask_ = false;
 }
 
@@ -455,7 +462,18 @@ void App::DrawConfirm() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(22));
     ImGui::PushStyleColor(ImGuiCol_PopupBg, V4(Color::Bg));
     ImGui::PushStyleColor(ImGuiCol_Border, V4(app ? Color::Green : Color::Amber, 0.45f));
-    if (ImGui::BeginPopupModal("##confirmar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
+    const bool shown = ImGui::BeginPopupModal("##confirmar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
+    // Si por algo la pregunta no logra mostrarse en 2 segundos, se hace lo pedido igual (cerrar con
+    // guardado automático): la app nunca queda esperando una ventana que no se ve.
+    if (!shown && ++confirm_frames_ > 120) {
+        Log::Warn("La pregunta de salir no se pudo mostrar; se cierra igual");
+        const int what = confirm_;
+        confirm_ = 0;
+        if (what == 1) running_ = false;
+        else if (in_game_) StopGame();
+    }
+    if (shown) {
+        confirm_frames_ = 0;
         const float inner = w - S(56);
         const GuideId gid = app ? GuideId::MechaRidds : GuideId::Samy;
         {
