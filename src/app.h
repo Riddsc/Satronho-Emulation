@@ -94,6 +94,7 @@ private:
     // Interfaz
     void DrawUi();
     void DrawSidebar(float width);
+    void DrawSidebarRail(float width); // pantallas chicas: solo íconos
     void DrawLibrary();
     void DrawContinueHero(const Game& g, float width);
     bool DrawGameCard(const Game& g, float w, float h, bool selected);
@@ -144,6 +145,45 @@ private:
     ChatContext BuildChatContext() const;
     void PickCoverDialog(const Game& g);
     void BeginPageTransition();
+
+    // Pantallas táctiles y pantallas chicas (app_touch.cpp).
+    struct Finger {
+        float x = 0, y = 0, sx = 0, sy = 0; // ahora y donde empezó (píxeles)
+        int owner = -1;                     // botón del control en pantalla que tomó
+        double born = 0;
+    };
+    struct TouchButton {
+        ImVec2 c;
+        float r;
+        int id;            // botón del RetroPad; -1 menú, -2 cruceta, -3 stick
+        const char* label;
+        const char* group;
+    };
+    void UpdateTouchMode();
+    void TouchEvent(const SDL_Event& e);
+    void TouchScroll();
+    bool TouchPadVisible() const;
+    std::vector<TouchButton> TouchLayout(float W, float H) const;
+    void ApplyTouchPad();
+    void DrawTouchPad();
+    void DrawTouchEditor(const std::vector<TouchButton>& layout, float sx, float sy);
+    void OpenBrowser(bool folders);
+    void DrawBrowser();
+    bool touch_mode_ = false;          // se usa con el dedo (Android o un toque en la pantalla)
+    bool compact_ = false;             // pantalla chica: barra lateral angosta y menos márgenes
+    std::map<SDL_FingerID, Finger> fingers_;
+    uint16_t touch_buttons_ = 0, touch_prev_ = 0;
+    float touch_stick_[2] = {};
+    bool touch_menu_latched_ = false;
+    bool touch_edit_ = false;
+    std::string touch_drag_group_;
+    void* drag_win_ = nullptr;
+    float drag_total_ = 0, drag_vel_ = 0;
+    bool dragging_ = false;
+    bool browser_open_ = false, browser_folders_ = true, browser_items_dirty_ = true, browser_perm_ = true;
+    double browser_perm_t_ = -10;
+    fs::path browser_dir_;
+    std::vector<std::pair<std::string, bool>> browser_items_;
     // Juegos en .zip / .7z: de cartucho van a la memoria; de disco se sacan a una caché.
     bool PrepareArchived(const Game& g, fs::path& load_path, std::vector<uint8_t>& mem);
     void TrimArchiveCache();

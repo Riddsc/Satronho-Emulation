@@ -13,6 +13,9 @@
 #include "util/json.h"
 #include "util/log.h"
 #include "util/paths.h"
+#include "util/net.h"
+#include "sys/android.h"
+#include <cstring>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -65,7 +68,7 @@ void Updater::Join() {
 }
 
 bool Updater::Supported() const {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__ANDROID__)
     return true;
 #else
     return false;
@@ -120,6 +123,38 @@ void Updater::Check(int current_build) {
         latest_ = latest;
         Log::Info("Actualizaciones: la última es la build %d (esta es la %d)", latest, current_build);
         state_ = (latest > current_build && current_build > 0 && !zip.empty()) ? State::Available : State::UpToDate;
+#elif defined(__ANDROID__)
+        // Android: la misma consulta, pero se busca el APK.
+        const fs::path tmp = Paths::User() / "cache" / "release.json";
+        if (!Net::Download(kApi, tmp)) {
+            std::lock_guard lock(mutex_);
+            error_ = "No se pudo consultar GitHub (¿sin internet?).";
+            state_ = State::Failed;
+            return;
+        }
+        std::ifstream in(tmp, std::ios::binary);
+        std::stringstream ss;
+        ss << in.rdbuf();
+        in.close();
+        const Json j = Json::Parse(ss.str());
+        const std::string tag = j["tag_name"].String();
+        const int latest = tag.rfind("build-", 0) == 0 ? std::atoi(tag.c_str() + 6) : 0;
+        std::string apk, sha;
+        for (const auto& a : j["assets"].arr) {
+            const std::string name = a["name"].String();
+            auto ends = [&](const char* suf) { const size_t n = std::strlen(suf); return name.size() > n && name.compare(name.size() - n, n, suf) == 0; };
+            if (ends("android-arm64.apk")) apk = a["browser_download_url"].String();
+            if (ends("android-arm64.apk.sha256")) sha = a["browser_download_url"].String();
+        }
+        {
+            std::lock_guard lock(mutex_);
+            zip_url_ = apk;
+            sha_url_ = sha;
+            page_url_ = j["html_url"].String();
+        }
+        latest_ = latest;
+        Log::Info("Actualizaciones: la última es la build %d (esta es la %d)", latest, current_build);
+        state_ = (latest > current_build && current_build > 0 && !apk.empty()) ? State::Available : State::UpToDate;
 #else
         (void)current_build;
         state_ = State::UpToDate;
@@ -222,6 +257,43 @@ void Updater::Install() {
             script_ = Paths::ToUtf8(script);
         }
         state_ = State::Ready;
+#elif defined(__ANDROID__)
+        std::string url, sha_url;
+        {
+            std::lock_guard lock(mutex_);
+            url = zip_url_;
+            sha_url = sha_url_;
+        }
+        std::error_code ec;
+        const fs::path apk = Paths::User() / "cache" / "actualizacion.apk";
+        fs::remove(apk, ec);
+        if (!Net::Download(url, apk) || fs::file_size(apk, ec) < 1024 * 1024) {
+            std::lock_guard lock(mutex_);
+            error_ = "No se pudo descargar la build nueva.";
+            state_ = State::Failed;
+            return;
+        }
+        if (!sha_url.empty()) {
+            const fs::path sha_file = Paths::User() / "cache" / "actualizacion.apk.sha256";
+            std::string expected;
+            if (Net::Download(sha_url, sha_file)) {
+                std::ifstream in(sha_file, std::ios::binary);
+                in >> expected;
+                for (auto& c : expected) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            }
+            if (expected.size() != 64 || Hash::Sha256File(apk) != expected) {
+                std::lock_guard lock(mutex_);
+                error_ = "La descarga llegó dañada (la huella no coincide). Inténtalo de nuevo.";
+                state_ = State::Failed;
+                return;
+            }
+        }
+        progress_ = 1.0f;
+        {
+            std::lock_guard lock(mutex_);
+            script_ = Paths::ToUtf8(apk);
+        }
+        state_ = State::Ready;
 #endif
     });
 }
@@ -242,6 +314,14 @@ bool Updater::LaunchInstaller() {
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
     return true;
+#elif defined(__ANDROID__)
+    std::string apk;
+    {
+        std::lock_guard lock(mutex_);
+        apk = script_;
+    }
+    // Android muestra su ventana para confirmar; si falta el permiso de instalar, abre los ajustes.
+    return !apk.empty() && Android::InstallApk(apk);
 #else
     return false;
 #endif

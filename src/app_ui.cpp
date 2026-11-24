@@ -103,6 +103,7 @@ void App::DrawUi() {
         DrawGameLayer();
         DrawToasts();
         if (!pending_start_.empty()) DrawLoading();
+        DrawTouchPad();
         DrawConfirm();
         return;
     }
@@ -113,7 +114,7 @@ void App::DrawUi() {
     ImGui::Begin("##principal", nullptr, kFull);
     ImGui::PopStyleColor();
 
-    const float side_w = S(252);
+    const float side_w = compact_ ? S(80) : S(252);
     // Logo de Satronho de fondo (detrás de todo el contenido).
     DrawWatermark({vp->Pos.x + side_w, vp->Pos.y}, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y});
     DrawSidebar(side_w);
@@ -127,7 +128,7 @@ void App::DrawUi() {
     const float tr = std::clamp(static_cast<float>((ImGui::GetTime() - page_anim_t_) / 0.22), 0.0f, 1.0f);
     const float ease = 1.0f - (1.0f - tr) * (1.0f - tr);
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.35f + 0.65f * ease);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(38), S(30) + (1.0f - ease) * S(10)});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, compact_ ? ImVec2(S(18), S(14) + (1.0f - ease) * S(10)) : ImVec2(S(38), S(30) + (1.0f - ease) * S(10)));
     ImGui::BeginChild("##contenido", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PopStyleVar(2);
     switch (page_) {
@@ -143,12 +144,13 @@ void App::DrawUi() {
     ImGui::EndChild();
     ImGui::End();
 
-    if (page_ == Page::Library) DrawGuideBubble();
+    if (page_ == Page::Library && !compact_) DrawGuideBubble();
     DrawToasts();
     if (show_welcome_) DrawWelcome();
     else if (show_whats_new_) DrawWhatsNew();
     if (!pending_start_.empty()) DrawLoading();
     DrawArchivePicker();
+    DrawBrowser();
     DrawConfirm();
 }
 
@@ -180,6 +182,10 @@ void App::DrawLoading() {
 }
 
 void App::DrawSidebar(float width) {
+    if (compact_) {
+        DrawSidebarRail(width);
+        return;
+    }
     ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Side));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(16), S(22)});
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {S(6), S(4)});
@@ -367,11 +373,13 @@ void App::DrawLibrary() {
     {
         const float search_w = std::min(S(280), avail * 0.32f);
         FontScope f(GetFonts().medium, 14);
-        const float add_w = ImGui::CalcTextSize("Agregar carpeta").x + ImGui::GetFontSize() + S(44);
+        const float add_w = compact_ ? S(42) : ImGui::CalcTextSize("Agregar carpeta").x + ImGui::GetFontSize() + S(44);
         const float open_w = S(42);
         float x = top.x + avail - add_w;
         ImGui::SetCursorScreenPos({x, top.y + S(6)});
-        if (Button("Agregar carpeta", ButtonKind::Primary, {add_w, S(42)}, Icon::Plus, true)) AddFolderDialog();
+        if (compact_ ? IconButton("##agregar", Icon::Plus, S(42), U32(Color::Accent), "Agregar carpeta")
+                     : Button("Agregar carpeta", ButtonKind::Primary, {add_w, S(42)}, Icon::Plus, true))
+            AddFolderDialog();
         x -= open_w + S(8);
         ImGui::SetCursorScreenPos({x, top.y + S(6)});
         if (IconButton("##abrir", Icon::File, S(42), U32(Color::Muted), "Abrir un juego sin agregarlo")) OpenRomDialog();
@@ -480,7 +488,7 @@ void App::DrawLibrary() {
     // Cuadrícula. En «todas las consolas» (orden A-Z, sin buscar) los juegos se separan por
     // consola, cada grupo con su control en miniatura y su nombre.
     const float gap = S(18);
-    const float min_w = S(188);
+    const float min_w = compact_ ? S(150) : S(188);
     const float width = ImGui::GetContentRegionAvail().x;
     const int cols = std::max(1, static_cast<int>((width + gap) / (min_w + gap)));
     const float cw = std::floor((width - gap * (cols - 1)) / cols);
@@ -2096,6 +2104,10 @@ void App::DrawPauseMenu() {
         Toast("Juego reiniciado", GuideId::Samy, 2);
     }
     if (NavItem("Captura", Icon::Camera, false)) Screenshot();
+    if (touch_mode_ && NavItem("Control en pantalla", Icon::Gamepad, false, nullptr, false, Color::Amber)) {
+        touch_edit_ = true;
+        SetMenuOpen(false);
+    }
     if (NavItem("Salir a la biblioteca", Icon::Exit, false, nullptr, false, Color::Red)) RequestExitGame();
     ImGui::EndChild();
     ImGui::SameLine(0, 0);

@@ -78,6 +78,13 @@ struct Settings {
     bool confirm_exit_app = true;    // preguntar antes de cerrar la app
     bool confirm_exit_game = true;   // preguntar antes de salir de un juego
 
+    // Control en pantalla (pantallas táctiles).
+    int touch_show = 0;              // 0 automático (sin mando conectado), 1 siempre, 2 nunca
+    float touch_scale = 1.0f;
+    float touch_opacity = 0.6f;
+    bool touch_haptics = true;       // vibración corta al tocar un botón
+    std::map<std::string, std::pair<float, float>> touch_offsets; // «<consola>.<grupo>» → corrimiento
+
     // Biblioteca
     std::vector<std::string> folders;
     int sort = 0;                  // 0 A-Z, 1 recientes, 2 más jugados
