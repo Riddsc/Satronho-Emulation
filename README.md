@@ -16,8 +16,8 @@ Cada emulador de la familia tiene su nombre Satronho:
 | **Satronho Octa** | NES / Famicom | Disponible |
 | **Satronho Bolsillo** | Game Boy y Game Boy Color | Disponible |
 | **Satronho Bolsillo Plus** | Game Boy Advance | Disponible |
-| Satronho Mega | Genesis / Mega Drive | Pronto |
-| Satronho Hexa | Super Nintendo | Pronto |
+| **Satronho Mega** | Genesis / Mega Drive | Disponible |
+| **Satronho Hexa** | Super Nintendo / Super Famicom | Disponible |
 | Satronho CD | PlayStation | Pronto |
 | Satronho 64, Cubo, Dual, Anillo, Sueño, CD2, Portátil | Nintendo 64, GameCube/Wii, DS/3DS, Saturn, Dreamcast, PlayStation 2, PSP | Más adelante |
 | [Satronho NX](https://github.com/Riddsc/satronho-nx) | Switch | App aparte |
@@ -80,6 +80,8 @@ Satronho Emulation es software libre bajo la licencia **GPL 3.0 o posterior** (v
 |---|---|---|
 | [Nestopia UE](https://github.com/libretro/nestopia) | Núcleo de Satronho Octa | GPL 2.0 o posterior |
 | [mGBA](https://github.com/mgba-emu/mgba) | Núcleo de Satronho Bolsillo y Bolsillo Plus | MPL 2.0 |
+| [BlastEm](https://github.com/libretro/blastem) | Núcleo de Satronho Mega | GPL 3.0 |
+| [bsnes](https://github.com/libretro/bsnes) | Núcleo de Satronho Hexa | GPL 3.0 |
 | [SDL 3](https://github.com/libsdl-org/SDL) | Ventana, sonido, mandos y dibujo | zlib |
 | [Dear ImGui](https://github.com/ocornut/imgui) | Base de la interfaz | MIT |
 | [libretro API](https://github.com/libretro/libretro-common) | Conexión con los núcleos | MIT |

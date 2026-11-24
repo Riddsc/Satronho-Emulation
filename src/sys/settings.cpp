@@ -52,6 +52,8 @@ void Settings::Load(const Ini& ini) {
     first_run_done = ini.GetBool("estado.bienvenida", first_run_done);
     preset = ini.Get("estado.sugerida", preset);
     last_seen_build = ini.GetInt("estado.ultima_build", last_seen_build);
+    // Hasta la build 6 la configuración «Alto» dejaba 48 ms, muy justo en pantallas de 144 Hz.
+    if (last_seen_build > 0 && last_seen_build < 7 && latency_ms == 48) latency_ms = 64;
 }
 
 void Settings::Save(Ini& ini) const {
@@ -133,7 +135,7 @@ Suggestion Suggest(const HardwareInfo& hw, const Settings& current) {
         r.runahead = 1;
         r.rewind = true;
         r.rewind_seconds = 30;
-        r.latency_ms = 48;
+        r.latency_ms = 64;
         r.ambient = true;
     } else {
         s.tier = "Equilibrado";

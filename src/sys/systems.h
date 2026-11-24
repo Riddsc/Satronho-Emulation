@@ -9,7 +9,7 @@
 namespace Satronho {
 
 // Forma del control que se dibuja en Controles.
-enum class Layout { Nes, GameBoy, GameBoyAdvance };
+enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes };
 
 // Un emulador de la familia Satronho dentro del hub.
 struct SystemDef {
@@ -27,6 +27,12 @@ struct SystemDef {
     bool runahead_ok;          // el adelanto de cuadros funciona bien con este núcleo
     bool tilt;                 // tiene juegos con sensor de inclinación
     std::vector<std::pair<int, const char*>> buttons; // botones del RetroPad que usa y su nombre
+    bool turbo = false;        // X/Y del RetroPad son turbos de A/B (NES y Game Boy)
+    // Cómo se agrupan las casillas en Controles: filas de botones de acción (centradas),
+    // gatillos y el título del grupo del centro.
+    std::vector<std::vector<int>> face;
+    std::vector<int> shoulders;
+    const char* center_title = "SELECT Y START";
     // Valores por defecto de Satronho para opciones del núcleo.
     std::vector<std::pair<const char*, const char*>> core_defaults;
 };
@@ -36,6 +42,8 @@ const SystemDef* SystemById(const std::string& id);
 const SystemDef* SystemForExtension(const std::string& ext);
 std::vector<std::string> AllExtensions();
 std::string CoreFile(const SystemDef& s); // nestopia_libretro.dll / .so
+// «Satronho Octa (NES), Mega (Genesis)… y Bolsillo Plus (GBA)», para los textos de bienvenida.
+std::string SystemsSentence();
 
 struct SoonSystem {
     const char* name;

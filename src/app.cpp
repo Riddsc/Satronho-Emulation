@@ -498,13 +498,25 @@ void App::AddFolderDialog() {
 }
 
 void App::OpenRomDialog() {
-    static const SDL_DialogFileFilter filters[] = {
-        {"Juegos de todas las consolas", "nes;fds;unf;unif;gb;gbc;sgb;gba"},
-        {"Satronho Octa (NES)", "nes;fds;unf;unif"},
-        {"Satronho Bolsillo (Game Boy y Game Boy Color)", "gb;gbc;sgb"},
-        {"Satronho Bolsillo Plus (Game Boy Advance)", "gba"},
-        {"Todos los archivos", "*"}};
-    SDL_ShowOpenFileDialog(&FileDialogCallback, this, window_, filters, 5, nullptr, false);
+    // Los filtros salen de la lista de consolas; tienen que vivir mientras el diálogo esté abierto.
+    static std::vector<std::string> names, patterns;
+    static std::vector<SDL_DialogFileFilter> filters;
+    if (filters.empty()) {
+        std::string all;
+        for (const auto& s : Systems()) {
+            std::string pat;
+            for (const auto& e : s.extensions) pat += (pat.empty() ? "" : ";") + e;
+            all += (all.empty() ? "" : ";") + pat;
+            names.push_back(s.full + " (" + s.games + ")");
+            patterns.push_back(pat);
+        }
+        names.insert(names.begin(), "Juegos de todas las consolas");
+        patterns.insert(patterns.begin(), all);
+        names.push_back("Todos los archivos");
+        patterns.push_back("*");
+        for (size_t i = 0; i < names.size(); ++i) filters.push_back({names[i].c_str(), patterns[i].c_str()});
+    }
+    SDL_ShowOpenFileDialog(&FileDialogCallback, this, window_, filters.data(), static_cast<int>(filters.size()), nullptr, false);
 }
 
 void App::HandleEvent(const SDL_Event& e) {
@@ -708,6 +720,19 @@ void App::EmulateTick(double dt) {
             acc_ -= period;
         }
         if (acc_ > 0.1) acc_ = 0;
+        // El reloj de la pantalla y el de la tarjeta de sonido nunca coinciden del todo (más en
+        // 120/144 Hz). Si el búfer de sonido se está vaciando o llenando de más, se corre un
+        // cuadro de más o de menos antes de que se oiga un corte.
+        if (!fast_forward_ && !rewinding_ && audio_.IsOpen()) {
+            const double short_frames = audio_.FramesShort(fps);
+            if (frames == 0 && short_frames > audio_.LatencyMs() * fps / 1000.0 * 0.6) {
+                frames = 1;
+                acc_ -= period;
+            } else if (frames > 0 && short_frames < -audio_.LatencyMs() * fps / 1000.0 * 1.2) {
+                --frames;
+                acc_ += period;
+            }
+        }
     }
     if (fast_forward_) frames *= settings_.fast_forward;
     core_.audio_enabled = !(fast_forward_ && settings_.mute_fast_forward);
@@ -730,6 +755,17 @@ void App::EmulateTick(double dt) {
     }
     while (!perf_.emu_times.empty() && now - perf_.emu_times.front() > 1.0) perf_.emu_times.pop_front();
     perf_.fps = static_cast<double>(perf_.emu_times.size());
+
+    // Cada minuto se anota en el registro cómo va el sonido, para revisar cortes.
+    audio_report_s_ += dt;
+    if (audio_report_s_ > 60) {
+        audio_report_s_ = 0;
+        const int cuts = audio_.Underruns() - audio_cuts_logged_, drops = audio_.Drops() - audio_drops_logged_;
+        audio_cuts_logged_ = audio_.Underruns();
+        audio_drops_logged_ = audio_.Drops();
+        Log::Info("Sonido: %d cortes y %d descartes en el último minuto · búfer %.0f ms de %d · velocidad %.4f · %d tirones",
+                  cuts, drops, audio_.QueuedMs(), audio_.LatencyMs(), audio_.Ratio(), perf_.stutters_minute);
+    }
 
     // Tiempo de juego y partida de la batería.
     session_s_ += dt;

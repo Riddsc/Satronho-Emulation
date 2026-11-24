@@ -171,10 +171,16 @@ void App::DrawSidebar(float width) {
         size_t n = 0;
         for (const auto& g : games_) n += g.system == sys.id;
         const std::string badge = n ? std::to_string(n) : std::string("Lista");
-        if (NavItem(sys.name.c_str(), Icon::Gamepad, page_ == Page::Library && lib_system_ == sys.id, badge.c_str(), false, sys.color, sys.hint.c_str())) {
+        const bool sel = page_ == Page::Library && lib_system_ == sys.id;
+        if (NavItem(sys.name.c_str(), Icon::None, sel, badge.c_str(), false, sys.color, sys.hint.c_str())) {
             page_ = Page::Library;
             lib_system_ = sys.id;
         }
+        // Ícono: el control (o la portátil) de esa consola en miniatura.
+        const ImVec2 r0 = ImGui::GetItemRectMin(), r1 = ImGui::GetItemRectMax();
+        const bool hov = ImGui::IsItemHovered();
+        DrawControllerMini(ImGui::GetWindowDrawList(), sys.layout, {r0.x + S(24), (r0.y + r1.y) * 0.5f},
+                           sys.handheld ? S(26) : S(30), sel || hov ? 1.0f : 0.75f);
     }
     {
         std::string names;
@@ -1136,7 +1142,9 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             if (profs[i] == current) prof_sel = static_cast<int>(i);
         std::vector<std::string> prof_labels;
         for (const auto& n : profs) prof_labels.push_back("Perfil: " + n);
-        if (ComboStyled("##perfil", &prof_sel, prof_labels, compact ? S(200) : S(240))) {
+        // El combo del perfil cede espacio para que los tres íconos de al lado siempre quepan.
+        const float prof_w = std::clamp(ImGui::GetContentRegionAvail().x - S(38) * 3 - S(14), S(150), S(240));
+        if (ComboStyled("##perfil", &prof_sel, prof_labels, prof_w)) {
             input_.SetPlayerProfile(player, sys, profs[prof_sel]);
             changed = true;
         }
@@ -1212,11 +1220,6 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
 
     Mapping& m = input_.Edit(player, sys);
     const uint16_t live = input_.LiveButtons(player, sys);
-    auto has = [&](int id) {
-        for (const auto& [bid, label] : sys.buttons)
-            if (bid == id) return true;
-        return false;
-    };
 
     // Casilla de un botón: nombre, su tecla y su botón de mando.
     const float gap = S(10);
@@ -1250,7 +1253,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         ImGui::GetWindowDrawList()->AddText(pos, U32(Color::Dim), t);
     };
     const float title_h = S(24);
-    const bool shoulders = has(RETRO_DEVICE_ID_JOYPAD_L);
+    const bool shoulders = !sys.shoulders.empty();
     const float aspect = ControllerAspect(sys.layout);
     const int cap_btn = cap_here ? input_.capture.button : -1;
     int hov = -1;
@@ -1272,24 +1275,36 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         cell(RETRO_DEVICE_ID_JOYPAD_DOWN, {p.x + (gw - cell_w) * 0.5f, p.y + title_h + 2 * (cell_h + gap)});
         return title_h + 3 * cell_h + 2 * gap;
     };
-    auto buttons_group = [&](ImVec2 p) {
+    // Botones de acción en filas centradas (rombo en SNES, 3 + 3 en Mega, B/A y turbos en NES).
+    size_t face_cols = 2;
+    for (const auto& row : sys.face) face_cols = std::max(face_cols, row.size());
+    auto buttons_group = [&](ImVec2 p, float width) {
         group_title("BOTONES", p);
-        cell(RETRO_DEVICE_ID_JOYPAD_B, {p.x, p.y + title_h});
-        cell(RETRO_DEVICE_ID_JOYPAD_A, {p.x + cell_w + gap, p.y + title_h});
-        cell(RETRO_DEVICE_ID_JOYPAD_Y, {p.x, p.y + title_h + cell_h + gap});
-        cell(RETRO_DEVICE_ID_JOYPAD_X, {p.x + cell_w + gap, p.y + title_h + cell_h + gap});
-        return title_h + 2 * cell_h + gap;
+        const float saved = cell_w;
+        cell_w = (width - gap * (face_cols - 1)) / face_cols;
+        float y = p.y + title_h;
+        for (const auto& row : sys.face) {
+            const float row_w = row.size() * cell_w + (row.size() - 1) * gap;
+            float x = p.x + (width - row_w) * 0.5f;
+            for (int id : row) {
+                cell(id, {x, y});
+                x += cell_w + gap;
+            }
+            y += cell_h + gap;
+        }
+        cell_w = saved;
+        return y - gap - p.y;
     };
     auto center_group = [&](ImVec2 p) {
-        group_title("SELECT Y START", p);
+        group_title(sys.center_title, p);
         cell(RETRO_DEVICE_ID_JOYPAD_SELECT, {p.x, p.y + title_h});
         cell(RETRO_DEVICE_ID_JOYPAD_START, {p.x + cell_w + gap, p.y + title_h});
         float h = title_h + cell_h;
         if (shoulders) {
             const float y = p.y + h + gap * 1.5f;
             group_title("GATILLOS", {p.x, y});
-            cell(RETRO_DEVICE_ID_JOYPAD_L, {p.x, y + title_h});
-            cell(RETRO_DEVICE_ID_JOYPAD_R, {p.x + cell_w + gap, y + title_h});
+            cell(sys.shoulders[0], {p.x, y + title_h});
+            if (sys.shoulders.size() > 1) cell(sys.shoulders[1], {p.x + cell_w + gap, y + title_h});
             h = y - p.y + title_h + cell_h;
         }
         return h;
@@ -1300,12 +1315,13 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     const float col_gap = S(24);
     const float wide_cell = S(160);
     const float wide_side = wide_cell * 2 + gap;
-    if (!compact && W >= wide_side * 2 + col_gap * 2 + S(420)) {
+    const float right_side = wide_cell * face_cols + gap * (face_cols - 1);
+    if (!compact && W >= wide_side + right_side + col_gap * 2 + S(420)) {
         // Pantalla ancha: el control al centro y los grupos alrededor, como en DuckStation.
         cell_w = wide_cell;
         const float lh = dpad_group(o);
-        const float rx = o.x + W - wide_side;
-        const float rh = buttons_group({rx, o.y});
+        const float rx = o.x + W - right_side;
+        const float rh = buttons_group({rx, o.y}, right_side);
         const float cx0 = o.x + wide_side + col_gap, cx1 = rx - col_gap;
         const float ch = center_group({(cx0 + cx1) * 0.5f - cell_w - gap * 0.5f, o.y});
         const float draw_y = o.y + ch + S(20);
@@ -1315,15 +1331,31 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         drawing({cx0, draw_y}, {cx1 - cx0, draw_h});
     } else {
         // Más angosto: el control grande arriba y los tres grupos debajo.
-        const float draw_h = std::clamp(W / aspect, S(200), compact ? S(240) : S(320));
+        // El dibujo crece hasta donde quepan debajo las casillas sin tener que bajar.
+        const int rows = std::max<int>(3, static_cast<int>(sys.face.size()));
+        const float groups_h = S(18) + title_h + rows * cell_h + (rows - 1) * gap;
+        const float fit_h = ImGui::GetContentRegionAvail().y - groups_h - S(48);
+        const float draw_h = std::clamp(std::min(W / aspect, fit_h), S(200), compact ? S(240) : S(320));
         drawing({o.x, o.y}, {W, draw_h});
-        const float col_w = (W - col_gap * 2) / 3.0f;
-        cell_w = (col_w - gap) * 0.5f;
         const float gy = o.y + draw_h + S(18);
-        const float h1 = dpad_group({o.x, gy});
-        const float h2 = center_group({o.x + col_w + col_gap, gy});
-        const float h3 = buttons_group({o.x + 2 * (col_w + col_gap), gy});
-        total_h = gy - o.y + std::max({h1, h2, h3});
+        const float col_w = (W - col_gap * 2) / 3.0f;
+        if (col_w / face_cols >= S(150)) {
+            // Tres columnas: cruceta, centro y botones.
+            cell_w = (col_w - gap) * 0.5f;
+            const float h1 = dpad_group({o.x, gy});
+            const float h2 = center_group({o.x + col_w + col_gap, gy});
+            const float h3 = buttons_group({o.x + 2 * (col_w + col_gap), gy}, col_w);
+            total_h = gy - o.y + std::max({h1, h2, h3});
+        } else {
+            // Angosto (menú de pausa): cruceta y centro lado a lado, y los botones debajo a todo lo ancho.
+            const float half = (W - col_gap) * 0.5f;
+            cell_w = (half - gap) * 0.5f;
+            const float h1 = dpad_group({o.x, gy});
+            const float h2 = center_group({o.x + half + col_gap, gy});
+            const float by = gy + std::max(h1, h2) + S(18);
+            const float h3 = buttons_group({o.x, by}, W);
+            total_h = by - o.y + h3;
+        }
     }
     if (clicked && hov >= 0) input_.StartCapture(player, sys, hov, pc.pad >= 0, true);
     if (hov >= 0 && !cap_here) HelpTooltip(Fmt("%s · clic para asignar", label_of(hov)).c_str());
@@ -1544,9 +1576,9 @@ void App::DrawAbout() {
     {
         FontScope f(GetFonts().regular, 15);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + std::min(ImGui::GetContentRegionAvail().x, S(820)));
-        ImGui::TextWrapped("La casa de los emuladores de la familia Satronho. Un solo lugar para tus consolas, con una imagen cuidada, "
-                           "controles que responden al instante, un medidor en vivo y configuraciones sugeridas para tu equipo. "
-                           "Ya están Satronho Octa (NES), Bolsillo (Game Boy y Game Boy Color) y Bolsillo Plus (Game Boy Advance); pronto llegan más consolas.");
+        ImGui::TextWrapped("%s", ("La casa de los emuladores de la familia Satronho. Un solo lugar para tus consolas, con una imagen cuidada, "
+                                  "controles que responden al instante, un medidor en vivo y configuraciones sugeridas para tu equipo. Ya están " +
+                                  SystemsSentence() + "; pronto llegan más consolas.").c_str());
         ImGui::PopTextWrapPos();
     }
     ImGui::Dummy({0, S(14)});
@@ -1980,8 +2012,9 @@ void App::DrawWelcome() {
             }
             ImGui::Dummy({0, S(6)});
             GuideSays(GuideId::MechaRidds,
-                      "¡Hola! Soy MechaRidds. Esta es la casa de los emuladores de la familia Satronho. Ya están Satronho Octa (NES), Bolsillo (Game Boy y Color) y Bolsillo Plus (Game Boy Advance), y pronto "
-                      "llegan más consolas. Te presento a mi equipo en dos pasos.",
+                      ("¡Hola! Soy MechaRidds. Esta es la casa de los emuladores de la familia Satronho. Ya están " + SystemsSentence() +
+                       ", y pronto llegan más consolas. Te presento a mi equipo en dos pasos.")
+                          .c_str(),
                       inner);
             ImGui::Dummy({0, S(14)});
             if (Button("Empezar", ButtonKind::Primary, {inner, S(48)}, Icon::ChevronRight, true)) welcome_step_ = 1;

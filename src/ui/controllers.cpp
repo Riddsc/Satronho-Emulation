@@ -22,6 +22,7 @@ struct Ctx {
     ImVec2 mouse;
     int hovered = -1;
     float pulse;
+    bool mini = false;
 
     ImVec2 P(float x, float y) const { return {o.x + x * k, o.y + y * k}; }
     float L(float v) const { return v * k; }
@@ -41,6 +42,7 @@ struct Ctx {
         }
     }
     void Text(const char* t, float x, float y, float size, ImU32 col, bool center = true) const {
+        if (mini) return;
         ImFont* f = GetFonts().bold;
         const ImVec2 ts = f->CalcTextSizeA(L(size), FLT_MAX, 0, t);
         dl->AddText(f, L(size), {P(x, y).x - (center ? ts.x * 0.5f : 0), P(x, y).y - ts.y * 0.5f}, col, t);
@@ -223,6 +225,113 @@ void DrawGba(Ctx& c) {
         for (int i = 0; i < 3; ++i) dl->AddCircleFilled(c.P(462 + i * 14, 236 + r * 14), c.L(3), shell_dark);
 }
 
+// Letra impresa sobre un botón redondo.
+void ButtonLetter(Ctx& c, int id, const char* t, float x, float y, float size, ImU32 col) {
+    c.Text(t, x, y, size, c.Down(id) ? IM_COL32(70, 50, 0, 255) : col);
+}
+
+// ---------------------------------------------------------------- Mega Drive / Genesis, mando de 6 botones (diseño 640 × 340)
+void DrawGenesis(Ctx& c) {
+    ImDrawList* dl = c.dl;
+    const ImU32 shell = IM_COL32(36, 35, 41, 255), rim = IM_COL32(58, 57, 66, 255);
+    auto body = [&](float dx, float dy, ImU32 col) {
+        // Forma de riñón: dos lóbulos redondos unidos por el centro.
+        dl->AddCircleFilled(c.P(170 + dx, 182 + dy), c.L(150), col, 64);
+        dl->AddCircleFilled(c.P(470 + dx, 182 + dy), c.L(150), col, 64);
+        dl->AddRectFilled(c.P(170 + dx, 58 + dy), c.P(470 + dx, 318 + dy), col, c.L(40));
+    };
+    // Botón Mode en el borde de arriba, a la derecha.
+    {
+        const int id = RETRO_DEVICE_ID_JOYPAD_SELECT;
+        c.Hit(id, 520, 30, 30);
+        dl->AddRectFilled(c.P(496, 18), c.P(544, 44), c.Down(id) ? U32(Color::Gold) : IM_COL32(70, 69, 78, 255), c.L(8));
+        if (c.hovered == id || c.capturing == id)
+            dl->AddRect(c.P(490, 12), c.P(550, 50), U32(Color::Accent, c.capturing == id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(10), c.L(2.5f));
+    }
+    body(5, 10, IM_COL32(0, 0, 0, 90));
+    body(0, 0, rim);
+    // Borde un poco más claro y el frente.
+    dl->AddCircleFilled(c.P(170, 182), c.L(142), shell, 64);
+    dl->AddCircleFilled(c.P(470, 182), c.L(142), shell, 64);
+    dl->AddRectFilled(c.P(170, 66), c.P(470, 310), shell, c.L(36));
+    c.Text("MODE", 520, 66, 12, IM_COL32(150, 148, 160, 255));
+    // Cruceta sobre su disco.
+    dl->AddCircleFilled(c.P(170, 186), c.L(82), IM_COL32(26, 25, 30, 255), 48);
+    dl->AddCircle(c.P(170, 186), c.L(82), IM_COL32(70, 69, 78, 255), 48, c.L(2));
+    DPad(c, 170, 186, 132, IM_COL32(52, 51, 59, 255), IM_COL32(80, 79, 90, 255));
+    // Start al centro.
+    {
+        const int id = RETRO_DEVICE_ID_JOYPAD_START;
+        c.Hit(id, 320, 150, 34);
+        dl->AddRectFilled(c.P(296 + 2, 140 + 3), c.P(344 + 2, 160 + 3), IM_COL32(0, 0, 0, 80), c.L(10));
+        dl->AddRectFilled(c.P(296, 140), c.P(344, 160), c.Down(id) ? U32(Color::Gold) : IM_COL32(64, 63, 72, 255), c.L(10));
+        if (c.hovered == id || c.capturing == id)
+            dl->AddRect(c.P(288, 132), c.P(352, 168), U32(Color::Accent, c.capturing == id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(14), c.L(2.5f));
+        c.Text("START", 320, 182, 12, IM_COL32(150, 148, 160, 255));
+    }
+    // X Y Z arriba (chicos) y A B C abajo (grandes), en diagonal hacia arriba.
+    const ImU32 btn = IM_COL32(62, 61, 70, 255), btn_hi = IM_COL32(92, 91, 104, 255), letter = IM_COL32(190, 188, 200, 255);
+    struct Btn {
+        int id;
+        const char* t;
+        float x, y, r;
+    } row[] = {{RETRO_DEVICE_ID_JOYPAD_Y, "X", 404, 132, 19}, {RETRO_DEVICE_ID_JOYPAD_X, "Y", 462, 116, 19},
+               {RETRO_DEVICE_ID_JOYPAD_L, "Z", 520, 100, 19}, {RETRO_DEVICE_ID_JOYPAD_B, "A", 398, 214, 28},
+               {RETRO_DEVICE_ID_JOYPAD_A, "B", 466, 196, 28}, {RETRO_DEVICE_ID_JOYPAD_R, "C", 534, 178, 28}};
+    for (const auto& b : row) {
+        RoundButton(c, b.id, b.x, b.y, b.r, btn, btn_hi);
+        ButtonLetter(c, b.id, b.t, b.x, b.y, b.r * 0.85f, letter);
+    }
+}
+
+// ---------------------------------------------------------------- SNES / Super Famicom (diseño 640 × 316)
+void DrawSnes(Ctx& c) {
+    ImDrawList* dl = c.dl;
+    const ImU32 shell = IM_COL32(200, 199, 208, 255), shell_dark = IM_COL32(176, 175, 186, 255);
+    auto shoulder = [&](int id, bool right) {
+        const float x0 = right ? 404 : 56, x1 = right ? 584 : 236;
+        c.Hit(id, (x0 + x1) * 0.5f, 18, 46);
+        dl->AddRectFilled(c.P(x0, -8), c.P(x1, 60), c.Down(id) ? U32(Color::Gold) : IM_COL32(150, 149, 160, 255), c.L(24),
+                          right ? ImDrawFlags_RoundTopRight : ImDrawFlags_RoundTopLeft);
+        if (c.hovered == id || c.capturing == id)
+            dl->AddRect(c.P(x0 - 3, -11), c.P(x1 + 3, 40), U32(Color::Accent, c.capturing == id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(22), c.L(2.5f));
+        c.Text(right ? "R" : "L", (x0 + x1) * 0.5f, 10, 16, c.Down(id) ? IM_COL32(60, 40, 0, 255) : IM_COL32(90, 89, 100, 255));
+    };
+    shoulder(RETRO_DEVICE_ID_JOYPAD_L, false);
+    shoulder(RETRO_DEVICE_ID_JOYPAD_R, true);
+    auto body = [&](float dx, float dy, ImU32 col) {
+        // Forma de hueso: dos extremos redondos y el centro un poco más angosto.
+        dl->AddCircleFilled(c.P(160 + dx, 168 + dy), c.L(140), col, 64);
+        dl->AddCircleFilled(c.P(480 + dx, 168 + dy), c.L(140), col, 64);
+        dl->AddRectFilled(c.P(160 + dx, 50 + dy), c.P(480 + dx, 286 + dy), col);
+    };
+    body(5, 10, IM_COL32(0, 0, 0, 80));
+    body(0, 0, shell);
+    // Cruceta en su hueco.
+    dl->AddCircleFilled(c.P(160, 168), c.L(76), shell_dark, 48);
+    DPad(c, 160, 168, 120, IM_COL32(64, 64, 72, 255), IM_COL32(92, 92, 102, 255));
+    // Select y Start inclinados al centro.
+    PillButton(c, RETRO_DEVICE_ID_JOYPAD_SELECT, 278, 192, 42, 14, -28, IM_COL32(118, 117, 128, 255));
+    PillButton(c, RETRO_DEVICE_ID_JOYPAD_START, 340, 192, 42, 14, -28, IM_COL32(118, 117, 128, 255));
+    c.Text("SELECT", 274, 228, 11, IM_COL32(110, 109, 122, 255));
+    c.Text("START", 338, 228, 11, IM_COL32(110, 109, 122, 255));
+    // Los cuatro botones en rombo sobre su hueco más oscuro.
+    dl->AddCircleFilled(c.P(482, 168), c.L(100), shell_dark, 64);
+    struct Btn {
+        int id;
+        const char* t;
+        float x, y;
+        ImU32 col, hi;
+    } btns[] = {{RETRO_DEVICE_ID_JOYPAD_X, "X", 480, 104, IM_COL32(70, 98, 196, 255), IM_COL32(110, 136, 226, 255)},
+                {RETRO_DEVICE_ID_JOYPAD_Y, "Y", 416, 168, IM_COL32(48, 150, 92, 255), IM_COL32(90, 186, 128, 255)},
+                {RETRO_DEVICE_ID_JOYPAD_A, "A", 544, 168, IM_COL32(204, 52, 60, 255), IM_COL32(232, 98, 104, 255)},
+                {RETRO_DEVICE_ID_JOYPAD_B, "B", 480, 232, IM_COL32(222, 178, 40, 255), IM_COL32(244, 210, 96, 255)}};
+    for (const auto& b : btns) {
+        RoundButton(c, b.id, b.x, b.y, 28, b.col, b.hi);
+        ButtonLetter(c, b.id, b.t, b.x, b.y, 22, IM_COL32(255, 255, 255, 220));
+    }
+}
+
 struct Design {
     float w, h;
 };
@@ -230,6 +339,8 @@ Design DesignOf(Layout l) {
     switch (l) {
     case Layout::GameBoy: return {300, 490};
     case Layout::GameBoyAdvance: return {572, 336};
+    case Layout::Genesis: return {650, 350};
+    case Layout::Snes: return {650, 336};
     default: return {692, 318};
     }
 }
@@ -247,13 +358,42 @@ int DrawController(ImDrawList* dl, Layout layout, ImVec2 pos, ImVec2 size, uint1
     Ctx c{dl, {pos.x + (size.x - d.w * k) * 0.5f, pos.y + (size.y - d.h * k) * 0.5f}, k, pressed, capturing, mouse};
     c.pulse = 0.5f + 0.5f * static_cast<float>(std::sin(ImGui::GetTime() * 7.0));
     if (layout == Layout::GameBoyAdvance) c.o.y += 10 * k; // los gatillos sobresalen por arriba
+    if (layout == Layout::Snes) c.o.y += 12 * k;
     // Cada botón revisa el mouse justo antes de dibujarse, así su resaltado sale en la misma pasada.
     switch (layout) {
     case Layout::GameBoy: DrawGameBoy(c); break;
     case Layout::GameBoyAdvance: DrawGba(c); break;
+    case Layout::Genesis: DrawGenesis(c); break;
+    case Layout::Snes: DrawSnes(c); break;
     default: DrawNes(c); break;
     }
     return c.hovered;
+}
+
+void DrawControllerMini(ImDrawList* dl, Layout layout, ImVec2 center, float width, float alpha) {
+    const Design d = DesignOf(layout);
+    const float k = std::min(width / d.w, (d.h > d.w ? width * 1.1f : width * 0.62f) / d.h);
+    Ctx c{dl, {center.x - d.w * k * 0.5f, center.y - d.h * k * 0.5f}, k, 0, -1, {-1e5f, -1e5f}};
+    c.pulse = 0;
+    c.mini = true;
+    if (layout == Layout::GameBoyAdvance) c.o.y += 10 * k;
+    if (layout == Layout::Snes) c.o.y += 12 * k;
+    const int start = dl->VtxBuffer.Size;
+    switch (layout) {
+    case Layout::GameBoy: DrawGameBoy(c); break;
+    case Layout::GameBoyAdvance: DrawGba(c); break;
+    case Layout::Genesis: DrawGenesis(c); break;
+    case Layout::Snes: DrawSnes(c); break;
+    default: DrawNes(c); break;
+    }
+    if (alpha < 1.0f) {
+        // Atenuado (sin seleccionar): se baja la opacidad de todo lo que se acaba de dibujar.
+        for (int i = start; i < dl->VtxBuffer.Size; ++i) {
+            ImU32& col = dl->VtxBuffer[i].col;
+            const unsigned a = (col >> IM_COL32_A_SHIFT) & 0xFF;
+            col = (col & ~IM_COL32_A_MASK) | (static_cast<ImU32>(a * alpha) << IM_COL32_A_SHIFT);
+        }
+    }
 }
 
 } // namespace Satronho::Ui

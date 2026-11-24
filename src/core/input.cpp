@@ -149,6 +149,24 @@ Mapping Input::DefaultMapping(const SystemDef& sys, bool keyboard_keys) {
     m.pad[RETRO_DEVICE_ID_JOYPAD_SELECT] = SDL_GAMEPAD_BUTTON_BACK;
     if (has(RETRO_DEVICE_ID_JOYPAD_L)) m.pad[RETRO_DEVICE_ID_JOYPAD_L] = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
     if (has(RETRO_DEVICE_ID_JOYPAD_R)) m.pad[RETRO_DEVICE_ID_JOYPAD_R] = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+    if (sys.layout == Layout::Genesis) {
+        // Mando de 6 botones: A B C abajo y X Y Z arriba, como quedan en un mando moderno.
+        // (BlastEm: A = B del RetroPad, B = A, C = R, X = Y, Y = X, Z = L.)
+        if (keyboard_keys) {
+            m.keys[RETRO_DEVICE_ID_JOYPAD_B] = SDL_SCANCODE_Z;  // A
+            m.keys[RETRO_DEVICE_ID_JOYPAD_A] = SDL_SCANCODE_X;  // B
+            m.keys[RETRO_DEVICE_ID_JOYPAD_R] = SDL_SCANCODE_C;  // C
+            m.keys[RETRO_DEVICE_ID_JOYPAD_Y] = SDL_SCANCODE_A;  // X
+            m.keys[RETRO_DEVICE_ID_JOYPAD_X] = SDL_SCANCODE_S;  // Y
+            m.keys[RETRO_DEVICE_ID_JOYPAD_L] = SDL_SCANCODE_D;  // Z
+        }
+        m.pad[RETRO_DEVICE_ID_JOYPAD_B] = SDL_GAMEPAD_BUTTON_WEST;            // A
+        m.pad[RETRO_DEVICE_ID_JOYPAD_A] = SDL_GAMEPAD_BUTTON_SOUTH;           // B
+        m.pad[RETRO_DEVICE_ID_JOYPAD_R] = SDL_GAMEPAD_BUTTON_EAST;            // C
+        m.pad[RETRO_DEVICE_ID_JOYPAD_Y] = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;   // X
+        m.pad[RETRO_DEVICE_ID_JOYPAD_X] = SDL_GAMEPAD_BUTTON_NORTH;           // Y
+        m.pad[RETRO_DEVICE_ID_JOYPAD_L] = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;  // Z
+    }
     return m;
 }
 
@@ -349,7 +367,7 @@ void Input::StartWizard(int player, const SystemDef& sys, bool pad) {
     capture.pad = pad;
     for (const auto& [id, label] : sys.buttons) {
         (void)label;
-        if (id == RETRO_DEVICE_ID_JOYPAD_X || id == RETRO_DEVICE_ID_JOYPAD_Y) continue; // los turbos se dejan
+        if (sys.turbo && (id == RETRO_DEVICE_ID_JOYPAD_X || id == RETRO_DEVICE_ID_JOYPAD_Y)) continue; // los turbos se dejan
         capture.queue.push_back(id);
     }
     capture.button = capture.queue.front();
@@ -573,11 +591,11 @@ void Input::Update(CoreHost& core, const SystemDef& sys, bool keyboard_enabled) 
         }
 
         // Turbo: X/Y del RetroPad se convierten en A/B que se repiten 15 veces por segundo.
-        if (bits & (1u << RETRO_DEVICE_ID_JOYPAD_X)) {
+        if (sys.turbo && (bits & (1u << RETRO_DEVICE_ID_JOYPAD_X))) {
             bits &= ~(1u << RETRO_DEVICE_ID_JOYPAD_X);
             if (phase) bits |= 1u << RETRO_DEVICE_ID_JOYPAD_A;
         }
-        if (bits & (1u << RETRO_DEVICE_ID_JOYPAD_Y)) {
+        if (sys.turbo && (bits & (1u << RETRO_DEVICE_ID_JOYPAD_Y))) {
             bits &= ~(1u << RETRO_DEVICE_ID_JOYPAD_Y);
             if (phase) bits |= 1u << RETRO_DEVICE_ID_JOYPAD_B;
         }

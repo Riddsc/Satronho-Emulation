@@ -3,6 +3,41 @@
     {
       "version": "Esta build",
       "fecha": "23 de noviembre de 2026",
+      "titulo": "Llegan Satronho Mega y Satronho Hexa",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Mega, para juegos de Genesis y Mega Drive, con el núcleo BlastEm y el mando de 6 botones dibujado (A, B, C, X, Y, Z, Mode y Start)."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Hexa, para juegos de SNES y Super Famicom, con el núcleo bsnes: el más preciso que hay. Su mando dibujado tiene los cuatro botones en rombo y los gatillos L y R."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Sonido más parejo en pantallas de 120 y 144 Hz: el emulador se adelanta o espera un cuadro antes de que el sonido se corte, y la latencia sugerida pasa de 48 a 64 ms. Cada minuto de juego queda anotado en el registro cómo va el sonido."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "En Bolsillo Plus, un filtro suave le quita al sonido de la GBA su aspereza de fábrica (se puede apagar en Ajustes » Núcleo)."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Cada consola de la barra lateral tiene su propio ícono: su control o su portátil en miniatura. Los cartuchos de la biblioteca de Mega y Hexa tienen su forma propia."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "En Controles, el dibujo se ajusta para que las casillas quepan sin bajar, y las listas desplegables tienen flecha nueva."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "El Select del Mario del 1200 en 1 sí llega siempre al juego (el registro lo confirmó): es el propio juego el que ignora un Select nuevo durante un cuarto de segundo."
+        }
+      ]
+    },
+    {
+      "version": "Build 6",
+      "fecha": "23 de noviembre de 2026",
       "titulo": "Sonido limpio en Bolsillo, inclinación y controles más grandes",
       "cambios": [
         {
@@ -23,7 +58,7 @@
         },
         {
           "tipo": "mejora",
-          "texto": "Tamaño automático de la interfaz: en pantallas 1440p o 4K todo se agranda para leerse cómodo. Se puede cambiar en Ajustes → Imagen."
+          "texto": "Tamaño automático de la interfaz: en pantallas 1440p o 4K todo se agranda para leerse cómodo. Se puede cambiar en Ajustes » Imagen."
         },
         {
           "tipo": "mejora",
@@ -58,11 +93,11 @@
         },
         {
           "tipo": "mejora",
-          "texto": "En pantallas de 120 o 144 Hz, la pantalla completa pasa a 60 Hz para que el movimiento quede perfectamente parejo (se puede apagar en Ajustes → Imagen)."
+          "texto": "En pantallas de 120 o 144 Hz, la pantalla completa pasa a 60 Hz para que el movimiento quede perfectamente parejo (se puede apagar en Ajustes » Imagen)."
         },
         {
           "tipo": "mejora",
-          "texto": "Registro de botones (Controles → General) para revisar si algún botón se pierde, y el registro de la sesión anterior se guarda como satronho.anterior.log."
+          "texto": "Registro de botones (Controles » General) para revisar si algún botón se pierde, y el registro de la sesión anterior se guarda como satronho.anterior.log."
         }
       ]
     },
