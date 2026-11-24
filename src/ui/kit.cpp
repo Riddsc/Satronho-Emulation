@@ -968,6 +968,29 @@ void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std
         dl->AddRectFilled(c0, {c0.x + cw * 0.07f, c1.y}, IM_COL32(24, 24, 32, 255), cw * 0.03f, ImDrawFlags_RoundLeft);
         draw_label({c0.x + cw * 0.1f, c0.y + ch * 0.05f}, {c1.x - cw * 0.04f, c1.y - ch * 0.05f}, 0.16f);
         dl->AddRect(c0, c1, IM_COL32(255, 255, 255, 40), cw * 0.03f, 1.0f);
+    } else if (layout == Layout::N64) {
+        // Cartucho gris ancho, con el borde de arriba redondeado y estrías a los lados.
+        const float cw = w * 0.70f, ch = cw * 0.80f;
+        const ImVec2 c0(p0.x + (w - cw) * 0.5f, p0.y + (h - ch) * 0.55f - lift), c1(c0.x + cw, c0.y + ch);
+        dl->AddRectFilled({c0.x + 3, c0.y + 6}, {c1.x + 3, c1.y + 6}, IM_COL32(0, 0, 0, 70), cw * 0.1f);
+        dl->AddRectFilled(c0, c1, IM_COL32(120, 122, 132, 255), cw * 0.12f, ImDrawFlags_RoundTop);
+        for (int i = 0; i < 5; ++i) {
+            const float y = c0.y + ch * (0.2f + i * 0.12f);
+            dl->AddLine({c0.x + cw * 0.03f, y}, {c0.x + cw * 0.08f, y}, IM_COL32(96, 98, 108, 255), std::max(1.0f, ch * 0.016f));
+            dl->AddLine({c1.x - cw * 0.08f, y}, {c1.x - cw * 0.03f, y}, IM_COL32(96, 98, 108, 255), std::max(1.0f, ch * 0.016f));
+        }
+        draw_label({c0.x + cw * 0.12f, c0.y + ch * 0.1f}, {c1.x - cw * 0.12f, c0.y + ch * 0.82f}, 0.2f);
+    } else if (layout == Layout::DS) {
+        // Tarjeta chiquita con una muesca arriba a la derecha.
+        const float cw = w * 0.5f, ch = cw * 1.1f;
+        const ImVec2 c0(p0.x + (w - cw) * 0.5f, p0.y + (h - ch) * 0.55f - lift), c1(c0.x + cw, c0.y + ch);
+        const float cut = cw * 0.12f;
+        ImVec2 shape[5] = {c0, {c1.x - cut, c0.y}, {c1.x, c0.y + cut}, c1, {c0.x, c1.y}};
+        ImVec2 shadow[5];
+        for (int i = 0; i < 5; ++i) shadow[i] = {shape[i].x + 3, shape[i].y + 6};
+        dl->AddConvexPolyFilled(shadow, 5, IM_COL32(0, 0, 0, 70));
+        dl->AddConvexPolyFilled(shape, 5, IM_COL32(54, 56, 66, 255));
+        draw_label({c0.x + cw * 0.1f, c0.y + ch * 0.12f}, {c1.x - cw * 0.1f, c0.y + ch * 0.84f}, 0.2f);
     } else if (layout == Layout::Snes) {
         // Cartucho gris claro y ancho, con los hombros redondeados arriba y estrías abajo.
         const float cw = w * 0.74f, ch = cw * 0.72f;

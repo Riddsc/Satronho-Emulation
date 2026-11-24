@@ -3,6 +3,33 @@
     {
       "version": "Esta build",
       "fecha": "23 de noviembre de 2026",
+      "titulo": "Llegan Satronho 64 y Satronho Dual, y Hexa se ve bien siempre",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho 64, para juegos de Nintendo 64, con Mupen64Plus-Next y Angrylion: dibuja como la consola original. Stick en el stick izquierdo, botones C en el derecho, y cada botón C también se puede asignar aparte."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Dual, para juegos de Nintendo DS, con melonDS DS: las dos pantallas una arriba de la otra, y la de abajo se toca con el mouse. No necesita BIOS."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Los juegos de Hexa se veían con colores rotos y a la mitad si antes habías abierto un juego de otra consola en la misma sesión. Ya no: cada núcleo empieza con su formato de imagen."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "En Satronho CD, las escenas en alta resolución (las peleas de Bloody Roar, por ejemplo) ya no se ven rayadas: desentrelazado adaptativo y las líneas del televisor contadas como en la consola."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Los avisos que algunos núcleos mandan en cada cuadro ya no llenan la pantalla ni el registro."
+        }
+      ]
+    },
+    {
+      "version": "Build 8",
+      "fecha": "23 de noviembre de 2026",
       "titulo": "Llega Satronho CD y la biblioteca se ordena por consola",
       "cambios": [
         {

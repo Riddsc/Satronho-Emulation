@@ -229,6 +229,8 @@ private:
     std::vector<std::string> pending_bios_;
     bool bios_hint_shown_ = false;
     float sidebar_full_h_ = 0;
+    std::string last_core_msg_;
+    double last_core_msg_t_ = 0;
 
     // Modo de revisión automática (SATRONHO_QA).
     std::map<std::string, std::string> qa_;
