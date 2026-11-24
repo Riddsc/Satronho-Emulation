@@ -388,9 +388,10 @@ ChatReply AnswerQuestion(const std::string& question, const ChatContext& ctx, in
         break;
     }
     case kAddGames:
-        say(Samy, I18n::Tr("Toca «Agregar carpeta» y elige la carpeta donde guardas tus juegos; yo busco también en las subcarpetas y cada uno queda en su "
-                  "consola. También puedes arrastrar un juego o una carpeta a la ventana. Si un juego no aparece, revisa que su extensión sea de "
-                  "una de las nueve consolas (por ejemplo .nes, .sfc, .z64, .cue o .chd)."));
+        say(Samy, Fmt("Toca «Agregar carpeta» y elige la carpeta donde guardas tus juegos; yo busco también en las subcarpetas y cada uno queda en su "
+                      "consola. También puedes arrastrar un juego o una carpeta a la ventana. Si un juego no aparece, revisa que su extensión sea de "
+                      "una de las %zu consolas (por ejemplo .nes, .sfc, .z64, .cue o .chd).",
+                      Systems().size()));
         button(I18n::Tr("Agregar carpeta"), ChatAction::AddFolder);
         break;
     case kPads: {
