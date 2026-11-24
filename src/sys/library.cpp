@@ -10,6 +10,7 @@
 #include <set>
 
 #include "sys/systems.h"
+#include "util/archive.h"
 #include "util/log.h"
 
 namespace Satronho {
@@ -143,6 +144,56 @@ const SystemDef* DiscSystem(const fs::path& file, const std::string& ext) {
 
 } // namespace
 
+namespace {
+std::string ExtOf(const std::string& name) {
+    const size_t dot = name.rfind('.');
+    if (dot == std::string::npos || name.find_first_of("/\\", dot) != std::string::npos) return "";
+    return Lower(name.substr(dot + 1));
+}
+
+// Juegos de adentro de un .zip / .7z. Si hay un .cue (o .m3u), los .bin son sus pistas.
+std::vector<std::string> ArchiveCandidates(const std::vector<Archive::Entry>& entries) {
+    std::vector<std::string> discs, carts;
+    bool has_sheet = false;
+    for (const auto& e : entries) {
+        const std::string x = ExtOf(e.name);
+        if (x == "cue" || x == "m3u" || x == "ccd") has_sheet = true;
+    }
+    for (const auto& e : entries) {
+        const std::string x = ExtOf(e.name);
+        const SystemDef* sys = SystemForExtension(x);
+        if (!sys) continue;
+        if (x == "bin" && (has_sheet || e.size > 16u * 1024 * 1024)) continue;
+        if (has_sheet && (x == "cue" || x == "ccd")) {
+            // Con .m3u, los .cue son los discos que nombra.
+            bool m3u = false;
+            for (const auto& o : entries) m3u |= ExtOf(o.name) == "m3u";
+            if (m3u) continue;
+        }
+        (sys->disc ? discs : carts).push_back(e.name);
+    }
+    std::vector<std::string> out = discs;
+    out.insert(out.end(), carts.begin(), carts.end());
+    std::sort(out.begin(), out.end());
+    return out;
+}
+} // namespace
+
+Game Library::MakeGameEntry(const fs::path& archive, const std::string& entry) {
+    Game g = MakeGame(archive);
+    if (!g.Archived() || g.entry == entry) return g;
+    g.entry = entry;
+    g.ext = ExtOf(entry);
+    if (const SystemDef* sys = SystemForExtension(g.ext)) {
+        if (sys->disc) {
+            const std::string p = Lower(Paths::ToUtf8(archive) + "/" + entry);
+            sys = p.find("saturn") != std::string::npos ? SystemById("anillo") : SystemById("cd");
+        }
+        if (sys) g.system = sys->id;
+    }
+    return g;
+}
+
 Game Library::MakeGame(const fs::path& file) {
     Game g;
     g.path = file;
@@ -150,8 +201,34 @@ Game Library::MakeGame(const fs::path& file) {
     SplitTitle(Paths::ToUtf8(file.stem()), g.title, g.tags);
     g.ext = Lower(Paths::ToUtf8(file.extension()));
     if (!g.ext.empty() && g.ext[0] == '.') g.ext.erase(0, 1);
-    const SystemDef* sys = SystemForExtension(g.ext);
-    if (sys && sys->disc) sys = DiscSystem(file, g.ext);
+    const SystemDef* sys = nullptr;
+    if (Archive::IsArchive(g.ext)) {
+        // .zip / .7z: se mira adentro sin descomprimir. El nombre del juego es el del archivo.
+        std::vector<Archive::Entry> entries;
+        if (Archive::List(file, entries)) g.choices = ArchiveCandidates(entries);
+        if (!g.choices.empty()) {
+            // Si el nombre de adentro coincide con el del archivo, ese va primero.
+            const std::string stem = Lower(Paths::ToUtf8(file.stem()));
+            g.entry = g.choices.front();
+            for (const auto& c : g.choices) {
+                std::string base = Lower(c.substr(c.find_last_of("/\\") == std::string::npos ? 0 : c.find_last_of("/\\") + 1));
+                if (base.rfind(stem, 0) == 0) {
+                    g.entry = c;
+                    break;
+                }
+            }
+            g.ext = ExtOf(g.entry);
+            sys = SystemForExtension(g.ext);
+            if (sys && sys->disc) {
+                const std::string p = Lower(Paths::ToUtf8(file) + "/" + g.entry);
+                sys = p.find("saturn") != std::string::npos || p.find("/ss/") != std::string::npos ? SystemById("anillo") : SystemById("cd");
+            }
+        }
+        if (g.choices.size() <= 1) g.choices.clear();
+    } else {
+        sys = SystemForExtension(g.ext);
+        if (sys && sys->disc) sys = DiscSystem(file, g.ext);
+    }
     if (sys) g.system = sys->id;
     char hex[16];
     std::snprintf(hex, sizeof hex, "%08x", Fnv(Lower(Paths::StableId(file))));
@@ -195,7 +272,9 @@ void Library::Rescan(const std::vector<std::string>& folders) {
 }
 
 void Library::ScanLoop() {
-    const std::vector<std::string> extensions = AllExtensions();
+    std::vector<std::string> extensions = AllExtensions();
+    extensions.push_back("zip");
+    extensions.push_back("7z");
     for (;;) {
         std::vector<std::string> folders;
         {
@@ -226,7 +305,9 @@ void Library::ScanLoop() {
                 if (std::find(extensions.begin(), extensions.end(), ext) == extensions.end()) continue;
                 // Un .bin de más de 16 MB es una pista de disco, no un cartucho de Mega.
                 if (ext == "bin" && it->file_size(ec) > 16u * 1024 * 1024) continue;
-                found.push_back(MakeGame(it->path()));
+                Game g = MakeGame(it->path());
+                if (g.system.empty()) continue; // un .zip sin juegos adentro
+                found.push_back(std::move(g));
                 if (found.size() > 20000) break;
             }
         }

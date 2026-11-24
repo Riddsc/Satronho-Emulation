@@ -251,23 +251,25 @@ std::vector<std::string> CoreHost::Extensions() const {
     return out;
 }
 
-bool CoreHost::LoadGame(const fs::path& rom, std::string* error) {
+bool CoreHost::LoadGame(const fs::path& rom, std::string* error, std::vector<uint8_t>* data) {
     if (!lib_) return false;
     UnloadGame();
     rom_data_.clear();
-    // Los núcleos de disco (need_fullpath) abren el archivo ellos mismos: no se lee entero.
-    if (!sys_info_.need_fullpath && !ReadFile(rom, rom_data_)) {
+    if (data) {
+        rom_data_.swap(*data);
+    } else if (!sys_info_.need_fullpath && !ReadFile(rom, rom_data_)) {
+        // Los núcleos de disco (need_fullpath) abren el archivo ellos mismos: no se lee entero.
         if (error) *error = "No se pudo leer el archivo del juego.";
         return false;
     }
-    if (sys_info_.need_fullpath && !fs::exists(rom)) {
+    if (sys_info_.need_fullpath && !data && !fs::exists(rom)) {
         if (error) *error = "No se encontró el archivo del juego.";
         return false;
     }
     const std::string path_utf8 = Paths::ToUtf8(rom);
     retro_game_info info{};
     info.path = path_utf8.c_str();
-    if (!sys_info_.need_fullpath) {
+    if (!sys_info_.need_fullpath || data) {
         info.data = rom_data_.data();
         info.size = rom_data_.size();
     }

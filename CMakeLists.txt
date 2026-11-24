@@ -29,6 +29,15 @@ if(NOT SDL3_FOUND)
   FetchContent_MakeAvailable(SDL3)
 endif()
 
+# ---------------------------------------------------------------- descompresores (.zip y .7z)
+file(GLOB SATRONHO_LZMA external/lzma/*.c)
+add_library(satronho_archivos STATIC
+  external/miniz/miniz.c external/miniz/miniz_tdef.c external/miniz/miniz_tinfl.c external/miniz/miniz_zip.c
+  ${SATRONHO_LZMA})
+target_include_directories(satronho_archivos PUBLIC external/miniz external/lzma)
+target_compile_definitions(satronho_archivos PRIVATE MINIZ_NO_ZLIB_COMPATIBLE_NAMES)
+set_target_properties(satronho_archivos PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # ---------------------------------------------------------------- programa
 set(IMGUI external/imgui)
 add_executable(satronho-emulation WIN32
@@ -55,6 +64,7 @@ add_executable(satronho-emulation WIN32
   src/util/json.cpp
   src/util/log.cpp
   src/util/net.cpp
+  src/util/archive.cpp
   src/gfx/gl.cpp
   src/gfx/hw_render.cpp
   src/gfx/video_gl.cpp
@@ -70,6 +80,7 @@ add_executable(satronho-emulation WIN32
 )
 target_include_directories(satronho-emulation PRIVATE src ${IMGUI} ${IMGUI}/backends external/stb external/libretro external/vulkan)
 target_compile_definitions(satronho-emulation PRIVATE SATRONHO_BUILD=${SATRONHO_BUILD} IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+target_link_libraries(satronho-emulation PRIVATE satronho_archivos)
 if(TARGET SDL3::SDL3-static)
   target_link_libraries(satronho-emulation PRIVATE SDL3::SDL3-static)
 else()

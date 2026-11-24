@@ -23,6 +23,10 @@ struct Game {
     std::string key;                // identificador estable para tiempo de juego y favoritos
     std::string legacy_key;         // el de antes (ruta completa), para no perder datos en modo portátil
     uint32_t hue = 0;               // color de la portada
+    // Juegos dentro de un .zip o .7z: el archivo del juego adentro y, si trae varios, todos.
+    std::string entry;
+    std::vector<std::string> choices;
+    bool Archived() const { return !entry.empty(); }
     bool favorite = false;
     bool hidden = false;            // oculto de la biblioteca (se puede volver a mostrar)
     long long playtime_s = 0;
@@ -45,6 +49,8 @@ public:
     std::vector<Game> Snapshot() const;
     Game* Find(const std::string& key);
     static Game MakeGame(const fs::path& file);
+    // El mismo juego, pero con otro archivo de adentro del .zip/.7z (cuando trae varios).
+    static Game MakeGameEntry(const fs::path& archive, const std::string& entry);
 
     void ToggleFavorite(const std::string& key);
     void SetHidden(const std::string& key, bool hidden);
