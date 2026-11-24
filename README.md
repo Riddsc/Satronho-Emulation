@@ -90,14 +90,16 @@ Satronho Emulation es software libre bajo la licencia **GPL 3.0 o posterior** (v
 | [mGBA](https://github.com/mgba-emu/mgba) | Núcleo de Satronho Bolsillo y Bolsillo Plus | MPL 2.0 |
 | [BlastEm](https://github.com/libretro/blastem) | Núcleo de Satronho Mega | GPL 3.0 |
 | [bsnes](https://github.com/libretro/bsnes) | Núcleo de Satronho Hexa | GPL 3.0 |
-| [Beetle PSX](https://github.com/libretro/beetle-psx-libretro) | Núcleo de Satronho CD (incluye OpenBIOS, MIT) | GPL 2.0 |
-| [Mupen64Plus-Next](https://github.com/libretro/mupen64plus-libretro-nx) | Núcleo de Satronho 64 | GPL 2.0 |
+| [Beetle PSX HW](https://github.com/libretro/beetle-psx-libretro) | Núcleo de Satronho CD, con OpenGL y Vulkan (incluye OpenBIOS, MIT) | GPL 2.0 |
+| [Mupen64Plus-Next](https://github.com/libretro/mupen64plus-libretro-nx) | Núcleo de Satronho 64 (con GLideN64, ParaLLEl-RDP y Angrylion) | GPL 2.0 |
 | [melonDS DS](https://github.com/JesseTG/melonds-ds) | Núcleo de Satronho Dual (incluye FreeBIOS) | GPL 3.0 |
 | [Beetle Saturn](https://github.com/libretro/beetle-saturn-libretro) | Núcleo de Satronho Anillo | GPL 2.0 |
 | [SDL 3](https://github.com/libsdl-org/SDL) | Ventana, sonido, mandos y dibujo | zlib |
 | [Dear ImGui](https://github.com/ocornut/imgui) | Base de la interfaz | MIT |
-| [libretro API](https://github.com/libretro/libretro-common) | Conexión con los núcleos | MIT |
-| [stb](https://github.com/nothings/stb) | Lectura y guardado de PNG | Dominio público / MIT |
+| [libretro API](https://github.com/libretro/libretro-common) | Conexión con los núcleos (también la de Vulkan) | MIT |
+| [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers) | Definiciones de Vulkan | Apache 2.0 / MIT |
+| [libretro-thumbnails](https://github.com/libretro-thumbnails/libretro-thumbnails) | Carátulas de los juegos (se descargan; no vienen incluidas) | Varias (de sus autores) |
+| [stb](https://github.com/nothings/stb) | Lectura de PNG y JPG, guardado de PNG | Dominio público / MIT |
 | [Poppins](https://github.com/google/fonts/tree/main/ofl/poppins) | Tipografía | SIL OFL 1.1 |
 | [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | Tipografía de números | SIL OFL 1.1 |
 

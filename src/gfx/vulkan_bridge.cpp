@@ -280,7 +280,11 @@ bool VulkanBridge::Start(const retro_hw_render_context_negotiation_interface* ne
     // Dispositivo: si el núcleo sabe crearlo (pide extensiones propias), lo crea él.
     if (neg && neg->create_device) {
         retro_vulkan_context ctx{};
-        if (neg->create_device(&ctx, s.instance, s.gpu, VK_NULL_HANDLE, Vk().gipa, nullptr, 0, nullptr, 0, nullptr)) {
+        // Sin extensiones ni capas obligatorias (no se presenta con Vulkan), pero con una lista de
+        // funciones vacía de verdad: algunos núcleos no aceptan punteros nulos.
+        static const char* no_names[] = {nullptr};
+        VkPhysicalDeviceFeatures none{};
+        if (neg->create_device(&ctx, s.instance, s.gpu, VK_NULL_HANDLE, Vk().gipa, no_names, 0, no_names, 0, &none)) {
             s.gpu = ctx.gpu;
             s.device = ctx.device;
             s.queue = ctx.queue;
