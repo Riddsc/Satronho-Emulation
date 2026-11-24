@@ -362,7 +362,7 @@ ChatReply AnswerQuestion(const std::string& question, const ChatContext& ctx, in
         for (const auto& [name, key] : ctx.hotkeys)
             if (!key.empty()) list.push_back(name + ": " + key);
         if (list.size() > 8) list.resize(8);
-        say(Samy, "Tus atajos ahora mismo son: " + Join(list, "; ") + ". Con el mando, Select + Start abre el menú del juego.");
+        say(Samy, "Tus atajos ahora mismo son: " + Join(list, "; ") + ". Con el mando, Select + Start abre el menú del juego. Jugando en ventana tienes arriba la barra de menús (Juego, Imagen, Sonido…); en pantalla completa, Esc la despliega y Esc la esconde.");
         button("Cambiar atajos", ChatAction::Hotkeys);
         break;
     }
