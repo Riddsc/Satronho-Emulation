@@ -10,6 +10,7 @@
 // Mientras un menú está abierto, el juego se pausa.
 
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <cstdio>
 
@@ -54,7 +55,7 @@ bool App::GameBarVisible() const {
 }
 
 float App::GameBarTop() const { return GameBarVisible() ? S(touch_mode_ ? 56 : 38) : 0.0f; }
-float App::GameBarBottom() const { return GameBarVisible() && !touch_mode_ ? S(28) : 0.0f; }
+float App::GameBarBottom() const { return GameBarVisible() && !touch_mode_ && settings_.status_bar ? S(28) : 0.0f; }
 
 bool App::GameBarReserves() const {
     // En ventana la barra no tapa el juego: se le deja su espacio. Desplegada sobre la pantalla
@@ -179,16 +180,48 @@ void App::DrawGameBar() {
             ImGui::EndMenu();
         }
 
-        // ---------------- Imagen
-        if (menu("Imagen")) {
+        // ---------------- Vista
+        if (menu("Vista")) {
+            if (item("Pantalla completa", touch ? nullptr : "F11", settings_.fullscreen)) DoHotkey(Hotkey::Fullscreen);
+            if (item("Barra de estado", nullptr, settings_.status_bar)) {
+                settings_.status_bar = !settings_.status_bar;
+                SaveConfig();
+            }
+            if (item("Medidor Satronho", touch ? nullptr : "F3", settings_.meter > 0)) {
+                settings_.meter = settings_.meter > 0 ? 0 : 1;
+                SaveConfig();
+            }
+            if (!settings_.fullscreen && !touch && sub("Tamaño de la ventana")) {
+                const auto& g = core_.AvInfo().geometry;
+                const int bw = g.base_width ? static_cast<int>(g.base_width) : 320, bh = g.base_height ? static_cast<int>(g.base_height) : 240;
+                for (int k = 2; k <= 6; ++k)
+                    if (item(Fmt("%d× · %d × %d", k, bw * k, bh * k).c_str())) {
+                        const int extra = static_cast<int>(GameBarTop() + GameBarBottom());
+                        SDL_SetWindowSize(window_, bw * k, bh * k + extra);
+                    }
+                ImGui::EndMenu();
+            }
+            ImGui::Separator();
+            if (item("Ocultar esta barra", touch ? nullptr : "Esc")) {
+                if (settings_.fullscreen || touch) bar_open_ = false;
+                else {
+                    settings_.game_bar = false;
+                    SaveConfig();
+                    Toast("Barra escondida. Vuelve en Ajustes » Apariencia, o con Esc en pantalla completa.", GuideId::Troya, 4);
+                }
+            }
+            ImGui::EndMenu();
+        }
+
+        // ---------------- Gráficos
+        if (menu("Gráficos")) {
             VideoOverride* own = nullptr;
             if (auto it = settings_.video_for.find(sys_->id); it != settings_.video_for.end() && it->second.on) own = &it->second;
             int& scale = own ? own->scale_mode : settings_.scale_mode;
             int& filter = own ? own->filter : settings_.filter;
             int& effect = own ? own->effect : settings_.effect;
             bool changed = false;
-            if (item("Pantalla completa", touch ? nullptr : "F11", settings_.fullscreen)) DoHotkey(Hotkey::Fullscreen);
-            if (sub("Tamaño")) {
+            if (sub("Tamaño de la imagen")) {
                 const char* n[] = {"Ajustar (sin deformar)", "Entero (píxeles perfectos)", "Estirar"};
                 for (int i = 0; i < 3; ++i)
                     if (item(n[i], nullptr, scale == i)) { scale = i; changed = true; }
@@ -250,13 +283,7 @@ void App::DrawGameBar() {
                 }
             }
             ImGui::Separator();
-            if (sub("Medidor")) {
-                const char* n[] = {"Apagado", "Compacto", "Detallado"};
-                for (int i = 0; i < 3; ++i)
-                    if (item(n[i], i == 1 ? "F3" : nullptr, settings_.meter == i)) { settings_.meter = i; changed = true; }
-                ImGui::EndMenu();
-            }
-            if (item("Más ajustes de imagen…")) {
+            if (item("Más ajustes de gráficos…")) {
                 SetMenuOpen(true);
                 menu_section_ = 1;
             }
@@ -319,24 +346,58 @@ void App::DrawGameBar() {
             if (item("Abrir la carpeta de partidas")) OpenFolder(Paths::User() / "partidas" / sys_->id);
             if (item("Abrir la carpeta de datos")) OpenFolder(Paths::User());
             ImGui::Separator();
+            if (item("Memory Cards, prueba de mandos y más…")) {
+                bar_open_ = false;
+                pending_page_ = static_cast<int>(Page::Tools);
+                RequestExitGame();
+            }
+            ImGui::Separator();
             if (item("Avance rápido", touch ? nullptr : "Tab", fast_forward_toggle_, settings_.fast_forward_enabled)) fast_forward_toggle_ = !fast_forward_toggle_;
             if (!settings_.fast_forward_enabled) note("El avance rápido se enciende en Ajustes » Rendimiento.");
             if (item("Cambiar pantallas (Dual)", "F2", false, sys_->id == "dual")) DoHotkey(Hotkey::Screens);
             ImGui::EndMenu();
         }
 
-        // ---------------- Satronho
+        // ---------------- Satronho (como el módulo de Satronho NX)
         if (menu("Satronho")) {
             auto go = [&](Page p) {
                 bar_open_ = false;
                 pending_page_ = static_cast<int>(p);
                 RequestExitGame();
             };
+            if (item("Novedades")) go(Page::News);
+            if (item("Configuración sugerida")) go(Page::Suggested);
+            if (item("Pregúntale a los guías")) go(Page::Guides);
+            ImGui::Separator();
+            bool changed = false;
+            if (sub("Medidor")) {
+                const char* n[] = {"Apagado", "Compacto", "Detallado"};
+                for (int i = 0; i < 3; ++i)
+                    if (item(n[i], nullptr, settings_.meter == i)) { settings_.meter = i; changed = true; }
+                ImGui::Separator();
+                const char* corners[] = {"Arriba a la izquierda", "Arriba a la derecha", "Abajo a la izquierda", "Abajo a la derecha"};
+                for (int i = 0; i < 4; ++i)
+                    if (item(corners[i], nullptr, settings_.meter_corner == i)) { settings_.meter_corner = i; changed = true; }
+                ImGui::EndMenu();
+            }
+            if (sub("Logo de fondo")) {
+                for (int pct : {10, 25, 50, 75, 100})
+                    if (item(Fmt("%d %%", pct).c_str(), nullptr, std::lround(settings_.watermark * 100) == pct)) {
+                        settings_.watermark = pct / 100.0f;
+                        changed = true;
+                    }
+                ImGui::EndMenu();
+            }
+            if (sub("Guías")) {
+                if (item("Mostrar a los guías", nullptr, settings_.guides)) { settings_.guides = !settings_.guides; changed = true; }
+                if (item("Burbuja de consejos", nullptr, settings_.bubble)) { settings_.bubble = !settings_.bubble; changed = true; }
+                ImGui::EndMenu();
+            }
+            ImGui::Separator();
             note("Estas pantallas cierran el juego (guardando dónde quedaste).");
             if (item("Biblioteca")) go(Page::Library);
             if (item("Ajustes")) go(Page::Settings);
-            if (item("Pregúntale a los guías")) go(Page::Guides);
-            if (item("Novedades")) go(Page::News);
+            if (changed) SaveConfig();
             ImGui::EndMenu();
         }
 
@@ -357,6 +418,11 @@ void App::DrawGameBar() {
             }
             ImGui::Separator();
             if (item("Abrir el registro (satronho.log)")) OpenFolder(Paths::User());
+            if (item("Acerca de Satronho Emulation")) {
+                bar_open_ = false;
+                pending_page_ = static_cast<int>(Page::About);
+                RequestExitGame();
+            }
             ImGui::EndMenu();
         }
 

@@ -77,7 +77,8 @@ struct Settings {
     float watermark = 0.18f;         // opacidad del logo de fondo: de 0.10 a 1.0 (nunca se apaga)
     bool confirm_exit_app = true;    // preguntar antes de cerrar la app
     bool confirm_exit_game = true;   // preguntar antes de salir de un juego
-    bool game_bar = true;            // barra de menús arriba del juego (en ventana)
+    bool game_bar = true;
+    bool status_bar = true;          // barra de estado abajo del juego            // barra de menús arriba del juego (en ventana)
 
     // Control en pantalla (pantallas táctiles).
     int touch_show = 0;              // 0 automático (sin mando conectado), 1 siempre, 2 nunca
