@@ -48,6 +48,7 @@ struct Settings {
     // resolución interna (0 automática, 1 a 8 veces la original).
     std::map<std::string, int> gpu_api, gpu_res;
     int GpuApi(const std::string& sys) const { auto it = gpu_api.find(sys); return it == gpu_api.end() ? 0 : it->second; }
+    std::map<std::string, std::map<std::string, std::string>> gfx; // opciones de gráficos del núcleo por consola
     int GpuRes(const std::string& sys) const { auto it = gpu_res.find(sys); return it == gpu_res.end() ? 0 : it->second; }
 
     // Rendimiento

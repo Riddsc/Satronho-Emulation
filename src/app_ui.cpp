@@ -1175,7 +1175,7 @@ void App::DrawSettings() {
         Icon icon;
     };
     static const TabDef tabs[] = {
-        {SettingsTab::Video, "Imagen", Icon::Monitor},       {SettingsTab::Audio, "Sonido", Icon::Volume},
+        {SettingsTab::Video, "Gráficos", Icon::Monitor},       {SettingsTab::Audio, "Sonido", Icon::Volume},
         {SettingsTab::Controls, "Controles", Icon::Gamepad}, {SettingsTab::Performance, "Rendimiento", Icon::Forward},
         {SettingsTab::Meter, "Medidor", Icon::Meter},        {SettingsTab::Core, "Núcleo", Icon::Chip},
         {SettingsTab::Library, "Biblioteca", Icon::Folder},  {SettingsTab::Guides, "Guías", Icon::Paw},
@@ -2678,7 +2678,7 @@ void App::DrawPauseMenu() {
         auto vit = settings_.video_for.find(sys_->id);
         bool own = vit != settings_.video_for.end() && vit->second.on;
         RowBegin(("Imagen propia para " + sys_->full).c_str(),
-                 own ? "Lo que cambies aquí vale solo para esta consola." : "Apagado: se usa la imagen general de Ajustes » Imagen.");
+                 own ? "Lo que cambies aquí vale solo para esta consola." : "Apagado: se usa la imagen general de Ajustes » Gráficos.");
         if (Toggle("##propio", &own)) {
             VideoOverride& v = settings_.video_for[sys_->id];
             if (own && !v.on) {

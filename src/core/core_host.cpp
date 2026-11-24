@@ -295,7 +295,7 @@ bool CoreHost::LoadGame(const fs::path& rom, std::string* error, std::vector<uin
             Log::Error("No se pudo preparar la tarjeta gráfica para este núcleo");
             retro_unload_game_();
             loaded = false;
-            if (error) *error = "No se pudo preparar la tarjeta gráfica. Prueba con otro motor gráfico en Ajustes » Imagen.";
+            if (error) *error = "No se pudo preparar la tarjeta gráfica. Prueba con otro motor gráfico en Ajustes » Gráficos.";
             rom_path_.clear();
             return false;
         }

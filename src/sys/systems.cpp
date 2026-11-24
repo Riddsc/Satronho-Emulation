@@ -129,7 +129,7 @@ std::vector<SystemDef> Build() {
     // El desentrelazado adaptativo evita las rayas en los modos de alta resolución (las peleas
     // de Bloody Roar, por ejemplo).
     // Beetle PSX HW: dibuja con la tarjeta gráfica (OpenGL o Vulkan) o con el procesador; el motor
-    // y la resolución los pone Satronho según Ajustes » Imagen (App::ApplyGpuChoice).
+    // y la resolución los pone Satronho según Ajustes » Gráficos (App::ApplyGpuChoice).
     cd.core_defaults = {{"beetle_psx_hw_internal_resolution", "2x"},
                         {"beetle_psx_hw_dither_mode", "disabled"},
                         {"beetle_psx_hw_deinterlacer", "fastmad"},
