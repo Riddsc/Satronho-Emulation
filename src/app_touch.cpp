@@ -660,6 +660,7 @@ void App::DrawSidebarRail(float width) {
         unsigned color;
     } navs[] = {{"##r_guias", Page::Guides, Icon::Chat, Color::Green},     {"##r_sug", Page::Suggested, Icon::Sparkle, Color::Teal},
                 {"##r_nov", Page::News, Icon::Bell, Color::Pink},          {"##r_ctrl", Page::Controls, Icon::Gamepad, Color::Amber},
+                {"##r_herr", Page::Tools, Icon::Tools, Color::Orange},
                 {"##r_aj", Page::Settings, Icon::Gear, Color::Accent},     {"##r_ac", Page::About, Icon::Info, Color::Accent}};
     for (const auto& n : navs)
         if (item(n.id, page_ == n.page, n.color, [&](ImVec2 c, float a) { DrawIcon(dl, n.icon, c, S(20), U32(Color::Text, a)); },

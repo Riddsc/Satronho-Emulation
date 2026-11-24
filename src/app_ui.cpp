@@ -123,9 +123,9 @@ void App::DrawUi() {
 
     // Al cambiar de página el contenido entra con un fundido corto y sube un poco.
     if (page_ != shown_page_) {
-        static const char* kPageNames[] = {"Biblioteca", "Controles", "Configuración sugerida", "Novedades", "Ajustes", "Acerca de", "Guías"};
+        static const char* kPageNames[] = {"Biblioteca", "Controles", "Configuración sugerida", "Novedades", "Ajustes", "Acerca de", "Guías", "Herramientas"};
         const int pi = static_cast<int>(page_);
-        Log::Info("Pantalla: %s", pi >= 0 && pi < 7 ? kPageNames[pi] : "?");
+        Log::Info("Pantalla: %s", pi >= 0 && pi < 8 ? kPageNames[pi] : "?");
         shown_page_ = page_;
         BeginPageTransition();
     }
@@ -143,6 +143,7 @@ void App::DrawUi() {
     case Page::Settings: DrawSettings(); break;
     case Page::About: DrawAbout(); break;
     case Page::Guides: DrawGuideChat(); break;
+    case Page::Tools: DrawTools(); break;
     }
     ImGui::Dummy({0, S(24)});
     ImGui::EndChild();
@@ -309,6 +310,7 @@ void App::DrawSidebar(float width) {
     const bool update = updater_.GetState() == Updater::State::Available;
     if (NavItem("Novedades", Icon::Bell, page_ == Page::News, update ? "Nueva" : nullptr, false, Color::Pink)) page_ = Page::News;
     if (NavItem("Controles", Icon::Gamepad, page_ == Page::Controls, nullptr, false, Color::Amber)) page_ = Page::Controls;
+    if (NavItem("Herramientas", Icon::Tools, page_ == Page::Tools, nullptr, false, Color::Orange)) page_ = Page::Tools;
     if (NavItem("Ajustes", Icon::Gear, page_ == Page::Settings)) page_ = Page::Settings;
     if (NavItem("Acerca de", Icon::Info, page_ == Page::About)) page_ = Page::About;
 
@@ -439,20 +441,67 @@ void App::DrawLibrary() {
             SaveConfig();
         }
         (void)p;
-        // Vista: cuadrícula o carrusel (cada consola recuerda la suya).
+        // Vista (como el menú Vista de DuckStation): cuadrícula, carrusel o lista (cada consola
+        // recuerda la suya), tamaño de las carátulas y orden.
         {
             const std::string vk = lib_system_.empty() ? "todas" : lib_system_;
             int& view = settings_.lib_view[vk];
-            ImGui::SameLine(0, S(6));
-            if (IconButton("##vista_cuadricula", Icon::Grid, S(36), U32(view == 0 ? Color::Accent : Color::Muted), "Vista en cuadrícula", view == 0)) {
-                view = 0;
-                SaveConfig();
+            static const char* kViews[] = {"Cuadrícula", "Carrusel", "Lista"};
+            const Icon kIcons[] = {Icon::Grid, Icon::Carousel, Icon::List};
+            view = std::clamp(view, 0, 2);
+            ImGui::SameLine(0, S(10));
+            const ImVec2 bp = ImGui::GetCursorScreenPos();
+            const std::string lbl = std::string("Vista: ") + kViews[view];
+            FontScope f(GetFonts().medium, 13.5f);
+            const float bw = ImGui::CalcTextSize(lbl.c_str()).x + S(62);
+            if (ImGui::InvisibleButton("##vista", {bw, S(36)})) ImGui::OpenPopup("##vista_menu");
+            const bool vh = ImGui::IsItemHovered();
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            dl->AddRectFilled(bp, {bp.x + bw, bp.y + S(36)}, U32(vh ? Color::Surface3 : Color::Surface2), S(10));
+            DrawIcon(dl, kIcons[view], {bp.x + S(18), bp.y + S(18)}, S(15), U32(Color::Accent));
+            dl->AddText({bp.x + S(32), bp.y + (S(36) - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), lbl.c_str());
+            DrawIcon(dl, Icon::ChevronDown, {bp.x + bw - S(16), bp.y + S(18)}, S(11), U32(Color::Muted));
+            ImGui::SetNextWindowPos({bp.x, bp.y + S(42)});
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(14), S(12)});
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {S(10), S(8)});
+            if (ImGui::BeginPopup("##vista_menu")) {
+                SectionLabel("VISTA");
+                for (int i = 0; i < 3; ++i)
+                    if (ImGui::MenuItem(kViews[i], nullptr, view == i)) {
+                        view = i;
+                        SaveConfig();
+                    }
+                ImGui::Separator();
+                SectionLabel("TAMAÑO DE LAS CARÁTULAS");
+                const char* sizes[] = {"Pequeñas", "Medianas", "Grandes"};
+                for (int i = 0; i < 3; ++i)
+                    if (ImGui::MenuItem(sizes[i], nullptr, settings_.cover_size == i)) {
+                        settings_.cover_size = i;
+                        SaveConfig();
+                    }
+                ImGui::Separator();
+                SectionLabel("ORDEN");
+                const char* sorts[] = {"Nombre (A-Z)", "Jugados hace poco", "Más jugados"};
+                for (int i = 0; i < 3; ++i)
+                    if (ImGui::MenuItem(sorts[i], nullptr, settings_.sort == i)) {
+                        settings_.sort = i;
+                        SaveConfig();
+                    }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Solo favoritos", nullptr, settings_.favorites_only)) {
+                    settings_.favorites_only = !settings_.favorites_only;
+                    SaveConfig();
+                }
+                if (ImGui::MenuItem("Usar esta vista en todas las consolas")) {
+                    const int v = view;
+                    settings_.lib_view.clear();
+                    settings_.lib_view["todas"] = v;
+                    for (const auto& sd : Systems()) settings_.lib_view[sd.id] = v;
+                    SaveConfig();
+                }
+                ImGui::EndPopup();
             }
-            ImGui::SameLine(0, S(2));
-            if (IconButton("##vista_carrusel", Icon::Carousel, S(36), U32(view == 1 ? Color::Accent : Color::Muted), "Vista en carrusel", view == 1)) {
-                view = 1;
-                SaveConfig();
-            }
+            ImGui::PopStyleVar(2);
         }
         if (library_.Scanning()) {
             ImGui::SameLine(0, S(16));
@@ -489,11 +538,27 @@ void App::DrawLibrary() {
         DrawLibraryCarousel(list, lib_sys);
         return;
     }
+    if (settings_.LibView(lib_system_) == 2) {
+        const float rh = settings_.cover_size == 0 ? S(58) : settings_.cover_size == 2 ? S(96) : S(74);
+        const float rw = ImGui::GetContentRegionAvail().x;
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(list.size()), rh + S(8));
+        while (clipper.Step())
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                const Game& g = *list[i];
+                if (DrawGameRow(g, rw, rh, g.key == selected_key_)) {
+                    RequestStart(g.path);
+                    return;
+                }
+                ImGui::Dummy({0, S(8) - ImGui::GetStyle().ItemSpacing.y});
+            }
+        return;
+    }
 
     // Cuadrícula. En «todas las consolas» (orden A-Z, sin buscar) los juegos se separan por
     // consola, cada grupo con su control en miniatura y su nombre.
     const float gap = S(18);
-    const float min_w = compact_ ? S(150) : S(188);
+    const float min_w = (compact_ ? S(150) : S(188)) * (settings_.cover_size == 0 ? 0.78f : settings_.cover_size == 2 ? 1.32f : 1.0f);
     const float width = ImGui::GetContentRegionAvail().x;
     const int cols = std::max(1, static_cast<int>((width + gap) / (min_w + gap)));
     const float cw = std::floor((width - gap * (cols - 1)) / cols);
@@ -606,18 +671,8 @@ void App::DrawContinueHero(const Game& g, float width) {
     ImGui::Dummy({width, h});
 }
 
-bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
+bool App::GameContextMenu(const Game& g) {
     bool play = false;
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    ImGui::PushID(g.key.c_str());
-    ImGui::SetNextItemAllowOverlap();
-    const bool clicked = ImGui::InvisibleButton("##card", {w, h});
-    const bool hovered = ImGui::IsItemHovered();
-    if (hovered) hover_key_next_ = g.key;
-    const bool focused = ImGui::IsItemFocused();
-    if (clicked) selected_key_ = g.key;
-    if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) play = true;
-    if (focused && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown))) play = true;
     if (ImGui::BeginPopupContextItem("##menu")) {
         if (ImGui::MenuItem("Jugar")) play = true;
         if (HasAutoState(g) && ImGui::MenuItem("Continuar donde quedé")) RequestStart(g.path, true);
@@ -636,6 +691,76 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
         }
         ImGui::EndPopup();
     }
+    return play;
+}
+
+// Fila de la vista en lista: carátula chica, nombre, consola, tiempo jugado y botón de jugar.
+bool App::DrawGameRow(const Game& g, float w, float h, bool selected) {
+    bool play = false;
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    ImGui::PushID(g.key.c_str());
+    ImGui::SetNextItemAllowOverlap();
+    const bool clicked = ImGui::InvisibleButton("##fila", {w, h});
+    const bool hovered = ImGui::IsItemHovered();
+    if (hovered) hover_key_next_ = g.key;
+    if (clicked) selected_key_ = g.key;
+    if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) play = true;
+    if (ImGui::IsItemFocused() && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown))) play = true;
+    if (GameContextMenu(g)) play = true;
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const SystemDef* sys = SystemById(g.system);
+    const unsigned col = sys ? sys->color : Color::Accent;
+    dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(selected ? Color::Surface3 : hovered ? Color::Surface2 : Color::Surface, selected || hovered ? 1.0f : 0.7f), S(12));
+    if (selected) dl->AddRectFilled({p.x, p.y + S(10)}, {p.x + S(4), p.y + h - S(10)}, U32(col), S(2));
+    // Carátula.
+    const float ch = h - S(14), cw = ch * 0.78f;
+    DrawCover(dl, g, {p.x + S(12), p.y + S(7)}, {p.x + S(12) + cw, p.y + S(7) + ch}, S(6), hovered);
+    float x = p.x + S(12) + cw + S(16);
+    // Nombre y datos.
+    Ellipsize(dl, GetFonts().semibold, S(15.5f), {x, p.y + h * 0.5f - S(19)}, U32(Color::Text), g.title, w * 0.42f, 1);
+    {
+        std::string meta = (sys ? sys->full : g.system);
+        if (!g.tags.empty()) meta += "  ·  " + g.tags.front();
+        Ellipsize(dl, GetFonts().medium, S(12.5f), {x, p.y + h * 0.5f + S(3)}, U32(col), meta, w * 0.42f, 1);
+    }
+    // Columnas a la derecha: jugado, favorito y jugar.
+    const float right = p.x + w - S(16);
+    {
+        FontScope f(GetFonts().regular, 13);
+        const std::string t = g.playtime_s > 0 ? FormatPlaytime(g.playtime_s) : std::string("Sin jugar");
+        const float tw = ImGui::CalcTextSize(t.c_str()).x;
+        dl->AddText({right - S(150) - tw, p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Muted), t.c_str());
+    }
+    if (g.favorite) DrawIcon(dl, Icon::StarFill, {right - S(120), p.y + h * 0.5f}, S(16), U32(Color::Gold));
+    {
+        const ImVec2 b0(right - S(96), p.y + (h - S(34)) * 0.5f), b1(right, p.y + (h + S(34)) * 0.5f);
+        ImGui::SetCursorScreenPos(b0);
+        const bool bh = ImGui::InvisibleButton("##jugar", {b1.x - b0.x, b1.y - b0.y});
+        const bool bhov = ImGui::IsItemHovered();
+        if (bh) play = true;
+        dl->AddRectFilled(b0, b1, U32(Color::Accent, bhov ? 1.0f : hovered ? 0.85f : 0.25f), S(17));
+        DrawIcon(dl, Icon::Play, {b0.x + S(22), (b0.y + b1.y) * 0.5f}, S(12), U32(bhov || hovered ? Color::Bg : Color::Accent));
+        FontScope f(GetFonts().semibold, 13);
+        dl->AddText({b0.x + S(36), (b0.y + b1.y - ImGui::GetFontSize()) * 0.5f}, U32(bhov || hovered ? Color::Bg : Color::Accent), "Jugar");
+    }
+    ImGui::PopID();
+    ImGui::SetCursorScreenPos({p.x, p.y + h});
+    return play;
+}
+
+bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
+    bool play = false;
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    ImGui::PushID(g.key.c_str());
+    ImGui::SetNextItemAllowOverlap();
+    const bool clicked = ImGui::InvisibleButton("##card", {w, h});
+    const bool hovered = ImGui::IsItemHovered();
+    if (hovered) hover_key_next_ = g.key;
+    const bool focused = ImGui::IsItemFocused();
+    if (clicked) selected_key_ = g.key;
+    if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) play = true;
+    if (focused && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown))) play = true;
+    if (GameContextMenu(g)) play = true;
 
     const ImGuiID anim_id = ImGui::GetID("##anim");
     ImGuiStorage* st = ImGui::GetStateStorage();

@@ -32,7 +32,7 @@
 
 namespace Satronho {
 
-enum class Page { Library, Controls, Suggested, News, Settings, About, Guides };
+enum class Page { Library, Controls, Suggested, News, Settings, About, Guides, Tools };
 enum class SettingsTab { Video, Audio, Controls, Performance, Meter, Core, Library, Guides, Appearance, Count };
 enum class GuideId { MechaRidds = 0, Samy, Troya, Nono, Juana, Count };
 
@@ -100,6 +100,8 @@ private:
     void DrawLibrary();
     void DrawContinueHero(const Game& g, float width);
     bool DrawGameCard(const Game& g, float w, float h, bool selected);
+    bool DrawGameRow(const Game& g, float w, float h, bool selected);
+    bool GameContextMenu(const Game& g); // clic derecho en un juego; devuelve true si eligió «Jugar»
     void DrawEmptyLibrary();
     void DrawSuggested();
     void DrawNews();
@@ -119,6 +121,7 @@ private:
     void DrawSettingsLibrary();
     void DrawSettingsGuides();
     void DrawAbout();
+    void DrawTools();
     void DrawGameLayer();
     void DrawPauseMenu();
     void DrawMeter(bool preview = false, ImVec2 preview_pos = {});

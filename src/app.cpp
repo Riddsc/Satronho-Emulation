@@ -321,7 +321,7 @@ bool App::Init() {
     if (qa_.count("page")) {
         const std::string pg = qa_["page"];
         page_ = pg == "controles" ? Page::Controls : pg == "sugerida" ? Page::Suggested : pg == "novedades" ? Page::News : pg == "ajustes" ? Page::Settings
-              : pg == "acerca" ? Page::About : pg == "guias" ? Page::Guides : Page::Library;
+              : pg == "acerca" ? Page::About : pg == "guias" ? Page::Guides : pg == "herramientas" ? Page::Tools : Page::Library;
         shown_page_ = page_;
     }
     if (qa_.count("preguntar")) {

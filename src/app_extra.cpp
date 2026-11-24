@@ -139,6 +139,27 @@ void App::DrawSettingsAppearance() {
     }
     RowEnd();
     ImGui::Dummy({0, S(10)});
+    Heading("Biblioteca y juego", 16);
+    {
+        bool changed = false;
+        RowBegin("Vista de la biblioteca", "Cómo se ven tus juegos. Cada consola puede tener la suya desde el botón «Vista» de la biblioteca; esto la pone en todas.");
+        int v = std::clamp(settings_.LibView(""), 0, 2);
+        if (Segmented("##vista_todas", &v, {"Cuadrícula", "Carrusel", "Lista"}, S(360))) {
+            settings_.lib_view.clear();
+            settings_.lib_view["todas"] = v;
+            for (const auto& sd : Systems()) settings_.lib_view[sd.id] = v;
+            changed = true;
+        }
+        RowEnd();
+        RowBegin("Tamaño de las carátulas", nullptr);
+        changed |= Segmented("##tam_caratulas", &settings_.cover_size, {"Pequeñas", "Medianas", "Grandes"}, S(360));
+        RowEnd();
+        RowBegin("Barra de menús en el juego", "Arriba del juego en ventana: Juego, Imagen, Sonido, Controles… En pantalla completa aparece con Esc.");
+        changed |= Toggle("##barra_juego", &settings_.game_bar);
+        RowEnd();
+        if (changed) SaveConfig();
+    }
+    ImGui::Dummy({0, S(10)});
     Heading("Control en pantalla", 16);
     ImGui::Dummy({0, S(2)});
     RowBegin("Mostrar el control en pantalla", "Automático: con pantalla táctil y sin mando conectado. Se acomoda en el menú del juego » «Control en pantalla».");

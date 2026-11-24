@@ -90,7 +90,8 @@ struct Settings {
     std::vector<std::string> folders;
     int sort = 0;                  // 0 A-Z, 1 recientes, 2 más jugados
     bool favorites_only = false;
-    std::map<std::string, int> lib_view; // vista por consola ("" = todas): 0 cuadrícula, 1 carrusel
+    std::map<std::string, int> lib_view; // vista por consola ("" = todas): 0 cuadrícula, 1 carrusel, 2 lista
+    int cover_size = 1;              // carátulas: 0 pequeñas, 1 medianas, 2 grandes
     bool covers = true;            // descargar carátulas reales de los juegos
     int LibView(const std::string& sys) const {
         auto it = lib_view.find(sys.empty() ? "todas" : sys);

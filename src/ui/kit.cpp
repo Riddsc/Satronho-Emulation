@@ -285,6 +285,27 @@ void DrawIcon(ImDrawList* dl, Icon icon, ImVec2 c, float sz, ImU32 col) {
         dl->AddRectFilled(P(0.52f, -0.46f), P(0.95f, 0.46f), col, sz * 0.06f);
         break;
     }
+    case Icon::List: {
+        // Tres filas: cuadrito (carátula) y raya (nombre).
+        for (int i = -1; i <= 1; ++i) {
+            dl->AddRectFilled(P(-0.9f, i * 0.62f - 0.22f), P(-0.46f, i * 0.62f + 0.22f), col, sz * 0.05f);
+            dl->AddRectFilled(P(-0.3f, i * 0.62f - 0.1f), P(0.92f, i * 0.62f + 0.1f), col, sz * 0.05f);
+        }
+        break;
+    }
+    case Icon::ChevronDown: {
+        dl->AddLine(P(-0.6f, -0.25f), P(0.0f, 0.35f), col, sz * 0.16f);
+        dl->AddLine(P(0.0f, 0.35f), P(0.6f, -0.25f), col, sz * 0.16f);
+        break;
+    }
+    case Icon::Tools: {
+        // Llave inglesa cruzada con un destornillador.
+        dl->AddLine(P(-0.75f, 0.75f), P(0.35f, -0.35f), col, sz * 0.2f);
+        dl->AddCircle(P(0.5f, -0.5f), sz * 0.24f, col, 0, sz * 0.14f);
+        dl->AddLine(P(-0.7f, -0.7f), P(0.7f, 0.7f), col, sz * 0.12f);
+        dl->AddRectFilled(P(0.45f, 0.45f), P(0.85f, 0.85f), col, sz * 0.04f);
+        break;
+    }
     case Icon::Chat: {
         dl->AddRectFilled(P(-0.9f, -0.7f), P(0.9f, 0.45f), col, sz * 0.22f);
         dl->AddTriangleFilled(P(-0.5f, 0.4f), P(-0.1f, 0.4f), P(-0.55f, 0.85f), col);
