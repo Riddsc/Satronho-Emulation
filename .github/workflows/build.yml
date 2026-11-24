@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Herramientas
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build zip
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build zip nasm
 
       - name: Caché de llvm-mingw
         id: cache-mingw
@@ -75,6 +75,16 @@ jobs:
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-beetle-psx.sh build/cores
+
+      - name: Núcleo de Nintendo 64 (Mupen64Plus-Next)
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: scripts/build-core-mupen64plus.sh build/cores
+
+      - name: Núcleo de Nintendo DS (melonDS DS)
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: scripts/build-core-melonds.sh build/cores
 
       - name: Satronho Emulation
         env:

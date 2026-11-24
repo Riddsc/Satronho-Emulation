@@ -19,7 +19,9 @@ Cada emulador de la familia tiene su nombre Satronho:
 | **Satronho Mega** | Genesis / Mega Drive | Disponible |
 | **Satronho Hexa** | Super Nintendo / Super Famicom | Disponible |
 | **Satronho CD** | PlayStation | Disponible |
-| Satronho 64, Cubo, Dual, Anillo, Sueño, CD2, Portátil | Nintendo 64, GameCube/Wii, DS/3DS, Saturn, Dreamcast, PlayStation 2, PSP | Más adelante |
+| **Satronho 64** | Nintendo 64 | Disponible |
+| **Satronho Dual** | Nintendo DS (3DS más adelante) | Disponible |
+| Satronho Cubo, Anillo, Sueño, CD2, Portátil | GameCube/Wii, Saturn, Dreamcast, PlayStation 2, PSP | Más adelante |
 | [Satronho NX](https://github.com/Riddsc/satronho-nx) | Switch | App aparte |
 
 ## Lo que trae
@@ -83,6 +85,8 @@ Satronho Emulation es software libre bajo la licencia **GPL 3.0 o posterior** (v
 | [BlastEm](https://github.com/libretro/blastem) | Núcleo de Satronho Mega | GPL 3.0 |
 | [bsnes](https://github.com/libretro/bsnes) | Núcleo de Satronho Hexa | GPL 3.0 |
 | [Beetle PSX](https://github.com/libretro/beetle-psx-libretro) | Núcleo de Satronho CD (incluye OpenBIOS, MIT) | GPL 2.0 |
+| [Mupen64Plus-Next](https://github.com/libretro/mupen64plus-libretro-nx) | Núcleo de Satronho 64 | GPL 2.0 |
+| [melonDS DS](https://github.com/JesseTG/melonds-ds) | Núcleo de Satronho Dual (incluye FreeBIOS) | GPL 3.0 |
 | [SDL 3](https://github.com/libsdl-org/SDL) | Ventana, sonido, mandos y dibujo | zlib |
 | [Dear ImGui](https://github.com/ocornut/imgui) | Base de la interfaz | MIT |
 | [libretro API](https://github.com/libretro/libretro-common) | Conexión con los núcleos | MIT |
