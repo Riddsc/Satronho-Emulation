@@ -1487,7 +1487,7 @@ void App::DrawSettingsGuides() {
 // ---------------------------------------------------------------- controles
 
 int App::BindingChip(const char* id, bool keyboard, const std::string& text, bool capturing, bool pressed, float width) {
-    const float h = S(32);
+    const float h = S(27);
     const ImVec2 p = ImGui::GetCursorScreenPos();
     ImGui::InvisibleButton(id, {width, h});
     const bool hovered = ImGui::IsItemHovered();
@@ -1499,10 +1499,10 @@ int App::BindingChip(const char* id, bool keyboard, const std::string& text, boo
     dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(hovered ? Color::Surface3 : Color::Surface2), S(9));
     if (pressed) dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(Color::Gold, 0.22f), S(9));
     if (capturing) dl->AddRect(p, {p.x + width, p.y + h}, U32(Color::Accent, 0.4f + 0.6f * pulse), S(9), S(2));
-    DrawIcon(dl, keyboard ? Icon::Keyboard : Icon::Gamepad, {p.x + S(16), p.y + h * 0.5f}, S(15), U32(capturing ? Color::Accent : Color::Dim));
+    DrawIcon(dl, keyboard ? Icon::Keyboard : Icon::Gamepad, {p.x + S(14), p.y + h * 0.5f}, S(13), U32(capturing ? Color::Accent : Color::Dim));
     const std::string t = capturing ? std::string("Presiona…") : text;
-    Ellipsize(dl, GetFonts().medium, S(14), {p.x + S(32), p.y + (h - S(14)) * 0.5f - S(1)},
-              U32(capturing ? Color::Accent : (t == "—" ? Color::Dim : Color::Text)), t, width - S(38), 1);
+    Ellipsize(dl, GetFonts().medium, S(13), {p.x + S(28), p.y + (h - S(13)) * 0.5f - S(1)},
+              U32(capturing ? Color::Accent : (t == "—" ? Color::Dim : Color::Text)), t, width - S(34), 1);
     if (hovered && !capturing) HelpTooltip("Clic: asignar (tecla o botón del mando, lo que presiones) · Clic derecho: dejar vacío");
     return result;
 }
@@ -1626,28 +1626,33 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     Mapping& m = input_.Edit(player, sys);
     uint16_t live = input_.LiveButtons(player, sys);
     if (qa_.count("presionar")) live |= static_cast<uint16_t>(std::atoi(qa_["presionar"].c_str()));
+    {
+        float sticks[4];
+        input_.LiveSticks(player, sticks);
+        SetLiveSticks(sticks);
+    }
 
     // Casilla de un botón: nombre, su tecla y su botón de mando.
     const float gap = S(10);
     const float W = ImGui::GetContentRegionAvail().x;
-    float cell_w = S(160);
-    const float cell_h = S(112);
+    float cell_w = S(150);
+    const float cell_h = S(88);
     auto cell = [&](int id, ImVec2 pos) {
         ImGui::PushID(id);
         ImDrawList* dl = ImGui::GetWindowDrawList();
         const bool down = (live >> id) & 1;
         const bool cap = cap_here && input_.capture.button == id;
-        dl->AddRectFilled(pos, {pos.x + cell_w, pos.y + cell_h}, U32(Color::Bg, 0.65f), S(14));
-        if (down) dl->AddRectFilled(pos, {pos.x + cell_w, pos.y + cell_h}, U32(Color::Gold, 0.12f), S(14));
-        dl->AddRect(pos, {pos.x + cell_w, pos.y + cell_h}, U32(down ? Color::Gold : cap ? Color::Accent : Color::Border), S(14), down || cap ? S(2) : 1.0f);
+        dl->AddRectFilled(pos, {pos.x + cell_w, pos.y + cell_h}, U32(Color::Surface, 0.9f), S(12));
+        if (down) dl->AddRectFilled(pos, {pos.x + cell_w, pos.y + cell_h}, U32(Color::Gold, 0.14f), S(12));
+        dl->AddRect(pos, {pos.x + cell_w, pos.y + cell_h}, U32(down ? Color::Gold : cap ? Color::Accent : Color::Border), S(12), down || cap ? S(2) : 1.0f);
         {
-            FontScope f(GetFonts().semibold, 15);
-            dl->AddText({pos.x + S(12), pos.y + S(8)}, U32(down ? Color::Gold : Color::Text), label_of(id));
+            FontScope f(GetFonts().semibold, 13.5f);
+            dl->AddText({pos.x + S(10), pos.y + S(6)}, U32(down ? Color::Gold : Color::Text), label_of(id));
         }
-        const float cw = cell_w - S(20);
-        ImGui::SetCursorScreenPos({pos.x + S(10), pos.y + S(36)});
+        const float cw = cell_w - S(16);
+        ImGui::SetCursorScreenPos({pos.x + S(8), pos.y + S(27)});
         const int rk = BindingChip("##k", true, Input::KeyLabel(m.keys[id]), cap, down, cw);
-        ImGui::SetCursorScreenPos({pos.x + S(10), pos.y + S(72)});
+        ImGui::SetCursorScreenPos({pos.x + S(8), pos.y + S(57)});
         const int rp = BindingChip("##p", false, Input::PadCodeLabel(m.pad[id], family), cap, down, cw);
         if (rk == 1 || rp == 1) input_.StartCapture(player, sys, id, rp == 1, true);
         if (rk == 2) { m.keys[id] = SDL_SCANCODE_UNKNOWN; changed = true; }
@@ -1658,7 +1663,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         FontScope f(GetFonts().semibold, 13);
         ImGui::GetWindowDrawList()->AddText(pos, U32(Color::Dim), t);
     };
-    const float title_h = S(24);
+    const float title_h = S(22);
     const bool shoulders = !sys.shoulders.empty();
     const float aspect = ControllerAspect(sys.layout);
     const int cap_btn = cap_here ? input_.capture.button : -1;
@@ -1723,7 +1728,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     const ImVec2 o = ImGui::GetCursorScreenPos();
     float total_h;
     const float col_gap = S(24);
-    const float wide_cell = S(160);
+    const float wide_cell = S(150);
     const float wide_side = wide_cell * 2 + gap;
     const float right_side = wide_cell * face_cols + gap * (face_cols - 1);
     if (!compact && W >= wide_side + right_side + col_gap * 2 + S(420)) {
@@ -1735,18 +1740,21 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         const float cx0 = o.x + wide_side + col_gap, cx1 = rx - col_gap;
         const float ch = center_group({(cx0 + cx1) * 0.5f - cell_w - gap * 0.5f, o.y});
         const float draw_y = o.y + ch + S(20);
-        float draw_h = std::clamp((cx1 - cx0) / aspect, S(200), S(440));
+        float draw_h = std::clamp((cx1 - cx0) / aspect, S(200), S(380));
         total_h = std::max({lh, rh, draw_y - o.y + draw_h});
         draw_h = total_h - (draw_y - o.y);
         drawing({cx0, draw_y}, {cx1 - cx0, draw_h});
     } else {
         // Más angosto: el control grande arriba y los tres grupos debajo.
         // El dibujo crece hasta donde quepan debajo las casillas sin tener que bajar.
-        const int center_rows = 1 + static_cast<int>((sys.shoulders.size() + 1) / 2);
-        const int rows = std::max({3, static_cast<int>(sys.face.size()), center_rows});
-        const float groups_h = S(18) + title_h + rows * cell_h + (rows - 1) * gap;
-        const float fit_h = ImGui::GetContentRegionAvail().y - groups_h - S(48);
-        const float draw_h = std::clamp(std::min(W / aspect, fit_h), S(200), compact ? S(240) : S(320));
+        // Alto real de cada grupo, para que el dibujo use justo lo que sobra y no haya que bajar.
+        const int sh_rows = static_cast<int>((sys.shoulders.size() + 1) / 2);
+        const float center_h = title_h + cell_h + (shoulders ? gap * 1.5f + title_h + sh_rows * (cell_h + gap) - gap : 0.0f);
+        const float face_h = title_h + static_cast<float>(sys.face.size()) * (cell_h + gap) - gap;
+        const float dpad_h = title_h + 3 * cell_h + 2 * gap;
+        const float groups_h = S(18) + std::max({center_h, face_h, dpad_h});
+        const float fit_h = ImGui::GetContentRegionAvail().y - groups_h - S(12);
+        const float draw_h = std::clamp(std::min(W / aspect, fit_h), S(150), compact ? S(240) : S(340));
         drawing({o.x, o.y}, {W, draw_h});
         const float gy = o.y + draw_h + S(18);
         const float col_w = (W - col_gap * 2) / 3.0f;
@@ -1914,28 +1922,78 @@ void App::DrawProfilePopup() {
 void App::DrawControls() {
     Title("Controles", "Asigna los botones de cada consola y míralos en vivo");
     ImGui::Dummy({0, S(6)});
-    std::vector<const char*> names;
+    std::vector<std::string> names;
     int cur = 0;
     for (size_t i = 0; i < Systems().size(); ++i) {
-        names.push_back(Systems()[i].name.c_str());
+        names.push_back(Systems()[i].full + "  ·  " + Systems()[i].hint);
         if (Systems()[i].id == ctrl_system_) cur = static_cast<int>(i);
     }
-    // Pestañas arriba y, debajo, la consola (con nueve consolas no caben en la misma fila).
-    Segmented("##ctrl_tab", &ctrl_tab_, {"General", "Jugador 1", "Jugador 2", "Atajos"}, S(520));
-    ImGui::Dummy({0, S(4)});
-    if (ctrl_tab_ == 1 || ctrl_tab_ == 2) {
-        const float sw = std::min(ImGui::GetContentRegionAvail().x, S(112) * static_cast<float>(names.size()));
-        if (Segmented("##ctrl_sis", &cur, names, sw)) ctrl_system_ = Systems()[cur].id;
-    }
     const SystemDef& sys = Systems()[cur];
-    ImGui::Dummy({0, S(10)});
     const auto pads = input_.Gamepads();
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(24), S(20)});
+    // Como DuckStation: a la izquierda los puertos (jugadores), los atajos y lo general; a la derecha,
+    // el contenido. Todo dentro de un panel de ancho cómodo (no se desparrama en pantallas anchas).
+    const float avail = ImGui::GetContentRegionAvail().x;
+    const float panel_w = compact_ ? avail : std::min(avail, S(1560));
+    const float nav_w = compact_ ? 0.0f : S(236);
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail - panel_w) * 0.5f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(14), S(14)});
     ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Surface));
-    ImGui::BeginChild("##ctrl_panel", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
+    ImGui::BeginChild("##ctrl_marco", {panel_w, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
+    if (compact_) {
+        Segmented("##ctrl_tab", &ctrl_tab_, {"General", "Jugador 1", "Jugador 2", "Atajos"}, ImGui::GetContentRegionAvail().x);
+        ImGui::Dummy({0, S(6)});
+    } else {
+        ImGui::BeginChild("##ctrl_nav", {nav_w, 0});
+        SectionLabel("PUERTOS");
+        for (int pl = 0; pl < 2; ++pl) {
+            const PlayerConfig& pc = input_.players[pl];
+            std::string sub = pc.pad >= 0 && pc.pad < static_cast<int>(pads.size()) ? pads[pc.pad].name : pc.keyboard ? "Teclado" : "Sin mando";
+            if (sub.size() > 22) sub = sub.substr(0, 21) + "…";
+            if (NavItem(Fmt("Jugador %d", pl + 1).c_str(), Icon::Gamepad, ctrl_tab_ == pl + 1, sub.c_str())) ctrl_tab_ = pl + 1;
+        }
+        ImGui::Dummy({0, S(8)});
+        SectionLabel("AJUSTES");
+        if (NavItem("Atajos", Icon::Forward, ctrl_tab_ == 3, nullptr, false, Color::Amber)) ctrl_tab_ = 3;
+        if (NavItem("General", Icon::Gear, ctrl_tab_ == 0, nullptr, false, Color::Teal)) ctrl_tab_ = 0;
+        ImGui::Dummy({0, S(14)});
+        SectionLabel("MANDOS CONECTADOS");
+        if (pads.empty()) Muted("Ninguno. Conecta uno cuando quieras.", 13);
+        for (const auto& pd : pads) {
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            DrawIcon(ImGui::GetWindowDrawList(), Icon::Gamepad, {p.x + S(10), p.y + S(10)}, S(16), U32(Color::Green));
+            ImGui::SetCursorScreenPos({p.x + S(26), p.y});
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + nav_w - S(30));
+            Muted(Fmt("%d · %s", pd.slot + 1, pd.name.c_str()).c_str(), 13);
+            ImGui::PopTextWrapPos();
+        }
+        ImGui::EndChild();
+        ImGui::SameLine(0, S(14));
+    }
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(22), S(18)});
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Bg, 0.55f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, S(14));
+    ImGui::BeginChild("##ctrl_panel", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
+    // Puertos: la consola se elige en una lista, como el «Tipo de mando» de DuckStation.
+    if (ctrl_tab_ == 1 || ctrl_tab_ == 2) {
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        DrawControllerMini(ImGui::GetWindowDrawList(), sys.layout, {p.x + S(22), p.y + S(19)}, sys.handheld ? S(22) : S(36), 1.0f);
+        ImGui::SetCursorScreenPos({p.x + S(52), p.y + S(9)});
+        {
+            FontScope f(GetFonts().semibold, 14);
+            ImGui::TextUnformatted("Consola");
+        }
+        ImGui::SameLine(0, S(12));
+        ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, p.y});
+        if (ComboStyled("##ctrl_sis", &cur, names, std::min(S(360), ImGui::GetContentRegionAvail().x))) ctrl_system_ = Systems()[cur].id;
+        ImGui::Dummy({0, S(10)});
+    }
     if (ctrl_tab_ == 0) {
         bool changed = false;
         RowBegin("Zona muerta del stick", "Cuánto hay que mover el stick para que cuente.");
@@ -1972,8 +2030,9 @@ void App::DrawControls() {
     } else if (ctrl_tab_ == 3) {
         DrawHotkeys();
     } else {
-        DrawControllerEditor(sys, ctrl_tab_ - 1, false);
+        DrawControllerEditor(Systems()[cur], ctrl_tab_ - 1, compact_);
     }
+    ImGui::EndChild();
     ImGui::EndChild();
     DrawProfilePopup();
 }

@@ -14,6 +14,8 @@ namespace Satronho::Ui {
 
 namespace {
 
+float g_sticks[4] = {};
+
 struct Ctx {
     ImDrawList* dl;
     ImVec2 o;      // origen
@@ -420,10 +422,13 @@ void DrawPlayStation(Ctx& c) {
         const float x = side ? 420 : 240, y = 250;
         c.Hit(id, x, y, 40);
         dl->AddCircleFilled(c.P(x, y), c.L(44), IM_COL32(70, 72, 82, 255), 40);
-        dl->AddCircleFilled(c.P(x + 2, y + 4), c.L(31), IM_COL32(0, 0, 0, 80), 32);
-        dl->AddCircleFilled(c.P(x, y), c.L(31), c.Down(id) ? U32(Color::Gold) : IM_COL32(44, 45, 52, 255), 32);
-        dl->AddCircle(c.P(x, y), c.L(24), IM_COL32(70, 72, 82, 255), 32, c.L(2));
-        c.Ring(id, c.P(x, y), c.L(31));
+        // La palanca se mueve con la del mando real.
+        const float sx = c.mini ? 0 : g_sticks[side * 2] * 11, sy = c.mini ? 0 : g_sticks[side * 2 + 1] * 11;
+        const bool moved = sx * sx + sy * sy > 9;
+        dl->AddCircleFilled(c.P(x + sx + 2, y + sy + 4), c.L(31), IM_COL32(0, 0, 0, 80), 32);
+        dl->AddCircleFilled(c.P(x + sx, y + sy), c.L(31), c.Down(id) ? U32(Color::Gold) : moved ? U32(Color::Accent) : IM_COL32(44, 45, 52, 255), 32);
+        dl->AddCircle(c.P(x + sx, y + sy), c.L(24), IM_COL32(70, 72, 82, 255), 32, c.L(2));
+        c.Ring(id, c.P(x + sx, y + sy), c.L(31));
     }
 }
 
@@ -468,8 +473,12 @@ void DrawN64(Ctx& c) {
     c.Text("START", 320, 136, 11, IM_COL32(70, 72, 84, 255));
     // Stick al centro y el gatillo Z debajo (se ve como una pestaña en la agarradera).
     dl->AddCircleFilled(c.P(320, 214), c.L(42), shell_dark, 40);
-    dl->AddCircleFilled(c.P(320, 214), c.L(26), IM_COL32(80, 82, 94, 255), 32);
-    dl->AddCircleFilled(c.P(320, 210), c.L(20), IM_COL32(104, 106, 118, 255), 32);
+    {
+        const float sx = c.mini ? 0 : g_sticks[0] * 10, sy = c.mini ? 0 : g_sticks[1] * 10;
+        const bool moved = sx * sx + sy * sy > 9;
+        dl->AddCircleFilled(c.P(320 + sx, 214 + sy), c.L(26), IM_COL32(80, 82, 94, 255), 32);
+        dl->AddCircleFilled(c.P(320 + sx, 210 + sy), c.L(20), moved ? U32(Color::Accent) : IM_COL32(104, 106, 118, 255), 32);
+    }
     {
         const int id = RETRO_DEVICE_ID_JOYPAD_L2;
         c.Hit(id, 320, 330, 34);
@@ -610,6 +619,10 @@ Design DesignOf(Layout l) {
 }
 
 } // namespace
+
+void SetLiveSticks(const float sticks[4]) {
+    for (int i = 0; i < 4; ++i) g_sticks[i] = sticks[i];
+}
 
 float ControllerAspect(Layout layout) {
     const Design d = DesignOf(layout);
