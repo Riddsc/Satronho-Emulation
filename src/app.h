@@ -165,7 +165,8 @@ private:
     int pending_page_ = -1;          // pantalla a la que ir al terminar de salir del juego
     Settings VideoSettings() const;   // imagen del juego actual (con «según la consola» resuelto)
     int confirm_frames_ = 0;
-    Uint64 quit_request_ms_ = 0;     // cuándo se pidió cerrar (para no contar dos veces la misma X)          // cuadros que la pregunta lleva sin poder mostrarse
+    Uint64 quit_request_ms_ = 0;
+    int ctrl_device_ = 0;             // Controles: 0 se asigna el mando, 1 el teclado     // cuándo se pidió cerrar (para no contar dos veces la misma X)          // cuadros que la pregunta lleva sin poder mostrarse
     void RequestQuit();               // cerrar la app (pregunta si está activado)
     void RequestExitGame();           // salir del juego (pregunta si está activado)
     void DrawWhatsNew();

@@ -972,9 +972,9 @@ std::string Input::PadCodeLabel(int code, PadFamily f) {
     if (code == kPadLT) return ps ? "L2" : sw ? "ZL" : "LT";
     if (code == kPadRT) return ps ? "R2" : sw ? "ZR" : "RT";
     if (IsStickCode(code)) {
-        static const char* dirs[] = {"arriba", "abajo", "izquierda", "derecha"};
+        static const char* dirs[] = {"arriba", "abajo", "izq.", "der."};
         const int idx = code - kPadStick;
-        return std::string(idx >= 4 ? "Palanca der. " : "Palanca izq. ") + dirs[idx % 4];
+        return std::string(idx >= 4 ? "Pal. der. " : "Pal. izq. ") + dirs[idx % 4];
     }
     switch (static_cast<SDL_GamepadButton>(code)) {
     case SDL_GAMEPAD_BUTTON_SOUTH: return ps ? "Cruz" : sw ? "B" : "A";
@@ -990,8 +990,8 @@ std::string Input::PadCodeLabel(int code, PadFamily f) {
     case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: return ps ? "R1" : sw ? "R" : "RB";
     case SDL_GAMEPAD_BUTTON_DPAD_UP: return "Cruceta arriba";
     case SDL_GAMEPAD_BUTTON_DPAD_DOWN: return "Cruceta abajo";
-    case SDL_GAMEPAD_BUTTON_DPAD_LEFT: return "Cruceta izquierda";
-    case SDL_GAMEPAD_BUTTON_DPAD_RIGHT: return "Cruceta derecha";
+    case SDL_GAMEPAD_BUTTON_DPAD_LEFT: return "Cruceta izq.";
+    case SDL_GAMEPAD_BUTTON_DPAD_RIGHT: return "Cruceta der.";
     case SDL_GAMEPAD_BUTTON_MISC1: return ps ? "Micrófono" : sw ? "Captura" : "Compartir";
     case SDL_GAMEPAD_BUTTON_TOUCHPAD: return "Panel táctil";
     case SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1: return "Paleta R1";
