@@ -63,6 +63,7 @@ unsigned TierColor(const std::string& tier) {
 
 std::string RendererName(const std::string& d) {
     if (d.empty() || d == "auto") return "Automático";
+    if (d.rfind("OpenGL ", 0) == 0) return d;
     if (d == "direct3d11") return "Direct3D 11";
     if (d == "direct3d12") return "Direct3D 12";
     if (d == "direct3d") return "Direct3D 9";
@@ -1059,25 +1060,7 @@ void App::DrawSettingsVideo() {
     }
     RowEnd();
 
-    // Motores gráficos disponibles en este equipo.
-    std::vector<std::string> names{"Automático"};
-    std::vector<std::string> values{"auto"};
-    for (int i = 0; i < SDL_GetNumRenderDrivers(); ++i) {
-        const std::string d = SDL_GetRenderDriver(i);
-        if (d == "software" || d == "gpu") continue;
-        names.push_back(RendererName(d));
-        values.push_back(d);
-    }
-    int cur = 0;
-    for (size_t i = 0; i < values.size(); ++i)
-        if (values[i] == settings_.renderer) cur = static_cast<int>(i);
-    RowBegin("Motor gráfico", Fmt("Se aplica al volver a abrir Satronho Emulation. Ahora: %s.", RendererName(hw_.renderer).c_str()).c_str());
-    if (ComboStyled("##motor", &cur, names, S(320))) {
-        settings_.renderer = values[cur];
-        changed = true;
-        Toast("El motor gráfico cambia la próxima vez que abras Satronho Emulation.", GuideId::Troya, 4);
-    }
-    RowEnd();
+    DrawGpuSettings(changed);
 
     static const float scales[] = {0.0f, 0.9f, 1.0f, 1.15f, 1.3f, 1.5f};
     int si = 0;

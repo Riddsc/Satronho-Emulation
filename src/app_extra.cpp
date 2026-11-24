@@ -136,21 +136,6 @@ void App::DrawSettingsAppearance() {
         SaveConfig();
     }
     RowEnd();
-    RowBegin("Escala de la interfaz", "Todo más grande o más chico. «Automático» la elige según tu pantalla.");
-    {
-        int v = settings_.ui_scale > 0 ? static_cast<int>(std::lround(settings_.ui_scale * 100)) : 0;
-        std::vector<std::string> items = {"Automático", "75 %", "90 %", "100 %", "110 %", "125 %", "150 %", "175 %"};
-        static const int vals[] = {0, 75, 90, 100, 110, 125, 150, 175};
-        int idx = 0;
-        for (int i = 0; i < 8; ++i)
-            if (vals[i] == v) idx = i;
-        if (ComboStyled("##escala_ui", &idx, items, ImGui::GetContentRegionAvail().x)) {
-            settings_.ui_scale = vals[idx] / 100.0f;
-            SaveConfig();
-            UpdateScale();
-        }
-    }
-    RowEnd();
     ImGui::Dummy({0, S(10)});
     Heading("Al salir", 16);
     ImGui::Dummy({0, S(2)});
@@ -951,6 +936,80 @@ void App::ApplyGpuChoice(const SystemDef& sys) {
             core_.SetOption("mupen64plus-rsp-plugin", "parallel");
             Log::Info("64: Angrylion (procesador)");
         }
+    }
+}
+
+} // namespace Satronho
+
+namespace Satronho {
+
+void App::DrawGpuSettings(bool& changed) {
+    // Motor de la ventana: OpenGL (el de Satronho) o el clásico de SDL.
+    std::vector<std::string> names{"Automático (OpenGL)", "OpenGL"};
+    std::vector<std::string> values{"auto", "opengl"};
+    for (int i = 0; i < SDL_GetNumRenderDrivers(); ++i) {
+        const std::string d = SDL_GetRenderDriver(i);
+        if (d == "software" || d == "gpu" || d == "opengl" || d == "opengles2") continue;
+        std::string n = d == "direct3d11" ? "Direct3D 11" : d == "direct3d12" ? "Direct3D 12" : d == "direct3d" ? "Direct3D 9" : d == "vulkan" ? "Vulkan" : d;
+        names.push_back("Clásico · " + n);
+        values.push_back(d);
+    }
+    int cur = 0;
+    for (size_t i = 0; i < values.size(); ++i)
+        if (values[i] == settings_.renderer) cur = static_cast<int>(i);
+    const std::string now = gl_ ? hw_.renderer : std::string("clásico (") + (renderer_ ? SDL_GetRendererName(renderer_) : "?") + ")";
+    RowBegin("Motor gráfico", Fmt("OpenGL dibuja todo con la tarjeta gráfica y deja que CD y 64 usen OpenGL o Vulkan. El clásico es el de "
+                                  "respaldo. Se aplica al volver a abrir la app. Ahora: %s.", now.c_str()).c_str());
+    if (ComboStyled("##motor", &cur, names, ImGui::GetContentRegionAvail().x)) {
+        settings_.renderer = values[cur];
+        changed = true;
+        Toast("El motor gráfico cambia la próxima vez que abras Satronho Emulation.", GuideId::Troya, 4);
+    }
+    RowEnd();
+
+    // CD y 64: con qué dibujan y a qué resolución.
+    ImGui::Dummy({0, S(8)});
+    Heading("Tarjeta gráfica en CD y 64", 16);
+    if (!gl_) {
+        Muted("Con el motor clásico, CD y 64 dibujan con el procesador. Elige OpenGL arriba para usar la tarjeta gráfica.", 13.5f);
+        return;
+    }
+    {
+        std::string vk = hw_render_.VulkanAvailable() ? "Vulkan disponible (" + hw_render_.VulkanGpu() + ")."
+                       : hw_render_.VulkanProbed() ? "Este equipo no tiene Vulkan: se usa OpenGL." : "Revisando Vulkan…";
+        Muted(("Automático elige Vulkan en tarjetas NVIDIA y AMD, y OpenGL en las demás. La resolución se sube para que se vean en HD. Se "
+               "aplica al abrir el juego. " + vk).c_str(), 13.5f);
+    }
+    ImGui::Dummy({0, S(4)});
+    for (const char* id : {"cd", "n64"}) {
+        const SystemDef* sys = SystemById(id);
+        if (!sys) continue;
+        ImGui::PushID(id);
+        const int api_now = GpuApiFor(*sys);
+        const int res_now = GpuResFor(*sys, api_now);
+        const char* api_names[] = {"", "OpenGL", "Vulkan", "el procesador"};
+        std::string help;
+        if (sys->id == "cd") help = api_now == 3 ? "Beetle PSX dibujando con el procesador." : std::string("Beetle PSX HW con ") + api_names[api_now] + ".";
+        else help = api_now == 1 ? "GLideN64 con OpenGL." : api_now == 2 ? "ParaLLEl-RDP con Vulkan: el más fiel a la consola." : "Angrylion con el procesador: fiel, pero pesado.";
+        help += Fmt(" Ahora: %d× (unos %dp).", res_now, res_now * 240);
+        RowBegin((sys->full + " · " + sys->hint).c_str(), help.c_str());
+        int api = settings_.GpuApi(sys->id);
+        if (Segmented("##api", &api, {"Auto", "OpenGL", "Vulkan", "Procesador"}, ImGui::GetContentRegionAvail().x)) {
+            if (api == 2 && !hw_render_.VulkanAvailable()) Toast("Este equipo no tiene Vulkan; se usará OpenGL.", GuideId::Troya, 4);
+            settings_.gpu_api[sys->id] = api;
+            changed = true;
+            if (in_game_ && sys_ == sys) Toast("Se aplica la próxima vez que abras el juego.", GuideId::Troya, 3);
+        }
+        std::vector<std::string> res_names = {"Resolución automática", "1× (original)", "2×", "3×", "4×", "5×", "6×", "7×", "8×"};
+        int res = settings_.GpuRes(sys->id);
+        ImGui::Dummy({0, S(2)});
+        if (ComboStyled("##res", &res, res_names, ImGui::GetContentRegionAvail().x)) {
+            settings_.gpu_res[sys->id] = res;
+            changed = true;
+            if (in_game_ && sys_ == sys) Toast("Se aplica la próxima vez que abras el juego.", GuideId::Troya, 3);
+        }
+        RowEnd();
+        ImGui::PopID();
     }
 }
 

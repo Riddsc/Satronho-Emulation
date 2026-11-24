@@ -180,7 +180,8 @@ std::vector<SystemVerdict> Verdicts(const HardwareInfo& hw) {
         SystemVerdict v{sys.id, 0, "Va perfecto."};
         switch (sys.cpu_need) {
         case 1:
-            if (t >= 4) v = {sys.id, 1, "Va bien."};
+            if (sys.id == "cd" && hw.gpu_render) v = {sys.id, t >= 4 ? 0 : 1, "Se dibuja con la tarjeta gráfica, en HD."};
+            else if (t >= 4) v = {sys.id, 1, "Va bien."};
             else v = {sys.id, 2, sys.id == "cd" ? "Puede ir justo: si va lento, pon la resolución interna en 1x." : "Puede ir justo en algunos juegos."};
             break;
         case 2:
@@ -189,9 +190,13 @@ std::vector<SystemVerdict> Verdicts(const HardwareInfo& hw) {
             else v = {sys.id, 3, "Puede ir lento: la Saturn pide mucho procesador."};
             break;
         case 3:
-            if (t >= 12) v = {sys.id, 1, "Va bien en la mayoría de juegos."};
+            if (hw.gpu_render) {
+                // Con la tarjeta gráfica (GLideN64 o ParaLLEl-RDP) el procesador solo emula la consola.
+                if (t >= 4) v = {sys.id, 1, "Va bien: se dibuja con la tarjeta gráfica (GLideN64 con OpenGL o ParaLLEl-RDP con Vulkan)."};
+                else v = {sys.id, 2, "Puede ir justo: el procesador tiene pocos hilos, aunque se dibuja con la tarjeta gráfica."};
+            } else if (t >= 12) v = {sys.id, 1, "Va bien en la mayoría de juegos."};
             else if (t >= 6) v = {sys.id, 2, "Algunos juegos pueden ir lentos: se dibuja todo con el procesador."};
-            else v = {sys.id, 3, "Va a ir lento: por ahora la 64 se dibuja solo con el procesador."};
+            else v = {sys.id, 3, "Va a ir lento: sin tarjeta gráfica la 64 se dibuja con el procesador."};
             break;
         default: break;
         }
