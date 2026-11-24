@@ -99,7 +99,219 @@ bool IsGameExt(const std::string& ext) {
 }
 } // namespace
 
-fs::path App::ImportFolder() const { return Paths::User() / "Juegos"; }
+fs::path App::ImportFolder() const {
+    // Android con permiso: en la carpeta pública (no se borra al desinstalar). Si no, en la de la app.
+    return Paths::PublicRoot().empty() ? Paths::User() / "Juegos" : Paths::PublicRoot() / "Juegos";
+}
+
+// ---------------------------------------------------------------- carpeta pública (Android)
+
+fs::path App::DefaultPublicRoot() const {
+    const auto roots = Android::Roots();
+    return roots.empty() ? fs::path{} : Paths::FromUtf8(roots.front()) / "Satronho Games";
+}
+
+// Con el permiso de archivos, todo lo de la persona (juegos, partidas y estados) vive en «Satronho
+// Games». La primera vez se muda lo que había en la carpeta de la app.
+void App::SetupPublicFolder() {
+#ifdef __ANDROID__
+    if (!Paths::PublicRoot().empty() || move_state_ != 0) return;
+    if (!Android::HasFileAccess()) return;
+    const fs::path root = settings_.games_root.empty() ? DefaultPublicRoot() : Paths::FromUtf8(settings_.games_root);
+    if (root.empty()) return;
+    std::error_code ec;
+    fs::create_directories(root, ec);
+    {
+        // ¿Se puede escribir ahí de verdad?
+        std::ofstream probe(root / ".satronho");
+        probe << "Carpeta de Satronho Emulation: juegos, partidas y estados.\n";
+        if (!probe) {
+            Log::Warn("No se puede escribir en %s: todo sigue en la carpeta de la app.", Paths::ToUtf8(root).c_str());
+            return;
+        }
+    }
+    if (ini_.Get("android.carpeta_publica") == Paths::ToUtf8(root)) {
+        Paths::SetPublicRoot(root);
+        Log::Info("Carpeta de Satronho: %s", Paths::ToUtf8(root).c_str());
+        return;
+    }
+    BeginDataMove(root);
+#endif
+}
+
+// Muda juegos, partidas y estados a otra carpeta (de la de la app a «Satronho Games», o de una
+// carpeta pública a otra que la persona elija), en segundo plano. Los juegos cambian de ruta y con
+// eso de clave: el tiempo de juego, los favoritos y los estados pasan a la clave nueva.
+void App::BeginDataMove(const fs::path& to) {
+    if (move_state_ != 0) return;
+    if (move_thread_.joinable()) move_thread_.join();
+    const fs::path from_root = Paths::PublicRoot();
+    struct Pair {
+        fs::path from, to;
+        bool games;
+    };
+    std::vector<Pair> pairs;
+    if (from_root.empty()) {
+        pairs = {{Paths::User() / "Juegos", to / "Juegos", true},
+                 {Paths::PrivateSaves(), to / "Partidas", false},
+                 {Paths::PrivateStates(), to / "Estados", false}};
+    } else {
+        if (from_root == to) return;
+        pairs = {{from_root / "Juegos", to / "Juegos", true}, {from_root / "Partidas", to / "Partidas", false}, {from_root / "Estados", to / "Estados", false}};
+    }
+    move_to_ = to;
+    move_from_games_ = pairs[0].from;
+    move_done_ = 0;
+    move_total_ = 0;
+    move_failed_ = 0;
+    {
+        std::lock_guard lock(move_mutex_);
+        move_rekeys_.clear();
+    }
+    move_state_ = 1;
+    Log::Info("Mudando juegos, partidas y estados a %s", Paths::ToUtf8(to).c_str());
+    move_thread_ = std::thread([this, pairs, to] {
+        std::error_code ec;
+        // Primero se cuenta, para la barra.
+        std::vector<std::pair<fs::path, const Pair*>> files;
+        for (const auto& p : pairs) {
+            if (!fs::exists(p.from, ec)) continue;
+            for (auto it = fs::recursive_directory_iterator(p.from, ec); !ec && it != fs::recursive_directory_iterator(); it.increment(ec))
+                if (it->is_regular_file(ec)) files.push_back({it->path(), &p});
+        }
+        move_total_ = static_cast<int>(files.size());
+        std::vector<std::pair<std::string, std::string>> rekeys;
+        int failed = 0;
+        for (const auto& [f, p] : files) {
+            std::error_code e;
+            const fs::path dst = p->to / f.lexically_relative(p->from);
+            fs::create_directories(dst.parent_path(), e);
+            bool ok = false;
+            const uint64_t size = fs::file_size(f, e);
+            if (fs::exists(dst, e) && fs::file_size(dst, e) == size) {
+                ok = true; // ya estaba (una mudanza que se cortó a la mitad)
+            } else {
+                fs::rename(f, dst, e);
+                if (!e) {
+                    ok = true;
+                } else {
+                    // Otra unidad (la carpeta de la app y la memoria pública lo son en Android): se
+                    // copia y, solo si quedó completa, se quita el original.
+                    e.clear();
+                    fs::copy_file(f, dst, fs::copy_options::overwrite_existing, e);
+                    ok = !e && fs::file_size(dst, e) == size;
+                }
+            }
+            if (ok) {
+                if (fs::exists(f, e)) fs::remove(f, e);
+                if (p->games) rekeys.push_back({Library::KeyFor(f), Library::KeyFor(dst)});
+            } else {
+                ++failed;
+                Log::Warn("No se pudo mudar %s", Paths::ToUtf8(f).c_str());
+            }
+            ++move_done_;
+        }
+        // Los estados llevan la clave del juego en el nombre («<clave>-<título>.estado1»).
+        std::map<std::string, std::string> by_old(rekeys.begin(), rekeys.end());
+        const fs::path states = to / "Estados";
+        if (fs::exists(states, ec))
+            for (auto it = fs::directory_iterator(states, ec); !ec && it != fs::directory_iterator(); it.increment(ec)) {
+                const std::string name = Paths::ToUtf8(it->path().filename());
+                const size_t dash = name.find('-');
+                if (dash == std::string::npos) continue;
+                const auto k = by_old.find(name.substr(0, dash));
+                if (k == by_old.end() || k->second == k->first) continue;
+                std::error_code e;
+                fs::rename(it->path(), states / Paths::FromUtf8(k->second + name.substr(dash)), e);
+            }
+        // Las carpetas que quedaron vacías se quitan (solo si están vacías).
+        for (const auto& p : pairs) {
+            std::vector<fs::path> dirs;
+            if (fs::exists(p.from, ec))
+                for (auto it = fs::recursive_directory_iterator(p.from, ec); !ec && it != fs::recursive_directory_iterator(); it.increment(ec))
+                    if (it->is_directory(ec)) dirs.push_back(it->path());
+            std::sort(dirs.begin(), dirs.end(), [](const fs::path& a, const fs::path& b) { return a.native().size() > b.native().size(); });
+            for (const auto& d : dirs)
+                if (fs::is_empty(d, ec)) fs::remove(d, ec);
+        }
+        {
+            std::lock_guard lock(move_mutex_);
+            move_rekeys_ = std::move(rekeys);
+            move_failed_ = failed;
+        }
+        move_state_ = 2;
+    });
+}
+
+void App::PollDataMove() {
+    if (move_state_ != 2) return;
+    if (move_thread_.joinable()) move_thread_.join();
+    std::vector<std::pair<std::string, std::string>> rekeys;
+    int failed = 0;
+    {
+        std::lock_guard lock(move_mutex_);
+        rekeys.swap(move_rekeys_);
+        failed = move_failed_;
+    }
+    library_.Rekey(rekeys);
+    Paths::SetPublicRoot(move_to_);
+    ini_.Set("android.carpeta_publica", Paths::ToUtf8(move_to_));
+    // La carpeta de juegos de la biblioteca pasa a la nueva.
+    const std::string old_games = Paths::StoreFolder(move_from_games_), new_games = Paths::StoreFolder(move_to_ / "Juegos");
+    for (auto& f : settings_.folders)
+        if (f == old_games) f = new_games;
+    std::error_code ec;
+    if (fs::exists(move_to_ / "Juegos", ec) && std::find(settings_.folders.begin(), settings_.folders.end(), new_games) == settings_.folders.end())
+        settings_.folders.push_back(new_games);
+    SaveConfig();
+    Rescan();
+    move_state_ = 0;
+    const int n = move_total_;
+    Log::Info("Mudanza terminada: %d archivos, %d sin mudar", n, failed);
+    if (failed > 0)
+        Toast(TrFmt("Mudé tus cosas a «%s», pero %d archivos no se pudieron mover y siguen donde estaban.", Paths::ToUtf8(move_to_.filename()).c_str(), failed),
+              GuideId::Nono, 8);
+    else if (n > 0)
+        Toast(TrFmt("Listo: tus juegos, partidas y estados están en «%s». Ahí no se borran aunque desinstales la app.", Paths::ToUtf8(move_to_.filename()).c_str()),
+              GuideId::Nono, 7);
+}
+
+void App::DrawDataMove() {
+    if (move_state_ != 1) return;
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(vp->Pos);
+    ImGui::SetNextWindowSize(vp->Size);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(4, 3, 12, 200));
+    ImGui::Begin("##velo_mudanza", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    ImGui::End();
+    ImGui::PopStyleColor();
+    const float w = std::min(vp->Size.x - S(24), S(560));
+    ImGui::SetNextWindowPos({vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f}, 0, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({w, 0});
+    ImGui::SetNextWindowFocus();
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, V4(Color::Surface));
+    ImGui::PushStyleColor(ImGuiCol_Border, V4(Color::Teal, 0.35f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(18));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, S(1.5f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(22), S(20)});
+    ImGui::Begin("##mudanza", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
+    const int done = move_done_, total = move_total_;
+    const std::string text = TrFmt("Estoy pasando tus juegos, partidas y estados a «%s», en la memoria del celular: así no se borran si desinstalas la app. %d de %d archivos.",
+                                   Paths::ToUtf8(move_to_.filename()).c_str(), done, total);
+    GuideSays(GuideId::Nono, text.c_str(), w - S(44));
+    ImGui::Dummy({0, S(10)});
+    const ImVec2 bp = ImGui::GetCursorScreenPos();
+    const float bw = ImGui::GetContentRegionAvail().x, bh = S(8);
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    dl->AddRectFilled(bp, {bp.x + bw, bp.y + bh}, U32(Color::Surface2), bh * 0.5f);
+    const float p = total > 0 ? static_cast<float>(done) / total : 0.0f;
+    dl->AddRectFilled(bp, {bp.x + bw * std::clamp(p, 0.02f, 1.0f), bp.y + bh}, U32(Color::Teal), bh * 0.5f);
+    ImGui::Dummy({bw, bh + S(8)});
+    Muted("No cierres la app mientras tanto.", 12.5f);
+    ImGui::End();
+}
 
 void App::QueueImport(const fs::path& file) {
     std::lock_guard lock(import_mutex_);
@@ -145,7 +357,7 @@ void App::PollImports() {
     bool start = false;
     {
         std::lock_guard lock(import_mutex_);
-        start = !import_queue_.empty() && !import_busy_;
+        start = !import_queue_.empty() && !import_busy_ && move_state_ == 0; // no durante una mudanza
         if (start) import_busy_ = true;
     }
     if (start) {
@@ -195,6 +407,7 @@ void App::ImportWorker() {
     const fs::path root = ImportFolder();
     std::error_code ec;
     fs::create_directories(root, ec);
+    const uint64_t margin = MarginBytes();
 
     auto set_phase = [&](int phase, const std::string& name, float progress) {
         std::lock_guard lock(import_mutex_);
@@ -352,10 +565,10 @@ void App::ImportWorker() {
         }
         // Varios juegos o de disco: se descomprime. Primero, ¿hay espacio?
         const auto space = fs::space(root, ec);
-        const uint64_t need = unpacked + (64ull << 20);
+        const uint64_t need = unpacked + margin;
         if (!ec && space.available < need) {
-            error(TrFmt("No hay espacio para descomprimir «%s»: necesita %s y quedan %s libres.", name.c_str(), HumanSize(need).c_str(),
-                        HumanSize(space.available).c_str()));
+            error(TrFmt("No hay espacio para descomprimir «%s»: pesa %s, quedan %s libres y siempre dejo %s libres para tu equipo (lo cambias en Ajustes » Biblioteca).",
+                        name.c_str(), HumanSize(unpacked).c_str(), HumanSize(space.available).c_str(), HumanSize(margin).c_str()));
             continue;
         }
         const fs::path tmp = root / ".descomprimiendo" / Paths::SafeName(Paths::ToUtf8(file.stem()));
@@ -504,7 +717,18 @@ void App::DrawImport() {
             ImGui::PopTextWrapPos();
             ImGui::PopStyleColor();
         }
-        if (added > 0) Muted("Los guardé en la carpeta de juegos de Satronho, separados por consola. Ya puedes borrar el archivo del chat si quieres.", 12.5f);
+        if (added > 0 && !Paths::PublicRoot().empty())
+            Muted("Los guardé en «Satronho Games», separados por consola: ahí no se borran aunque desinstales la app. Ya puedes borrar el archivo del chat si quieres.", 12.5f);
+        else if (added > 0)
+            Muted("Los guardé en la carpeta de juegos de Satronho, separados por consola. Ya puedes borrar el archivo del chat si quieres.", 12.5f);
+#ifdef __ANDROID__
+        if (Paths::PublicRoot().empty()) {
+            // Sin el permiso de archivos los juegos quedan dentro de la app (se borran al desinstalarla).
+            ImGui::Dummy({0, S(6)});
+            Muted("Ojo: por ahora quedaron dentro de la app y se borrarían si la desinstalas. Dame el permiso de archivos y los paso a «Satronho Games», en la memoria del celular.", 12.5f);
+            if (Button("Dar permiso##importar", ButtonKind::Secondary, {ImGui::GetContentRegionAvail().x, S(42)}, Icon::Check, true)) Android::RequestFileAccess();
+        }
+#endif
         ImGui::Dummy({0, S(10)});
         const float bw = (ImGui::GetContentRegionAvail().x - S(10)) * 0.5f;
         bool close = false;

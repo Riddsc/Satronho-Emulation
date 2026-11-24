@@ -8,11 +8,18 @@
 
 namespace Satronho::Paths {
 namespace {
-fs::path g_base, g_assets, g_cores, g_user;
+fs::path g_base, g_assets, g_cores, g_user, g_public;
 bool g_portable = false;
 
 fs::path Sub(const char* name) {
     fs::path p = g_user / name;
+    std::error_code ec;
+    fs::create_directories(p, ec);
+    return p;
+}
+
+fs::path PublicSub(const char* name) {
+    fs::path p = g_public / name;
     std::error_code ec;
     fs::create_directories(p, ec);
     return p;
@@ -132,8 +139,12 @@ const fs::path& Base() { return g_base; }
 const fs::path& Assets() { return g_assets; }
 const fs::path& Cores() { return g_cores; }
 const fs::path& User() { return g_user; }
-fs::path Saves() { return Sub("partidas"); }
-fs::path States() { return Sub("estados"); }
+fs::path Saves() { return g_public.empty() ? Sub("partidas") : PublicSub("Partidas"); }
+fs::path States() { return g_public.empty() ? Sub("estados") : PublicSub("Estados"); }
+fs::path PrivateSaves() { return g_user / "partidas"; }
+fs::path PrivateStates() { return g_user / "estados"; }
+void SetPublicRoot(const fs::path& root) { g_public = root; }
+const fs::path& PublicRoot() { return g_public; }
 fs::path System() { return Sub("sistema"); }
 fs::path Screenshots() { return Sub("capturas"); }
 fs::path ConfigFile() { return g_user / "satronho.ini"; }

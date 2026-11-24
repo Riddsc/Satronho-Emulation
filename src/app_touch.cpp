@@ -472,6 +472,7 @@ void App::DrawTouchEditor(const std::vector<TouchButton>& layout, float sx, floa
 // ---------------------------------------------------------------- explorador de carpetas
 
 void App::OpenBrowser(bool folders) {
+    browser_for_root_ = false;
     browser_open_ = true;
     browser_folders_ = folders;
     if (browser_dir_.empty()) {
@@ -529,12 +530,12 @@ void App::DrawBrowser() {
         const float inner = ImGui::GetContentRegionAvail().x;
         {
             FontScope f(GetFonts().bold, 19);
-            ImGui::TextUnformatted(Tr(browser_folders_ ? "Elige la carpeta de tus juegos" : "Abrir un juego"));
+            ImGui::TextUnformatted(Tr(browser_for_root_ ? "Elige dónde va «Satronho Games»" : browser_folders_ ? "Elige la carpeta de tus juegos" : "Abrir un juego"));
         }
         if (!browser_perm_) {
             ImGui::Dummy({0, S(4)});
             GuideSays(GuideId::Samy, "Para buscar tus juegos en cualquier carpeta, Android necesita que me des el permiso de «acceso a todos los archivos». "
-                                     "Solo los leo; no toco nada más.", inner);
+                                     "Los leo y guardo tus juegos, partidas y estados en la carpeta «Satronho Games»; no toco nada más.", inner);
             ImGui::Dummy({0, S(6)});
             if (Button("Dar permiso", ButtonKind::Primary, {inner, S(48)}, Icon::Check, true)) Android::RequestFileAccess();
         }
@@ -613,8 +614,19 @@ void App::DrawBrowser() {
             ImGui::SameLine(0, S(10));
             if (Button("Usar esta carpeta", ButtonKind::Primary, {bw, S(48)}, Icon::Check, true)) {
                 browser_open_ = false;
-                std::lock_guard lock(pending_mutex_);
-                pending_folders_.push_back(Paths::ToUtf8(browser_dir_));
+                if (browser_for_root_) {
+                    // Nueva casa de «Satronho Games»: adentro de la carpeta elegida (o ella misma).
+                    fs::path root = browser_dir_;
+                    if (root.filename() != "Satronho Games") root /= "Satronho Games";
+                    if (root != Paths::PublicRoot()) {
+                        settings_.games_root = Paths::ToUtf8(root);
+                        SaveConfig();
+                        BeginDataMove(root);
+                    }
+                } else {
+                    std::lock_guard lock(pending_mutex_);
+                    pending_folders_.push_back(Paths::ToUtf8(browser_dir_));
+                }
             }
         }
         }

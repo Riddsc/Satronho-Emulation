@@ -253,6 +253,14 @@ private:
     float drag_total_ = 0, drag_vel_ = 0;
     bool dragging_ = false;
     bool browser_open_ = false, browser_folders_ = true, browser_items_dirty_ = true, browser_perm_ = true;
+    bool browser_for_root_ = false; // el explorador elige la casa de «Satronho Games»
+    // Ajustes » Biblioteca: cuánto ocupan los juegos de cada consola (se mide en segundo plano).
+    std::thread storage_thread_;
+    std::atomic<bool> storage_busy_{false};
+    std::mutex storage_mutex_;
+    std::vector<std::pair<std::string, uint64_t>> storage_sizes_;
+    double storage_t_ = -100;
+    void DrawStoragePanel();
     double browser_perm_t_ = -10;
     fs::path browser_dir_;
     std::vector<std::pair<std::string, bool>> browser_items_;
@@ -273,7 +281,21 @@ private:
     bool start_resume_ = false; // el juego que se está abriendo debe seguir donde quedó
     // Espacio: lo libre en esa carpeta (0 si no se sabe) y lo que siempre se deja libre.
     static uint64_t FreeBytes(const fs::path& dir);
-    uint64_t MarginBytes() const;
+    uint64_t MarginBytes(const SystemDef* sys = nullptr) const;
+    // Android: carpeta pública «Satronho Games» (juegos, partidas y estados fuera de la app).
+    void SetupPublicFolder();
+    fs::path DefaultPublicRoot() const;
+    void BeginDataMove(const fs::path& to);
+    void PollDataMove();
+    void DrawDataMove();
+    std::thread move_thread_;
+    std::atomic<int> move_state_{0}; // 0 nada, 1 mudando, 2 terminó
+    std::atomic<int> move_done_{0}, move_total_{0};
+    std::mutex move_mutex_;
+    std::vector<std::pair<std::string, std::string>> move_rekeys_; // claves de juego vieja → nueva
+    int move_failed_ = 0;
+    fs::path move_to_, move_from_games_;
+    double public_check_t_ = 0;
     void TrimArchiveCache();
     void DrawArchivePicker();
     // Conversión opcional de discos .cue/.bin a .chd (Ajustes » Biblioteca).

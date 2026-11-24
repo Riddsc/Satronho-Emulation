@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package com.ridds.satronho.emulation;
 
+import android.Manifest;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInstaller;
+import android.content.pm.PackageManager;
 import android.content.pm.ActivityInfo;
 import android.content.res.AssetManager;
 import android.database.Cursor;
@@ -257,16 +259,23 @@ public class SatronhoActivity extends SDLActivity {
 
     // ------------------------------------------------------------ lo que llama el código en C++
 
-    /** ¿Puede leer los juegos de cualquier carpeta? */
+    /** ¿Puede leer los juegos de cualquier carpeta (y escribir en «Satronho Games»)? */
     public static boolean tieneAccesoArchivos() {
         if (Build.VERSION.SDK_INT >= 30) return Environment.isExternalStorageManager();
-        return true;
+        // Android 8, 9 y 10: el permiso de siempre, que se pide con una ventanita.
+        final SatronhoActivity a = sInstance;
+        return a != null && a.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
 
     /** Abre la pantalla de Android donde se da el permiso de «acceso a todos los archivos». */
     public static void pedirAccesoArchivos() {
         final SatronhoActivity a = sInstance;
-        if (a == null || Build.VERSION.SDK_INT < 30) return;
+        if (a == null) return;
+        if (Build.VERSION.SDK_INT < 30) {
+            a.runOnUiThread(() -> a.requestPermissions(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE}, 7731)); // número propio (SDL usa los suyos)
+            return;
+        }
         a.runOnUiThread(() -> {
             try {
                 Intent i = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);

@@ -240,6 +240,27 @@ Game Library::MakeGame(const fs::path& file) {
     return g;
 }
 
+std::string Library::KeyFor(const fs::path& file) {
+    char hex[16];
+    std::snprintf(hex, sizeof hex, "%08x", Fnv(Lower(Paths::StableId(file))));
+    return hex;
+}
+
+void Library::Rekey(const std::vector<std::pair<std::string, std::string>>& old_new) {
+    {
+        std::lock_guard lock(mutex_);
+        for (const auto& [ok, nk] : old_new) {
+            if (ok == nk) continue;
+            for (const char* field : {".favorito", ".tiempo", ".ultima", ".oculto"}) {
+                if (!meta_.Values().count(ok + field)) continue;
+                meta_.Set(nk + field, meta_.Get(ok + field));
+                meta_.Erase(ok + field);
+            }
+        }
+    }
+    Save();
+}
+
 bool Library::ApplyMeta(Game& g) {
     bool migrated = false;
     // Modo portátil: los datos viejos se guardaron con la ruta completa; se pasan a la clave nueva.
