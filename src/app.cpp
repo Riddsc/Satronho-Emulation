@@ -1418,9 +1418,7 @@ std::vector<uint8_t> App::CurrentFrameRGBA(unsigned* w, unsigned* h) {
 
 void App::ApplyVsync() {
     if (gl_) {
-        // -1 = adaptativa (si la tarjeta la tiene): no traba cuando un cuadro llega tarde.
-        if (!settings_.vsync) SDL_GL_SetSwapInterval(0);
-        else if (!SDL_GL_SetSwapInterval(1)) SDL_GL_SetSwapInterval(1);
+        SDL_GL_SetSwapInterval(settings_.vsync ? 1 : 0);
     } else if (renderer_) {
         SDL_SetRenderVSync(renderer_, settings_.vsync ? 1 : 0);
     }

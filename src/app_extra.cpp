@@ -217,7 +217,6 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
     const float avail_h = std::max(ImGui::GetContentRegionAvail().y, S(420));
     const float H = std::clamp(avail_h - S(150), S(260), S(460));
     const float cover_h = H - S(40);
-    const float cover_w = cover_h * 0.78f;
 
     // Teclado y mando: izquierda/derecha cambian de juego; Enter o A juegan.
     const bool typing = ImGui::GetIO().WantTextInput;
@@ -252,18 +251,39 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
     dl->PushClipRect(area.Min, area.Max, true);
     const float cx = area.Min.x + W * 0.5f;
     const float base_y = area.Min.y + S(18);
-    const float spacing = cover_w * 0.80f;
+    // Cada carátula con su forma: las cajas de SNES y 64 son apaisadas; las de NES, Genesis o
+    // Saturn, altas. Si todavía no hay carátula, se usa la forma típica de la consola.
+    auto aspect_of = [&](const Game& g) {
+        if (settings_.covers || covers_.HasCustom(g))
+            if (const Ui::Image* img = covers_.Get(g); img && *img) return std::clamp(static_cast<float>(img->w) / std::max(1, img->h), 0.62f, 1.45f);
+        if (g.system == "hexa" || g.system == "n64") return 1.38f;
+        if (g.system == "cd" || g.system == "bolsillo_plus" || g.system == "bolsillo") return 1.0f;
+        return 0.74f;
+    };
+    const int lo = std::max(0, carousel_index_ - 6), hi = std::min(n - 1, carousel_index_ + 6);
+    // Posición de cada una en una tira: el centro de la i-ésima, sumando los anchos (se enciman un poco).
+    std::vector<float> asp(hi - lo + 1), center(hi - lo + 1);
+    for (int i = lo; i <= hi; ++i) asp[i - lo] = aspect_of(*list[i]);
+    center[0] = 0;
+    for (int i = lo + 1; i <= hi; ++i) center[i - lo] = center[i - lo - 1] + (asp[i - lo - 1] + asp[i - lo]) * 0.5f * cover_h * 0.70f;
+    auto strip_at = [&](float pos) {
+        const float p = std::clamp(pos, static_cast<float>(lo), static_cast<float>(hi));
+        const int i0 = static_cast<int>(std::floor(p)), i1 = std::min(hi, i0 + 1);
+        const float t = p - i0;
+        return center[i0 - lo] + (center[i1 - lo] - center[i0 - lo]) * t;
+    };
+    const float origin_x = strip_at(carousel_pos_);
     // Se dibujan de atrás hacia adelante: primero las más lejanas.
     std::vector<int> order;
-    for (int i = std::max(0, carousel_index_ - 5); i <= std::min(n - 1, carousel_index_ + 5); ++i) order.push_back(i);
+    for (int i = lo; i <= hi; ++i) order.push_back(i);
     std::sort(order.begin(), order.end(), [&](int x, int y) { return std::fabs(x - carousel_pos_) > std::fabs(y - carousel_pos_); });
     int clicked = -1;
     for (int i : order) {
         const float d = i - carousel_pos_;
         const float ad = std::min(std::fabs(d), 4.0f);
         const float k = 1.0f - ad * 0.14f;
-        const float cw = cover_w * k, chh = cover_h * k;
-        const float x = cx + d * spacing * (1.0f - ad * 0.06f);
+        const float chh = cover_h * k, cw = chh * asp[i - lo];
+        const float x = cx + (center[i - lo] - origin_x) * (1.0f - ad * 0.05f);
         const ImVec2 a(x - cw * 0.5f, base_y + (cover_h - chh) * 0.55f), b(x + cw * 0.5f, base_y + (cover_h - chh) * 0.55f + chh);
         if (b.x < area.Min.x || a.x > area.Max.x) continue;
         ImGui::SetCursorScreenPos(a);
