@@ -44,6 +44,7 @@ struct SystemDef {
     std::vector<int> center = {2, 3}; // RETRO_DEVICE_ID_JOYPAD_SELECT y START
     bool touch = false;               // pantalla táctil (el mouse toca)
     unsigned port_device = 1;  // RETRO_DEVICE_JOYPAD; en CD, el DualShock
+    float margin_gb = 0;       // espacio libre que pide la consola al sacar sus juegos (0 = el de Ajustes)
     bool analog = false;       // los sticks van al juego
     // Cuánto procesador pide (para Ñoño y los valores por defecto): 0 poco (8 y 16 bits),
     // 1 medio (PS1, DS), 2 mucho (Saturn), 3 muchísimo (64 con Angrylion, todo por software).

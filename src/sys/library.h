@@ -6,6 +6,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "util/ini.h"
@@ -49,6 +50,10 @@ public:
     std::vector<Game> Snapshot() const;
     Game* Find(const std::string& key);
     static Game MakeGame(const fs::path& file);
+    // La clave de un archivo (sin abrirlo): sirve para pasar los datos de un juego que se mudó.
+    static std::string KeyFor(const fs::path& file);
+    // Un juego cambió de carpeta: su tiempo, favorito y demás pasan de la clave vieja a la nueva.
+    void Rekey(const std::vector<std::pair<std::string, std::string>>& old_new);
     // El mismo juego, pero con otro archivo de adentro del .zip/.7z (cuando trae varios).
     static Game MakeGameEntry(const fs::path& archive, const std::string& entry);
 

@@ -25,6 +25,14 @@ fs::path LibraryFile();      // biblioteca.ini
 fs::path LogFile();          // satronho.log
 bool Portable();
 
+// Android: carpeta pública de Satronho («Satronho Games» en la memoria del celular). Ahí van los
+// juegos, las partidas y los estados para que no se borren al desinstalar la app. Vacía = todo
+// queda en la carpeta de la app (antes de tener el permiso, y siempre en PC).
+void SetPublicRoot(const fs::path& root);
+const fs::path& PublicRoot();
+fs::path PrivateSaves();     // donde iban las partidas antes de la carpeta pública
+fs::path PrivateStates();    // …y los estados
+
 // Conversión segura entre UTF-8 y rutas (en Windows las rutas son anchas).
 fs::path FromUtf8(const std::string& s);
 std::string ToUtf8(const fs::path& p);

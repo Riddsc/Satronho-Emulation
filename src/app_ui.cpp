@@ -16,6 +16,7 @@
 #include "libretro.h"
 #include "ui/controllers.h"
 #include "util/log.h"
+#include "sys/android.h"
 
 namespace Satronho {
 
@@ -185,6 +186,7 @@ void App::DrawUi() {
     if (!pending_start_.empty()) DrawLoading();
     DrawArchivePicker();
     DrawUnpack();
+    DrawDataMove();
     DrawBrowser();
     DrawImport();
     DrawConfirm();
@@ -1571,6 +1573,8 @@ void App::DrawSettingsLibrary() {
         if (Button("Cancelar búsqueda", ButtonKind::Ghost, {0, 0})) library_.CancelScan();
     }
     ImGui::Dummy({0, S(14)});
+    DrawStoragePanel();
+    ImGui::Dummy({0, S(14)});
     RowBegin("Carátulas reales", "Se descargan solas de libretro-thumbnails (las de RetroArch). Clic derecho en un juego para poner la tuya.");
     if (Toggle("##caratulas", &settings_.covers)) {
         SaveConfig();
@@ -1609,6 +1613,78 @@ void App::DrawSettingsLibrary() {
     RowBegin("BIOS y archivos del sistema", "Para juegos de Famicom Disk System se necesita «disksys.rom» en esta carpeta.");
     if (Button("Abrir carpeta del sistema", ButtonKind::Secondary, {0, 0}, Icon::Folder, true)) OpenFolder(Paths::System());
     RowEnd();
+}
+
+// Dónde quedan los juegos que llegan de otras apps, cuánto espacio se deja libre y cuánto ocupa
+// cada consola.
+void App::DrawStoragePanel() {
+    Heading("Espacio y carpeta de Satronho", 16);
+#ifdef __ANDROID__
+    if (Paths::PublicRoot().empty()) {
+        RowBegin("Carpeta «Satronho Games»",
+                 "Para guardar tus juegos, partidas y estados en la memoria del celular (y que no se borren si desinstalas la app), Android pide el permiso de archivos.");
+        if (Button("Dar permiso##raiz", ButtonKind::Primary, {0, 0}, Icon::Check, true)) Android::RequestFileAccess();
+        RowEnd();
+    } else {
+        RowBegin("Carpeta «Satronho Games»", (Paths::ToUtf8(Paths::PublicRoot()) + "\n" + Tr("Juegos, Partidas y Estados. No se borra si desinstalas la app.")).c_str());
+        if (Button("Cambiar##raiz", ButtonKind::Secondary, {0, 0}, Icon::Folder, true)) {
+            OpenBrowser(true);
+            browser_for_root_ = true;
+        }
+        RowEnd();
+    }
+#endif
+    {
+        RowBegin("Espacio que siempre dejo libre",
+                 "Antes de copiar o descomprimir un juego reviso que, después, quede al menos esto libre en tu equipo. Algunas consolas con juegos grandes piden más.");
+        int gb = static_cast<int>(std::lround(settings_.free_margin_gb));
+        if (SliderIntStyled("##margen", &gb, 1, 32, "%d GB", S(220))) {
+            settings_.free_margin_gb = static_cast<float>(gb);
+            SaveConfig();
+        }
+        RowEnd();
+    }
+    // Cuánto ocupa cada consola (en la carpeta de juegos que llegan de otras apps).
+    const fs::path games = ImportFolder();
+    const double now = ImGui::GetTime();
+    if (!storage_busy_ && now - storage_t_ > 20.0) {
+        storage_t_ = now;
+        if (storage_thread_.joinable()) storage_thread_.join();
+        storage_busy_ = true;
+        storage_thread_ = std::thread([this, games] {
+            std::vector<std::pair<std::string, uint64_t>> out;
+            std::error_code ec;
+            if (fs::exists(games, ec))
+                for (auto it = fs::directory_iterator(games, ec); !ec && it != fs::directory_iterator(); it.increment(ec)) {
+                    if (!it->is_directory(ec) || it->path().filename().string()[0] == '.') continue;
+                    uint64_t total = 0;
+                    std::error_code e;
+                    for (auto f = fs::recursive_directory_iterator(it->path(), e); !e && f != fs::recursive_directory_iterator(); f.increment(e))
+                        if (f->is_regular_file(e)) total += f->file_size(e);
+                    out.push_back({Paths::ToUtf8(it->path().filename()), total});
+                }
+            std::sort(out.begin(), out.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+            std::lock_guard lock(storage_mutex_);
+            storage_sizes_ = std::move(out);
+            storage_busy_ = false;
+        });
+    }
+    std::vector<std::pair<std::string, uint64_t>> sizes;
+    {
+        std::lock_guard lock(storage_mutex_);
+        sizes = storage_sizes_;
+    }
+    const uint64_t free = FreeBytes(games.parent_path());
+    std::string summary = free > 0 ? TrFmt("Libre en tu equipo: %s.", HumanSize(free).c_str()) : std::string();
+    if (!sizes.empty()) {
+        summary += std::string(summary.empty() ? "" : "  ") + Tr("Juegos que llegaron de otras apps:");
+        bool first = true;
+        for (const auto& [name, bytes] : sizes) {
+            summary += (first ? " " : "  ·  ") + name + " " + HumanSize(bytes);
+            first = false;
+        }
+    }
+    if (!summary.empty()) Muted(summary.c_str(), 13);
 }
 
 void App::DrawHiddenGames() {

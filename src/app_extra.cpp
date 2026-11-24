@@ -1288,10 +1288,11 @@ void App::BeginUnpack(const Game& g, const fs::path& rom) {
     if (Archive::List(g.path, entries))
         for (const auto& e : entries) need += e.size;
     fs::create_directories(dir, ec);
-    if (const uint64_t free = FreeBytes(dir); free > 0 && free < need + MarginBytes()) {
+    const uint64_t margin = MarginBytes(SystemById(g.system));
+    if (const uint64_t free = FreeBytes(dir); free > 0 && free < need + margin) {
         fs::remove_all(dir, ec);
         Toast(TrFmt("No hay espacio para abrir «%s»: necesita %s y quedan %s libres (dejo %s libres para tu equipo). Lo puedes cambiar en Ajustes » Biblioteca.",
-                    g.title.c_str(), HumanSize(need).c_str(), HumanSize(free).c_str(), HumanSize(MarginBytes()).c_str()),
+                    g.title.c_str(), HumanSize(need).c_str(), HumanSize(free).c_str(), HumanSize(margin).c_str()),
               GuideId::Nono, 8);
         return;
     }

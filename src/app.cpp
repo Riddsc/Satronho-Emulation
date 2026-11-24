@@ -310,6 +310,7 @@ bool App::Init() {
     library_.Load();
     Rescan();
 
+    SetupPublicFolder();
     if (!settings_.first_run_done || qa_.count("welcome")) show_welcome_ = true;
 #ifdef __ANDROID__
     SetFullscreen(true);
@@ -373,6 +374,7 @@ bool App::Init() {
     if (qa_.count("explorador")) OpenBrowser(qa_["explorador"] == "1");
     if (qa_.count("editar_tactil")) touch_edit_ = true;
     if (qa_.count("abrir")) RequestStart(Paths::FromUtf8(qa_["abrir"]));
+    if (qa_.count("publica")) BeginDataMove(Paths::FromUtf8(qa_["publica"])); // prueba de la mudanza de Android
     if (qa_.count("descomprimir")) BeginUnpack(Library::MakeGame(Paths::FromUtf8(qa_["descomprimir"])), Paths::FromUtf8(qa_["descomprimir"]));
     if (qa_.count("carpeta")) {
         std::lock_guard lock(pending_mutex_);
@@ -446,6 +448,8 @@ void App::Shutdown() {
     if (chd_thread_.joinable()) chd_thread_.join();
     unpack_cancel_ = true;
     if (unpack_thread_.joinable()) unpack_thread_.join();
+    if (move_thread_.joinable()) move_thread_.join();
+    if (storage_thread_.joinable()) storage_thread_.join();
     if (import_thread_.joinable()) import_thread_.join();
     covers_.Shutdown();
     hw_render_.Shutdown();
@@ -495,7 +499,12 @@ uint64_t App::FreeBytes(const fs::path& dir) {
     return ec ? 0 : static_cast<uint64_t>(si.available);
 }
 
-uint64_t App::MarginBytes() const { return static_cast<uint64_t>(settings_.free_margin_gb * 1073741824.0); }
+// Lo que siempre se deja libre al copiar o descomprimir juegos: el de Ajustes, o más si la consola lo
+// pide (las de juegos enormes, como CD2, pueden pedir su propio margen en SystemDef::margin_gb).
+uint64_t App::MarginBytes(const SystemDef* sys) const {
+    const float gb = std::max(settings_.free_margin_gb, sys ? sys->margin_gb : 0.0f);
+    return static_cast<uint64_t>(gb * 1073741824.0);
+}
 
 bool App::EnsureCore(const SystemDef& sys, std::string* error) {
     const std::string file = CoreFile(sys);
@@ -664,6 +673,14 @@ void App::Frame() {
     while (SDL_PollEvent(&e)) HandleEvent(e);
     ProcessPendingPaths();
     PollUnpack();
+    PollDataMove();
+#ifdef __ANDROID__
+    // El permiso de archivos se puede dar después (en la pantalla de Android): se revisa cada tanto.
+    if (Paths::PublicRoot().empty() && move_state_ == 0 && SDL_GetTicks() / 1000.0 - public_check_t_ > 1.5) {
+        public_check_t_ = SDL_GetTicks() / 1000.0;
+        SetupPublicFolder();
+    }
+#endif
 
     if (library_.TakeChanged()) {
         games_dirty_ = true;
