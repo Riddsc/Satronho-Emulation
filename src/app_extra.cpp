@@ -354,8 +354,55 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
     if (move) carousel_index_ = std::clamp(carousel_index_ + move, 0, n - 1);
 
     const float dt = ImGui::GetIO().DeltaTime;
-    carousel_pos_ += (carousel_index_ - carousel_pos_) * std::min(1.0f, dt * 11.0f);
-    if (std::fabs(carousel_pos_ - carousel_index_) < 0.001f) carousel_pos_ = static_cast<float>(carousel_index_);
+    // Agarrar y deslizar (mouse o dedo): las carátulas siguen la mano y al soltar se acomoda en la
+    // más cercana; si se suelta rápido, sigue de largo unas cuantas.
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        carousel_rect_ = {area.Min.x, area.Min.y, area.Max.x, area.Max.y};
+        const float step = cover_h * 0.66f;
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && area.Contains(io.MousePos) && confirm_ == 0 && !typing &&
+            ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+            car_drag_ = true;
+            car_moved_ = false;
+            car_x0_ = io.MousePos.x;
+            car_y0_ = io.MousePos.y;
+            car_pos0_ = carousel_pos_;
+            car_vel_ = 0;
+        }
+        if (car_drag_) {
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                const float dx = io.MousePos.x - car_x0_, dy = io.MousePos.y - car_y0_;
+                if (!car_moved_ && std::fabs(dx) > S(8)) {
+                    if (std::fabs(dx) > std::fabs(dy)) {
+                        car_moved_ = true;
+                        ImGui::ClearActiveID(); // ya no es un clic: es arrastrar
+                    } else {
+                        car_drag_ = false; // de arriba a abajo: se mueve la página
+                    }
+                } else if (!car_moved_ && std::fabs(dy) > S(12)) {
+                    car_drag_ = false;
+                }
+                if (car_moved_) {
+                    carousel_pos_ = std::clamp(car_pos0_ - dx / step, -0.35f, n - 1 + 0.35f);
+                    carousel_index_ = std::clamp(static_cast<int>(std::lround(carousel_pos_)), 0, n - 1);
+                    if (dt > 0) car_vel_ = car_vel_ * 0.7f + (-io.MouseDelta.x / step / dt) * 0.3f;
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                }
+            } else {
+                if (car_moved_) {
+                    const float target = carousel_pos_ + std::clamp(car_vel_, -30.0f, 30.0f) * 0.12f;
+                    carousel_index_ = std::clamp(static_cast<int>(std::lround(target)), 0, n - 1);
+                }
+                car_drag_ = false;
+            }
+        }
+        if (ImGui::IsMouseHoveringRect(area.Min, area.Max) && !car_drag_ && !touch_mode_) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    }
+    const bool dragging = car_drag_ && car_moved_;
+    if (!dragging) {
+        carousel_pos_ += (carousel_index_ - carousel_pos_) * std::min(1.0f, dt * 11.0f);
+        if (std::fabs(carousel_pos_ - carousel_index_) < 0.001f) carousel_pos_ = static_cast<float>(carousel_index_);
+    }
 
     const Game& sel = *list[carousel_index_];
     carousel_key_ = sel.key;
@@ -433,6 +480,7 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
             }
     }
     dl->PopClipRect();
+    if (dragging || (car_moved_ && !car_drag_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left))) clicked = -1;
     if (clicked >= 100000) {
         RequestStart(list[clicked - 100000]->path);
     } else if (clicked >= 0) {

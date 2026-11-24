@@ -704,6 +704,7 @@ void App::Frame() {
     ApplySafeArea();
     UpdateTouchMode();
     TouchScroll();
+    carousel_rect_ = {0, 0, 0, 0}; // el carrusel lo vuelve a poner si está en pantalla
     DrawUi();
     // La pantalla real vuelve a ser la entera para dibujar.
     ImGui::GetMainViewport()->Pos = full_vp_pos_;

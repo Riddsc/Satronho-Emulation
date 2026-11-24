@@ -3,6 +3,25 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "El carrusel se arrastra y ya no sale el aviso rojo",
+      "cambios": [
+        {
+          "tipo": "mejora",
+          "texto": "El carrusel de la biblioteca se agarra y se desliza, con el dedo en el celular y con el mouse en la PC: las carátulas siguen tu mano y al soltar se acomodan en la más cercana. Si sueltas rápido, sigue de largo unas cuantas."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Ya no sale el aviso rojo «Message from Dear ImGui» al bajar en Gráficos y otras páginas (lo causaba el botón para volver arriba)."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Desde esta build, el APK va firmado con la llave de Satronho: las siguientes se instalan encima y se actualizan solas. Esta vez hay que desinstalar la anterior una sola vez."
+        }
+      ]
+    },
+    {
+      "version": "Build 18",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "Juegos directo desde WhatsApp, el celular en horizontal y el modo vertical rehecho",
       "cambios": [
         {

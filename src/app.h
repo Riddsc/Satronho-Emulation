@@ -160,7 +160,11 @@ private:
     float GameBarBottom() const;
     void ToggleGameBar();
     bool bar_open_ = false;
-    bool edge_swipe_ = false;        // el dedo empezó en el borde de arriba (para desplegar el menú)          // desplegada a pedido (pantalla completa, Android)
+    bool edge_swipe_ = false;
+    // Carrusel: arrastrar con el mouse o el dedo.
+    bool car_drag_ = false, car_moved_ = false;
+    float car_x0_ = 0, car_y0_ = 0, car_pos0_ = 0, car_vel_ = 0;
+    ImVec4 carousel_rect_{0, 0, 0, 0}; // dónde está el carrusel (el dedo de lado ahí no mueve la página)        // el dedo empezó en el borde de arriba (para desplegar el menú)          // desplegada a pedido (pantalla completa, Android)
     bool bar_menu_active_ = false;   // un menú de la barra está abierto: el juego espera
     bool fast_forward_toggle_ = false;
     float muted_volume_ = 0.0f;

@@ -419,6 +419,7 @@ void App::DrawSettingsVideo() {
     ImGui::Dummy({0, S(8)});
     // Desde aquí, lo que se desplaza: la barra de consolas queda siempre a la vista.
     ImGui::BeginChild("##gfx_opciones", {0, 0}, 0, ImGuiWindowFlags_NoBackground);
+    if (qa_.count("bajar") && qa_frames_ > 5) ImGui::SetScrollY(S(static_cast<float>(std::atof(qa_["bajar"].c_str()))));
     if (!compact_) {
         GuideSays(GuideId::Troya, "Aquí ajustas cómo se ve cada consola. Elige una en la barra y cambia su imagen, su resolución y las opciones de "
                                   "su emulador; debajo de cada opción te digo qué hace lo que elegiste. Toca un título para plegarlo.");

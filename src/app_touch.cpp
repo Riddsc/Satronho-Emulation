@@ -103,6 +103,13 @@ void App::TouchScroll() {
             if (std::fabs(drag_dx_) + std::fabs(drag_dy_) > S(12)) {
                 // El sentido lo decide el primer movimiento: de lado o de arriba a abajo.
                 drag_axis_ = std::fabs(drag_dx_) > std::fabs(drag_dy_) * 1.2f ? 0 : 1;
+                // De lado sobre el carrusel: lo mueve el carrusel, no la página.
+                const ImVec2 c = io.MouseClickedPos[0];
+                const bool on_carousel = c.x >= carousel_rect_.x && c.x <= carousel_rect_.z && c.y >= carousel_rect_.y && c.y <= carousel_rect_.w;
+                if (drag_axis_ == 0 && on_carousel) {
+                    drag_start_win_ = nullptr;
+                    return;
+                }
                 ImGuiWindow* w = scrollable(static_cast<ImGuiWindow*>(drag_start_win_), drag_axis_);
                 if (!w && drag_axis_ == 0) { // nada que mover de lado: se mueve la página
                     drag_axis_ = 1;
