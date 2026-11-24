@@ -72,6 +72,7 @@ set(SATRONHO_SOURCES
   src/util/log.cpp
   src/util/net.cpp
   src/util/archive.cpp
+  src/util/chd.cpp
   src/gfx/gl.cpp
   src/gfx/hw_render.cpp
   src/gfx/video_gl.cpp
