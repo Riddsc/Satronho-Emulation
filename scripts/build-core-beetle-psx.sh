@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Compila el núcleo de PlayStation (Beetle PSX, render por software) para Windows con llvm-mingw.
+# Compila el núcleo de PlayStation (Beetle PSX HW: tarjeta gráfica con OpenGL o Vulkan, o procesador)
+# para Windows con llvm-mingw.
 # Uso: scripts/build-core-beetle-psx.sh <carpeta_de_salida>
 # Variables: LLVM_MINGW (ruta de llvm-mingw), BEETLE_PSX_COMMIT (versión fija).
 set -euo pipefail
@@ -12,11 +13,12 @@ git -C "$WORK/beetle" fetch -q --depth 1 origin "$COMMIT"
 git -C "$WORK/beetle" checkout -q FETCH_HEAD
 export PATH="$LLVM_MINGW/bin:$PATH"
 # lld no acepta --version-script en Windows: se reemplaza SHARED. Sin BIOS usa OpenBIOS (incluida).
-make -C "$WORK/beetle" -j"$(nproc)" platform=win \
+# HAVE_HW=1: versión «HW» (mednafen_psx_hw), con los dibujos de OpenGL y Vulkan además del de software.
+make -C "$WORK/beetle" -j"$(nproc)" platform=win HAVE_HW=1 \
   CC=x86_64-w64-mingw32-clang CXX=x86_64-w64-mingw32-clang++ \
   SHARED="-shared -static -Wl,-no-undefined"
 mkdir -p "$OUT"
-x86_64-w64-mingw32-strip -s "$WORK/beetle/mednafen_psx_libretro.dll" -o "$OUT/mednafen_psx_libretro.dll"
+x86_64-w64-mingw32-strip -s "$WORK/beetle/mednafen_psx_hw_libretro.dll" -o "$OUT/mednafen_psx_hw_libretro.dll"
 mkdir -p licencias
 cp "$WORK/beetle/COPYING" licencias/BeetlePSX-GPL-2.0.txt
-echo "Núcleo listo: $OUT/mednafen_psx_libretro.dll (Beetle PSX $COMMIT)"
+echo "Núcleo listo: $OUT/mednafen_psx_hw_libretro.dll (Beetle PSX HW $COMMIT)"

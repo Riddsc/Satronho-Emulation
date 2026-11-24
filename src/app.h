@@ -131,6 +131,7 @@ private:
     void ApplyTheme();
     void DrawWatermark(ImVec2 p0, ImVec2 p1);
     void DrawSettingsAppearance();
+    void DrawGpuSettings(bool& changed);
     void DrawLibraryCarousel(const std::vector<const Game*>& list, const SystemDef* lib_sys);
     bool DrawCover(ImDrawList* dl, const Game& g, ImVec2 a, ImVec2 b, float rounding, bool hovered);
     void DrawConfirm();

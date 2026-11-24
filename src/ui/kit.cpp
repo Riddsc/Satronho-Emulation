@@ -639,6 +639,9 @@ bool Segmented(const char* id, int* value, const std::vector<const char*>& items
     ImGui::PushID(id);
     const float h = S(36);
     float total = width;
+    // Nunca más ancho que el espacio que hay (columnas angostas con la interfaz agrandada).
+    const float avail = ImGui::GetContentRegionAvail().x;
+    if (total > 0 && avail > S(60)) total = std::min(total, avail);
     std::vector<float> ws;
     for (auto* it : items) ws.push_back(ImGui::CalcTextSize(it).x + S(26));
     if (total <= 0) {
@@ -664,9 +667,15 @@ bool Segmented(const char* id, int* value, const std::vector<const char*>& items
         const bool sel = *value == static_cast<int>(i);
         if (sel) dl->AddRectFilled({x, p.y + S(4)}, {x + ws[i], p.y + h - S(4)}, U32(Color::Surface3), S(9));
         else if (hovered) dl->AddRectFilled({x, p.y + S(4)}, {x + ws[i], p.y + h - S(4)}, U32(Color::Surface3, 0.45f), S(9));
-        FontScope f(sel ? GetFonts().semibold : GetFonts().medium, 13.5f);
-        const ImVec2 ts = ImGui::CalcTextSize(items[i]);
-        dl->AddText({x + (ws[i] - ts.x) * 0.5f, p.y + (h - ts.y) * 0.5f}, U32(sel ? Color::Text : Color::Muted), items[i]);
+        ImFont* font = sel ? GetFonts().semibold : GetFonts().medium;
+        float fs = S(13.5f);
+        ImVec2 ts = font->CalcTextSizeA(fs, FLT_MAX, 0, items[i]);
+        // Si el texto no cabe en su casilla, se achica un poco (hasta 75 %).
+        if (ts.x > ws[i] - S(10)) {
+            fs *= std::max(0.75f, (ws[i] - S(10)) / ts.x);
+            ts = font->CalcTextSizeA(fs, FLT_MAX, 0, items[i]);
+        }
+        dl->AddText(font, fs, {x + (ws[i] - ts.x) * 0.5f, p.y + (h - ts.y) * 0.5f}, U32(sel ? Color::Text : Color::Muted), items[i]);
         x += ws[i];
     }
     ImGui::SetCursorScreenPos(p);

@@ -84,7 +84,7 @@ jobs:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-bsnes.sh build/cores
 
-      - name: Núcleo de PlayStation (Beetle PSX)
+      - name: Núcleo de PlayStation (Beetle PSX HW)
         if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
@@ -122,6 +122,9 @@ jobs:
       # revisión) en varias páginas. Si se cierra con error, no se publica nada.
       - name: Prueba de arranque (Linux)
         run: |
+          # OpenGL por software (Mesa) para probar también el motor OpenGL; si no arranca, la app
+          # cae sola al motor clásico, y eso también se prueba.
+          sudo apt-get install -y -qq libegl1 libgl1-mesa-dri libgles2 > /dev/null || true
           cmake -S . -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DSDL_X11=OFF -DSDL_WAYLAND=OFF -DSDL_UNIX_CONSOLE_BUILD=ON
           cmake --build build-linux -j"$(nproc)"
@@ -131,6 +134,14 @@ jobs:
             echo "Revisión: $q"
             SDL_RENDER_DRIVER=software SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy SATRONHO_QA="$q" timeout 120 build-linux/satronho-emulation
           done
+          for q in "page=guias;preguntar=como va el 64;frames=40" "page=ajustes;tab=8;frames=30" "page=ajustes;tab=0;frames=30" \
+                   "vista=1;frames=30" "salir=1;frames=30" "novedades_ventana=1;frames=30"; do
+            for motor in opengl software; do
+              echo "Revisión ($motor): $q"
+              SATRONHO_GFX=$motor SDL_RENDER_DRIVER=software SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy SATRONHO_QA="$q" timeout 120 build-linux/satronho-emulation
+            done
+          done
+          grep -h "Motor gráfico" build-linux/user/satronho.log | tail -2 || true
 
       - name: Empaquetar
         id: pack
