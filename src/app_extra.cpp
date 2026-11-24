@@ -247,7 +247,6 @@ void App::PickCoverDialog(const Game& g) {
 // ---------------------------------------------------------------- carrusel
 
 void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const SystemDef* lib_sys) {
-    (void)lib_sys;
     if (list.empty()) return;
     const int n = static_cast<int>(list.size());
     // Al cambiar de consola se empieza por el juego elegido antes (si está) o el primero.
@@ -261,6 +260,44 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
     for (int i = 0; i < n; ++i)
         if (list[i]->key == carousel_key_) carousel_index_ = i;
     carousel_index_ = std::clamp(carousel_index_, 0, n - 1);
+
+    // En «todas las consolas»: una fila de consolas arriba (con cuántos juegos tiene cada una). La
+    // del juego elegido se ilumina con su color y un clic salta a su primer juego.
+    if (!lib_sys) {
+        std::vector<std::pair<const SystemDef*, int>> present; // consola y su primer índice
+        std::map<std::string, int> counts;
+        for (int i = 0; i < n; ++i) {
+            if (!counts.count(list[i]->system))
+                if (const SystemDef* sd = SystemById(list[i]->system)) present.push_back({sd, i});
+            ++counts[list[i]->system];
+        }
+        ImDrawList* tdl = ImGui::GetWindowDrawList();
+        ImVec2 tp = ImGui::GetCursorScreenPos();
+        const float th = S(40), x_end = tp.x + ImGui::GetContentRegionAvail().x;
+        float x = tp.x;
+        for (const auto& [sd, first] : present) {
+            const bool cur = sd->id == list[carousel_index_]->system;
+            FontScope f(GetFonts().semibold, 13.5f);
+            const std::string t = sd->name + Fmt("  %d", counts[sd->id]);
+            const float w = ImGui::CalcTextSize(t.c_str()).x + S(58);
+            if (x + w > x_end) break;
+            ImGui::SetCursorScreenPos({x, tp.y});
+            ImGui::PushID(sd->id.c_str());
+            if (ImGui::InvisibleButton("##sis", {w, th})) {
+                carousel_index_ = first;
+                carousel_key_ = list[first]->key;
+            }
+            const bool h = ImGui::IsItemHovered();
+            ImGui::PopID();
+            tdl->AddRectFilled({x, tp.y}, {x + w, tp.y + th}, U32(cur ? sd->color : Color::Surface2, cur ? 0.22f : h ? 1.0f : 0.8f), th * 0.5f);
+            if (cur) tdl->AddRect({x, tp.y}, {x + w, tp.y + th}, U32(sd->color, 0.9f), th * 0.5f, S(1.5f));
+            DrawControllerMini(tdl, sd->layout, {x + S(22), tp.y + th * 0.5f}, sd->handheld ? S(16) : S(24), cur || h ? 1.0f : 0.7f);
+            tdl->AddText({x + S(40), tp.y + (th - ImGui::GetFontSize()) * 0.5f}, U32(cur ? Color::Text : Color::Muted), t.c_str());
+            x += w + S(8);
+        }
+        ImGui::SetCursorScreenPos({tp.x, tp.y + th + S(12)});
+        ImGui::Dummy({0, 0});
+    }
 
     const ImVec2 origin = ImGui::GetCursorScreenPos();
     const float W = ImGui::GetContentRegionAvail().x;
@@ -349,6 +386,15 @@ void App::DrawLibraryCarousel(const std::vector<const Game*>& list, const System
         // Las de los lados se oscurecen; la del centro lleva borde del color de su consola.
         if (ad > 0.05f) dl->AddRectFilled(a, b, IM_COL32(8, 6, 14, static_cast<int>(std::min(0.72f, ad * 0.34f) * 255)), S(16));
         else if (const SystemDef* gs = SystemById(list[i]->system)) dl->AddRect(a, b, U32(gs->color, 0.85f), S(16), S(2.5f));
+        // Con todas las consolas juntas, cada carátula lleva arriba la etiqueta de su consola.
+        if (!lib_sys)
+            if (const SystemDef* gs = SystemById(list[i]->system)) {
+                FontScope f(GetFonts().bold, 11.5f * std::max(0.7f, k));
+                const ImVec2 ts = ImGui::CalcTextSize(gs->name.c_str());
+                const ImVec2 c0(a.x + S(10), a.y + S(10)), c1(c0.x + ts.x + S(16), c0.y + ts.y + S(8));
+                dl->AddRectFilled(c0, c1, U32(gs->color, 0.92f * std::max(0.4f, k)), (c1.y - c0.y) * 0.5f);
+                dl->AddText({c0.x + S(8), c0.y + S(4)}, IM_COL32(16, 12, 28, static_cast<int>(255 * std::max(0.5f, k))), gs->name.c_str());
+            }
     }
     dl->PopClipRect();
     if (clicked >= 100000) {
@@ -430,10 +476,14 @@ void App::RequestQuit() {
     }
     // Segunda vez que se pide cerrar (otra X o Alt+F4) mientras la pregunta está pendiente: se cierra
     // de una vez. Así nunca hace falta el Administrador de tareas.
+    // Ojo: una sola X manda dos avisos seguidos (cerrar ventana y salir); solo cuenta como «otra
+    // vez» si pasó al menos medio segundo.
+    const Uint64 now = SDL_GetTicks();
     if (confirm_ == 1) {
-        running_ = false;
+        if (now - quit_request_ms_ > 500) running_ = false;
         return;
     }
+    quit_request_ms_ = now;
     confirm_ = 1;
     confirm_frames_ = 0;
     confirm_dont_ask_ = false;

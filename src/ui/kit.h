@@ -101,7 +101,7 @@ enum class Icon {
     Library, Gamepad, Gear, Sparkle, Bell, Info, Search, Play, Plus, Folder, Star, StarFill,
     Clock, ChevronRight, ChevronLeft, Close, Pause, Save, Load, Restart, Camera, Exit, Meter,
     Volume, Rewind, Forward, Check, Cpu, Memory, Monitor, Chip, Keyboard, Heart, Refresh, File,
-    Grid, Palette, Carousel, Chat, Send, List, ChevronDown, Tools,
+    Grid, Palette, Carousel, Chat, Send, List, ChevronDown, Tools, Paw,
     None, // no dibuja ícono (quien llama dibuja el suyo)
 };
 void DrawIcon(ImDrawList* dl, Icon icon, ImVec2 center, float size, ImU32 color);

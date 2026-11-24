@@ -513,6 +513,15 @@ void DrawIcon(ImDrawList* dl, Icon icon, ImVec2 c, float sz, ImU32 col) {
             for (int i = 0; i < 5; ++i) dl->AddRectFilled(P(-0.7f + i * 0.33f, -0.3f + r * 0.3f), P(-0.55f + i * 0.33f, -0.17f + r * 0.3f), col);
         dl->AddLine(P(-0.45f, 0.32f), P(0.45f, 0.32f), col, t);
         break;
+    case Icon::Paw: {
+        // Huella de perrito: almohadilla grande y cuatro deditos.
+        dl->AddEllipseFilled(P(0, 0.4f), {sz * 0.27f, sz * 0.22f}, col);
+        dl->AddEllipseFilled(P(-0.72f, -0.08f), {sz * 0.11f, sz * 0.14f}, col);
+        dl->AddEllipseFilled(P(-0.27f, -0.62f), {sz * 0.11f, sz * 0.15f}, col);
+        dl->AddEllipseFilled(P(0.27f, -0.62f), {sz * 0.11f, sz * 0.15f}, col);
+        dl->AddEllipseFilled(P(0.72f, -0.08f), {sz * 0.11f, sz * 0.14f}, col);
+        break;
+    }
     case Icon::Heart:
         dl->AddCircleFilled(P(-0.35f, -0.2f), h * 0.42f, col);
         dl->AddCircleFilled(P(0.35f, -0.2f), h * 0.42f, col);

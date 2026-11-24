@@ -418,6 +418,13 @@ void Library::AddPlaytime(const std::string& key, long long seconds) {
     meta_.Save(Paths::LibraryFile());
 }
 
+void Library::ResetPlaytime(const std::string& key) {
+    std::lock_guard lock(mutex_);
+    meta_.SetI64(key + ".tiempo", 0);
+    if (Game* g = Find(key)) g->playtime_s = 0;
+    meta_.Save(Paths::LibraryFile());
+}
+
 void Library::MarkPlayed(const std::string& key) {
     std::lock_guard lock(mutex_);
     const long long now = static_cast<long long>(std::time(nullptr));

@@ -101,7 +101,9 @@ private:
     void DrawContinueHero(const Game& g, float width);
     bool DrawGameCard(const Game& g, float w, float h, bool selected);
     bool DrawGameRow(const Game& g, float w, float h, bool selected);
-    bool GameContextMenu(const Game& g); // clic derecho en un juego; devuelve true si eligió «Jugar»
+    bool GameContextMenu(const Game& g);
+    void VerifyGame(const Game& g);
+    std::vector<std::string> pending_toasts_; // avisos que llegan desde otros hilos (con pending_mutex_) // clic derecho en un juego; devuelve true si eligió «Jugar»
     void DrawEmptyLibrary();
     void DrawSuggested();
     void DrawNews();
@@ -162,7 +164,8 @@ private:
     float muted_volume_ = 0.0f;
     int pending_page_ = -1;          // pantalla a la que ir al terminar de salir del juego
     Settings VideoSettings() const;   // imagen del juego actual (con «según la consola» resuelto)
-    int confirm_frames_ = 0;          // cuadros que la pregunta lleva sin poder mostrarse
+    int confirm_frames_ = 0;
+    Uint64 quit_request_ms_ = 0;     // cuándo se pidió cerrar (para no contar dos veces la misma X)          // cuadros que la pregunta lleva sin poder mostrarse
     void RequestQuit();               // cerrar la app (pregunta si está activado)
     void RequestExitGame();           // salir del juego (pregunta si está activado)
     void DrawWhatsNew();

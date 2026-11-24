@@ -102,8 +102,8 @@ void BiosDialogCallback(void* user, const char* const* list, int) {
 // ---------------------------------------------------------------- inicio y cierre
 
 int App::Run(int argc, char** argv) {
-    (void)argc;
-    (void)argv;
+    // Un juego en la línea de comandos (accesos directos del escritorio): se abre al arrancar.
+    if (argc > 1 && argv[1] && argv[1][0] != '-') pending_roms_.push_back(argv[1]);
     if (!Init()) return 1;
     while (running_) Frame();
     Shutdown();
@@ -792,6 +792,14 @@ void App::ProcessPendingPaths() {
         Toast("Buscando juegos en la carpeta nueva…", GuideId::Samy);
     }
     if (!roms.empty()) RequestStart(Paths::FromUtf8(roms.front()));
+    {
+        std::vector<std::string> toasts;
+        {
+            std::lock_guard lock(pending_mutex_);
+            toasts.swap(pending_toasts_);
+        }
+        for (const auto& t : toasts) Toast(t, GuideId::Nono, 7);
+    }
     std::vector<std::string> bios;
     {
         std::lock_guard lock(pending_mutex_);

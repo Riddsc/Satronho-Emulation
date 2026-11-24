@@ -56,6 +56,7 @@ public:
     void SetHidden(const std::string& key, bool hidden);
     void AddPlaytime(const std::string& key, long long seconds);
     void MarkPlayed(const std::string& key);
+    void ResetPlaytime(const std::string& key);
     size_t Count() const;
 
 private:
