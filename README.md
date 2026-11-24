@@ -37,6 +37,9 @@ Cada emulador de la familia tiene su nombre Satronho:
 - **Configuración sugerida**: Ñoño revisa tu procesador, memoria, tarjeta gráfica y pantalla, y con «Aplícalo por mí» deja todo listo.
 - **Sonido** con control dinámico de velocidad, para que no se corte ni se atrase.
 - **Juegos en disco**: lista de discos en el menú y cambio de disco como en la consola.
+- **Barra de menús en el juego** (Juego, Imagen, Sonido, Controles, Herramientas…) y barra de estado, como en Satronho NX. En pantalla completa aparece con Esc.
+- **Herramientas**: prueba de mandos en vivo, Memory Cards de PS1, carátulas y carpetas.
+- **Vista** de la biblioteca en cuadrícula, carrusel o lista, con tamaño de carátulas a elección.
 - **Juegos en .zip y .7z**: se abren directo, sin descomprimir a mano; si traen varios juegos, eliges cuál.
 - **Discos a .chd** (opcional): convierte tus .cue/.bin a .chd en Ajustes » Biblioteca para que ocupen menos.
 - **Android** con control en pantalla para cada consola, que puedes mover, agrandar y hacer transparente.

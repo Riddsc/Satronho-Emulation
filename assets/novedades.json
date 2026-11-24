@@ -3,6 +3,53 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "Barra de menús en el juego, Controles rediseñados, vista en lista y página Herramientas",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Barra de menús mientras juegas, como en Satronho NX: Juego, Imagen, Sonido, Controles, Herramientas, Satronho y Ayuda, con una barra de estado abajo (motor, resolución, cuadros por segundo, mando y volumen). En ventana está siempre; en pantalla completa aparece con Esc y se esconde con Esc. En Android sale con el botón de menú del control en pantalla."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Resolución con nombres claros: Nativa (240p), 2× (480p), 4× (Full HD), 6× (2K), 8× (4K) y 16× (8K), en Ajustes » Imagen y en el menú Imagen del juego."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Controles al estilo DuckStation: los jugadores y los atajos a la izquierda, la consola en una lista y el mando completo a la vista sin tener que bajar. Las palancas del dibujo se mueven con las de tu mando."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Satronho 64: los botones C van en la palanca derecha del mando, como en cualquier mando moderno. Ahora también puedes asignar direcciones de las palancas a cualquier botón."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Biblioteca con botón «Vista»: cuadrícula, carrusel o la nueva vista en lista, tamaño de las carátulas y orden. También en Ajustes » Apariencia."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Página Herramientas: prueba de mandos en vivo (palancas, gatillos, botones y vibración), Memory Cards de PS1 (ves y borras partidas, con copia de seguridad), carátulas, conversión a .chd y accesos a tus carpetas."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El efecto «Auto» deja la imagen limpia en las consolas 3D (CD, 64, Anillo y Dual)."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "La pregunta «¿Cerrar Satronho Emulation?» quedaba escondida detrás del menú del juego y la app no se podía cerrar. Ya sale siempre encima, y si das la X otra vez, la app se cierra de una vez (guardando dónde quedaste)."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "En el dibujo del mando, la cruceta hacia arriba y hacia la izquierda no se iluminaba. Ya se iluminan las cuatro direcciones en todas las consolas."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Un cierre inesperado al dibujar letras con tamaños raros. Además, si algo vuelve a fallar, el registro guarda todo el camino del error para arreglarlo rápido."
+        }
+      ]
+    },
+    {
+      "version": "Build 14",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "Satronho llega a Android, juegos en .zip y .7z, discos a .chd y una presentación nueva",
       "cambios": [
         {

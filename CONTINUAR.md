@@ -3,6 +3,63 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (build 15)
+
+Ridds probó la build 14 en su PC (Ryzen 7 5800XT, RX 9070 XT, 1440p/escala 1.25, mando Xbox) y pidió
+todo de una vez, para PC y Android. Se trabajó en la rama `build-15` y se unió a `main`.
+
+### Lo que salió del log de Ridds y se arregló
+
+- **No podía cerrar la app**: con el menú grande del juego abierto, `DrawPauseMenu` le robaba el foco
+  cada cuadro a la pregunta «¿Cerrar?» (modal) y nunca se veía. Ahora no roba el foco si hay una
+  ventana emergente; una segunda X/Alt+F4 cierra de una vez; y si la pregunta no logra verse en 2 s
+  se hace lo pedido igual (`confirm_frames_`).
+- **Cierre 0xC0000005** en `ImFontAtlasBakedSetFontGlyphBitmap` (se ubicó recompilando el mismo commit
+  con el mismo llvm-mingw: el código sale idéntico byte a byte, así se puede buscar el símbolo). Causa
+  más probable: tamaño de letra inválido. Parche en `external/imgui/imgui_draw.cpp` (marcado
+  «Satronho»): tamaños entre 1 y 512 y glifos de medidas imposibles se saltan.
+- El informe de cierre (`util/log.cpp`) ahora anota la dirección que falló y la **cadena de llamadas**
+  (24 niveles, módulo+desplazamiento). El log también anota cada pantalla que se abre.
+- **La cruceta del dibujo no se iluminaba** hacia arriba ni a la izquierda (rectángulo de alto/ancho
+  cero en `DPad`).
+- **Botones C de la 64 sin mando**: nuevos códigos de palanca como botón (`kPadStick`..209,
+  `leftstick_up`…`rightstick_right` en el ini). Los C van en la palanca derecha; migración automática.
+
+### Qué trae
+
+- **Barra de menús del juego** (`app_bar.cpp`): Juego, Imagen, Sonido, Controles, Herramientas,
+  Satronho, Ayuda + barra de estado. En ventana siempre (el juego se dibuja entre las barras:
+  `VideoOutGl::SetArea` / viewport en el clásico); en pantalla completa Esc del **teclado** la
+  despliega (`Input::menu_from_keyboard`); con el mando Guía/Select+Start sigue abriendo el menú
+  grande. Android: el botón de menú del control en pantalla la despliega (el control se esconde).
+  Un menú abierto pausa el juego (`bar_menu_active_`). Se apaga en Apariencia (`interfaz.barra_juego`).
+- **Resolución con nombres** (`App::ResLabel`, `GpuResSteps`): pasos reales de cada núcleo.
+- **«Auto» limpio en 3D** (`App::VideoSettings`).
+- **Controles estilo DuckStation**: puertos a la izquierda, consola en un combo, casillas compactas
+  (88 px), el dibujo usa el alto que sobra. Palancas del dibujo en vivo (`Ui::SetLiveSticks`).
+- **Biblioteca**: botón «Vista» (cuadrícula/carrusel/lista, tamaño `biblioteca.tamano`, orden,
+  favoritos, aplicar a todas); vista en lista (`DrawGameRow`); menú de clic derecho en `GameContextMenu`.
+- **Herramientas** (`app_tools.cpp`, `Page::Tools`): prueba de mandos, Memory Cards de PS1 (lee el
+  directorio de la tarjeta, títulos Shift-JIS → ASCII, borrar con copia `.bak`), carátulas, carpetas, .chd.
+
+### Falta probar (pedírselo a Ridds)
+
+1. Que la pregunta al cerrar salga siempre (con y sin el menú del juego abierto).
+2. La barra en pantalla completa con Esc, y en ventana; que el juego no quede tapado.
+3. Los C de la 64 en la palanca derecha con su mando Xbox; la cruceta iluminada.
+4. Si vuelve el cierre de las letras: el log trae la cadena de llamadas; recompilar el mismo commit
+   con llvm-mingw 20251104 y buscar las direcciones con `llvm-nm`.
+5. Android en un teléfono real (sigue sin probarse) y la llave de firma en los secretos.
+
+### Ideas que quedan
+
+- Parte C (emuladores nuevos): plan acordado con Ridds — Dreamcast y PSP como núcleos; GameCube/Wii,
+  PS2, 3DS y **Satronho NX** como apps que el Hub descarga, configura y abre (repo de NX aparte,
+  dirección de descarga leída de un archivo que Ridds controla; llaves y firmware los pone cada
+  persona con un paso guiado; en PC se pueden importar desde Eden/Yuzu/Ryujinx; en Android se pasan
+  a NX por intent). Ñoño avisa si el equipo alcanza antes de descargar.
+- Editor de Memory Cards más completo (copiar entre tarjetas, exportar/importar .mcs).
+
 ## Estado al 24 de noviembre de 2026 (etapa 2: partes A y B)
 
 Ridds pidió A y B de una sola vez, sin preguntas («me voy a dormir»). La parte C (emuladores

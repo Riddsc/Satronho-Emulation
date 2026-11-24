@@ -97,6 +97,16 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
   `presentacion=1` (la presentación se salta en QA si no se pide). Con `rom=` no sale el selector de
   juegos de un .zip: se abre el primero.
 
+- Modo de revisión (build 15): `ventana=WxH` (tamaño de la ventana), `escala_ui=N`, `barra=1`
+  (despliega la barra del juego), `barra_menu=Juego|Imagen|…` (abre ese menú), `salir_tarde=1|2`
+  (pregunta de salir a mitad de la prueba), `presionar=<bits>` (simula botones en Controles),
+  `page=herramientas`, `vista=2` (lista). `qa.sh` acepta el tamaño de Xvfb como 3er argumento.
+- Parche propio en Dear ImGui (`external/imgui/imgui_draw.cpp`, buscar «Satronho»): al actualizar
+  ImGui hay que volver a ponerlo.
+- Cierres en Windows: el log trae `exe+desplazamiento` y la cadena de llamadas. Para saber qué
+  función es: `git worktree add /tmp/wtN <commit>`, compilar igual que el CI (mismo llvm-mingw,
+  `-DSATRONHO_BUILD=N`), comprobar que `.text` sale igual y buscar con `llvm-nm` (direcciones de 9 cifras).
+
 ## Android
 
 - Proyecto en `android/` (Gradle + NDK, minSdk 26, solo arm64-v8a). Compila `CMakeLists.txt` como

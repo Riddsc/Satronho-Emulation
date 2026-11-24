@@ -742,10 +742,6 @@ Settings App::VideoSettings() const {
 void App::QaTick() {
     if (qa_.empty()) return;
     ++qa_frames_;
-    if (qa_frames_ % 60 == 0) {
-        ImFontAtlas* at = ImGui::GetIO().Fonts;
-        Log::Info("QA atlas: %dx%d, tamaños horneados %d", at->TexData ? at->TexData->Width : 0, at->TexData ? at->TexData->Height : 0, at->Builder ? at->Builder->BakedPool.Size : 0);
-    }
     const int wanted = qa_.count("frames") ? std::atoi(qa_["frames"].c_str()) : 30;
     if (qa_frames_ == wanted / 2 && qa_.count("salir_tarde")) confirm_ = std::atoi(qa_["salir_tarde"].c_str());
     if (qa_frames_ == wanted / 2 && qa_.count("menu")) {
