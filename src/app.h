@@ -107,6 +107,7 @@ private:
     void VerifyGame(const Game& g);
     std::vector<std::string> pending_toasts_; // avisos que llegan desde otros hilos (con pending_mutex_) // clic derecho en un juego; devuelve true si eligió «Jugar»
     void DrawEmptyLibrary();
+    void DrawEmptySystem(const SystemDef& sys);
     void DrawSuggested();
     void DrawNews();
     void DrawUpdatePanel();

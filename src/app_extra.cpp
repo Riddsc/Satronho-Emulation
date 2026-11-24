@@ -1325,9 +1325,9 @@ void App::PollUnpack() {
         start_entry_ = unpack_game_.entry;
         RequestStart(unpack_rom_, unpack_resume_);
     } else if (st == 3) {
-        Toast("No pude descomprimir «" + unpack_game_.title + "». Puede estar dañado o incompleto, o faltar espacio.", GuideId::Samy, 7);
+        Toast(TrFmt("No pude descomprimir «%s». Puede estar dañado o incompleto, o faltar espacio.", unpack_game_.title.c_str()), GuideId::Samy, 7);
     } else {
-        Toast("Listo, cancelé la descompresión de «" + unpack_game_.title + "».", GuideId::Samy, 3);
+        Toast(TrFmt("Listo, cancelé la descompresión de «%s».", unpack_game_.title.c_str()), GuideId::Samy, 3);
     }
 }
 

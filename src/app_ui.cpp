@@ -404,9 +404,10 @@ void App::DrawLibrary() {
     // Encabezado.
     const float avail = ImGui::GetContentRegionAvail().x;
     const ImVec2 top = ImGui::GetCursorScreenPos();
-    const char* plural = shown.size() == 1 ? "juego" : "juegos";
-    if (lib_sys) Title(lib_sys->full.c_str(), Fmt("Para %s · %zu %s", lib_sys->games.c_str(), shown.size(), plural).c_str());
-    else Title("Biblioteca", Fmt("Todas tus consolas · %zu %s", shown.size(), plural).c_str());
+    // El plural va dentro de la frase (así se traduce entera: «24 games», «24 jeux»…).
+    const bool one = shown.size() == 1;
+    if (lib_sys) Title(lib_sys->full.c_str(), Fmt(one ? "Para %s · %zu juego" : "Para %s · %zu juegos", Tr(lib_sys->games.c_str()), shown.size()).c_str());
+    else Title("Biblioteca", Fmt(one ? "Todas tus consolas · %zu juego" : "Todas tus consolas · %zu juegos", shown.size()).c_str());
     const float after_title = ImGui::GetCursorScreenPos().y;
 
     // Herramientas a la derecha. En pantallas angostas, la búsqueda va abajo del título, a lo ancho.
@@ -451,6 +452,8 @@ void App::DrawLibrary() {
             Muted("Buscando juegos…");
             ImGui::SameLine(0, S(12));
             if (Button("Cancelar##busqueda", ButtonKind::Ghost, {0, S(30)})) library_.CancelScan();
+        } else if (lib_sys && !games_.empty()) {
+            DrawEmptySystem(*lib_sys);
         } else {
             DrawEmptyLibrary();
         }
@@ -648,7 +651,7 @@ void App::DrawLibrary() {
             dl->AddText({hp.x + S(54), hp.y + (hh - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), Tr(sys.full.c_str()));
             const float nw = ImGui::CalcTextSize(Tr(sys.full.c_str())).x;
             FontScope f2(GetFonts().medium, 13);
-            const std::string sub = Fmt("%s  ·  %zu %s", sys.hint.c_str(), part.size(), part.size() == 1 ? "juego" : "juegos");
+            const std::string sub = Fmt(part.size() == 1 ? "%s  ·  %zu juego" : "%s  ·  %zu juegos", sys.hint.c_str(), part.size());
             dl->AddText({hp.x + S(54) + nw + S(12), hp.y + (hh - ImGui::GetFontSize()) * 0.5f + S(1)}, U32(sys.color), Tr(sub.c_str()));
         }
         // Línea fina con el color de la consola.
@@ -957,6 +960,39 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     return play;
 }
 
+// Una consola sin juegos (pero la biblioteca sí tiene): se dice eso, con lo que esa consola abre.
+void App::DrawEmptySystem(const SystemDef& sys) {
+    const float w = std::min(S(640), ImGui::GetContentRegionAvail().x);
+    ImGui::Dummy({0, S(20)});
+    const float x0 = ImGui::GetCursorPosX() + (ImGui::GetContentRegionAvail().x - w) * 0.5f;
+    ImGui::SetCursorPosX(x0);
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    DrawControllerMini(ImGui::GetWindowDrawList(), sys.layout, {p.x + w * 0.5f, p.y + S(50)}, S(120), 1.0f);
+    ImGui::Dummy({w, S(110)});
+    {
+        FontScope f(GetFonts().bold, 24);
+        const std::string t = Fmt("Todavía no hay juegos de %s", Tr(sys.full.c_str()));
+        ImGui::SetCursorPosX(x0 + std::max(0.0f, (w - ImGui::CalcTextSize(t.c_str()).x) * 0.5f));
+        ImGui::TextUnformatted(t.c_str());
+    }
+    ImGui::Dummy({0, S(6)});
+    ImGui::SetCursorPosX(x0);
+    std::string exts;
+    for (size_t i = 0; i < sys.extensions.size() && i < 6; ++i) exts += (i ? ", ." : ".") + sys.extensions[i];
+    GuideSays(GuideId::Samy,
+              Fmt("Esta consola abre %s (archivos %s, también dentro de .zip o .7z). Agrega la carpeta donde los guardas y aparecen aquí solos.",
+                  Tr(sys.games.c_str()), exts.c_str())
+                  .c_str(),
+              w);
+    ImGui::Dummy({0, S(12)});
+    const float bw = S(200);
+    ImGui::SetCursorPosX(x0 + (w - bw * 2 - S(12)) * 0.5f);
+    FontScope f(GetFonts().semibold, 15);
+    if (Button("Agregar carpeta##vacia_sis", ButtonKind::Primary, {bw, S(50)}, Icon::Folder, true)) AddFolderDialog();
+    ImGui::SameLine(0, S(12));
+    if (Button("Ver todos mis juegos", ButtonKind::Secondary, {bw, S(50)}, Icon::Library, true)) lib_system_.clear();
+}
+
 void App::DrawEmptyLibrary() {
     const float w = std::min(S(640), ImGui::GetContentRegionAvail().x);
     ImGui::Dummy({0, S(20)});
@@ -974,9 +1010,9 @@ void App::DrawEmptyLibrary() {
     ImGui::Dummy({0, S(6)});
     ImGui::SetCursorPosX(x0);
     GuideSays(GuideId::Samy,
-              "Agrega la carpeta donde guardas tus juegos (de cualquiera de las nueve consolas) y yo busco también en las subcarpetas; "
-              "cada juego queda en su consola. "
-              "Si prefieres, arrastra un juego a la ventana y lo abrimos de una.",
+              Fmt("Agrega la carpeta donde guardas tus juegos (de cualquiera de las %zu consolas) y yo busco también en las subcarpetas; "
+                  "cada juego queda en su consola. Si prefieres, arrastra un juego a la ventana y lo abrimos de una.",
+                  Systems().size()).c_str(),
               w);
     ImGui::Dummy({0, S(12)});
     const float bw = S(200);

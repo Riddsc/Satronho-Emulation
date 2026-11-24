@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Ridds (Satronho Emulation)
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "core/input.h"
+#include "util/i18n.h"
 
 #include <algorithm>
 #include <cmath>
@@ -548,7 +549,7 @@ void Input::HandleEvent(const SDL_Event& e) {
     }
     case SDL_EVENT_KEY_DOWN: {
         if (e.key.repeat) break;
-        Note(std::string("Teclado · ") + KeyLabel(e.key.scancode));
+        Note(std::string(Tr("Teclado")) + " · " + KeyLabel(e.key.scancode));
         if (Capturing()) {
             if (e.key.scancode == SDL_SCANCODE_ESCAPE) CancelCapture();
             else if (!capture.pad || capture.any) {
@@ -570,7 +571,7 @@ void Input::HandleEvent(const SDL_Event& e) {
     case SDL_EVENT_GAMEPAD_BUTTON_DOWN: {
         const int s = slot_of(e.gbutton.which);
         const PadFamily fam = FamilyOfSlot(s);
-        Note("Mando " + std::to_string(s + 1) + " · " + PadCodeLabel(e.gbutton.button, fam));
+        Note(std::string(Tr("Mando")) + " " + std::to_string(s + 1) + " · " + PadCodeLabel(e.gbutton.button, fam));
         if (Capturing()) {
             if (capture.pad || capture.any) {
                 capture.pad = true;
@@ -601,7 +602,7 @@ void Input::HandleEvent(const SDL_Event& e) {
                 const bool down = neg ? v < -0.6f : v > 0.6f;
                 if (down && !pads_[s].stick[idx]) {
                     const int code = kPadStick + idx;
-                    Note("Mando " + std::to_string(s + 1) + " · " + PadCodeLabel(code, FamilyOfSlot(s)));
+                    Note(std::string(Tr("Mando")) + " " + std::to_string(s + 1) + " · " + PadCodeLabel(code, FamilyOfSlot(s)));
                     if (Capturing() && (capture.pad || capture.any) && !capture.hotkey) {
                         capture.pad = true;
                         AssignCaptured(SDL_SCANCODE_UNKNOWN, code);
@@ -617,7 +618,7 @@ void Input::HandleEvent(const SDL_Event& e) {
         const bool down = e.gaxis.value / 32767.0f > kTrigger;
         if (down && !pads_[s].trig[t]) {
             const int code = t ? kPadRT : kPadLT;
-            Note("Mando " + std::to_string(s + 1) + " · " + PadCodeLabel(code, FamilyOfSlot(s)));
+            Note(std::string(Tr("Mando")) + " " + std::to_string(s + 1) + " · " + PadCodeLabel(code, FamilyOfSlot(s)));
             if (Capturing()) {
                 if (capture.pad || capture.any) {
                     capture.pad = true;
