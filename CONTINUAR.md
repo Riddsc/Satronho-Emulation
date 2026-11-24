@@ -5,6 +5,10 @@ trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
 ## Estado al 23 de noviembre de 2026 (build 12)
 
+Publicada como Release `build-12` (zip + `.sha256`, verificado). La ejecución 11 del CI falló antes
+de empezar por unas comillas mal escapadas en el workflow (ya arreglado), por eso no existe
+`build-11`. La caché de núcleos ya quedó llena: las próximas builds tardan mucho menos.
+
 **Fase actual:** hub con 9 emuladores (Octa, Mega, Hexa, CD, 64, Dual, Anillo, Bolsillo, Bolsillo
 Plus). Solo Windows x64 se publica; Linux compila para pruebas. Android y las consolas pesadas
 (Cubo, Sueño, CD2, Portátil, 3DS) son fases siguientes: **no empezarlas sin que Ridds lo pida.**
