@@ -92,6 +92,24 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
 - Modo de revisión, además: `page=guias` + `preguntar=…`, `tema=N`, `vista=1` (con `sistema=`),
   `salir=1|2`, `novedades_ventana=1`, `gpu=1|2|3` y `res=N` (CD y 64).
 
+- Modo de revisión (etapa 2): `abrir=1`, `tactil=1` (control en pantalla), `editar_tactil=1`,
+  `explorador=1`, `escala=N` (simula pantallas chicas; **no** dejarlo guardado), `chd=1`,
+  `presentacion=1` (la presentación se salta en QA si no se pide). Con `rom=` no sale el selector de
+  juegos de un .zip: se abre el primero.
+
+## Android
+
+- Proyecto en `android/` (Gradle + NDK, minSdk 26, solo arm64-v8a). Compila `CMakeLists.txt` como
+  `libmain.so` con SDL3 compartido, GLES 3 y EGL. Las fuentes de Java de SDL están copiadas en
+  `android/app/src/main/java/org/libsdl/app`; la actividad propia es `SatronhoActivity.java`.
+- Diferencias en C++: `Gl::Es()` (sombreadores sin `#version`, el encabezado lo pone `Gl::Header()`),
+  swizzle en vez de BGRA, 1555 → 565, `Paths::Init` usa la carpeta de la app, `Net::Download` y la
+  vibración van por JNI (`sys/android.cpp`), el núcleo se busca como `lib<núcleo>_libretro_android.so`
+  en `nativeLibraryDir` (archivo `nucleos.txt`). Mega usa Genesis Plus GX.
+- No se puede compilar en el entorno remoto (SDK/NDK bloqueados): solo en el CI (`android.yml`).
+  Firma: secretos `ANDROID_KEYSTORE_B64` y `ANDROID_KEYSTORE_PASS`; sin ellos, llave provisional.
+- Sin artifacts de Actions: los núcleos van en la caché y el APK directo al Release.
+
 ## Datos del usuario (dónde queda cada cosa)
 
 - `partidas/<consola>/<juego>.srm` (+ `.srm.bak`, copia antes de la primera escritura de cada sesión).

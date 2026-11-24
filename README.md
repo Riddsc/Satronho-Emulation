@@ -37,11 +37,17 @@ Cada emulador de la familia tiene su nombre Satronho:
 - **Configuración sugerida**: Ñoño revisa tu procesador, memoria, tarjeta gráfica y pantalla, y con «Aplícalo por mí» deja todo listo.
 - **Sonido** con control dinámico de velocidad, para que no se corte ni se atrase.
 - **Juegos en disco**: lista de discos en el menú y cambio de disco como en la consola.
+- **Juegos en .zip y .7z**: se abren directo, sin descomprimir a mano; si traen varios juegos, eliges cuál.
+- **Discos a .chd** (opcional): convierte tus .cue/.bin a .chd en Ajustes » Biblioteca para que ocupen menos.
+- **Android** con control en pantalla para cada consola, que puedes mover, agrandar y hacer transparente.
 - **Actualizaciones** desde la app: Juana avisa cuando sale una build nueva y la instala con un clic (comprobando que la descarga llegó completa).
 
 ## Descargar
 
-Las builds para Windows (x64) están en [Releases](https://github.com/Riddsc/Satronho-Emulation/releases). Descomprime la carpeta y abre `satronho-emulation.exe`.
+Las builds están en [Releases](https://github.com/Riddsc/Satronho-Emulation/releases):
+
+- **Windows (x64)**: descomprime la carpeta y abre `satronho-emulation.exe`.
+- **Android (8 o más nuevo, 64 bits)**: instala `SatronhoEmulation-build-N-android-arm64.apk`. La primera vez la app te pide permiso para ver tus carpetas de juegos.
 
 ¿Todo en una sola carpeta (por ejemplo, en una memoria USB)? Crea un archivo vacío llamado `portable.txt` junto al programa.
 

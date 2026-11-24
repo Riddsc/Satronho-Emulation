@@ -23,14 +23,6 @@ namespace Satronho {
 using namespace Ui;
 
 namespace {
-std::string Fmt(const char* fmt, ...) {
-    char buf[512];
-    va_list args;
-    va_start(args, fmt);
-    std::vsnprintf(buf, sizeof buf, fmt, args);
-    va_end(args);
-    return buf;
-}
 void Muted(const char* text, float size) {
     FontScope f(GetFonts().regular, size);
     ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));

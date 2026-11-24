@@ -3,14 +3,70 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (etapa 2: partes A y B)
+
+Ridds pidió A y B de una sola vez, sin preguntas («me voy a dormir»). La parte C (emuladores
+nuevos: Cubo, Sueño, CD2, Portátil, 3DS) queda **para cuando él la pida**. Se trabajó en la rama
+`etapa-2` y se unió a `main`. El Release lleva el zip de Windows y el APK de Android.
+
+### Qué trae
+
+- **.zip y .7z** (`util/archive.*`, miniz + LZMA SDK en `external/`, librería `satronho_archivos`).
+  La biblioteca los lista; si un archivo trae varios juegos, `DrawArchivePicker` pregunta cuál.
+  Cartuchos: se cargan en memoria (`CoreHost::LoadGame(…, data)`). Discos: se sacan a
+  `user/cache/descomprimidos/<clave>` (marca `.listo`, tope 4 GB, se borra lo más viejo:
+  `TrimArchiveCache`). Ajustes » Biblioteca » «Vaciar la caché».
+- **.chd propio** (`util/chd.*`): CHD v5 con el códec cdzl, pistas MODE1/2352, MODE2/2352 y AUDIO,
+  pregap INDEX 00. Comprobado con chdman (mismas huellas SHA1) y Beetle lo abre. Siempre opcional:
+  Ajustes » Biblioteca » «Discos a .chd», con «Borrar los originales al terminar» apagado de fábrica.
+  Si hay `.chd` y `.cue` con el mismo nombre, la biblioteca muestra solo el `.chd`.
+- **Android** (`android/`, `src/sys/android.*`): Android 8+, solo arm64. Gradle compila el mismo
+  `CMakeLists.txt` como `libmain.so` (SDL3 compartido, GLES 3). `SatronhoActivity.java` copia
+  `assets/`, pide «acceso a todos los archivos», descarga, vibra e instala APKs (actualizador).
+  Los núcleos los compila `scripts/build-core-android.sh` (8; **Mega usa Genesis Plus GX** en
+  Android porque BlastEm no compila para ARM; su licencia prohíbe venderlo: Satronho debe seguir
+  gratis y sin anuncios). CI: `.github/workflows/android.yml` (en `etapa-2` solo compila; desde
+  `build.yml` en `main` sube `SatronhoEmulation-build-N-android-arm64.apk` + `.sha256` al Release).
+- **Control en pantalla** (`app_touch.cpp`): modo táctil y barra de íconos si la pantalla es chica;
+  cruceta/stick, botones por consola, gatillos, menú, vibración; editor para mover grupos
+  (`tactil.pos.<consola>.<grupo>`), tamaño y transparencia. Explorador de archivos propio en Android.
+- **Acabados**: presentación animada (`DrawSplash`), fondo con la carátula borrosa del juego
+  señalado (`DrawBackdrop`, `Covers::GetBlur`), guías que se mueven (`Ui::GuideBob`), fundido al
+  entrar al juego. Ñoño explica .zip/.7z/.chd en el chat.
+
+### Firma del APK (pendiente de Ridds)
+
+El proxy de esta sesión no deja escribir secretos de GitHub. Ridds debe crear en el repo
+(Settings » Secrets and variables » Actions) `ANDROID_KEYSTORE_B64` y `ANDROID_KEYSTORE_PASS` con la
+llave que le mandé. Mientras falten, el CI firma con una llave provisional distinta en cada
+ejecución: esos APK no se actualizan uno sobre otro (hay que desinstalar e instalar).
+
+### Probado (Linux)
+
+CD con OpenGL y Vulkan desde un .zip, 64 con ParaLLEl-RDP desde un .7z, elegir juego en un zip con
+varios, conversión a .chd, control en pantalla y editor, presentación, novedades. Windows compila
+con llvm-mingw sin avisos. El APK compila en el CI con los 8 núcleos.
+
+### Falta probar en un teléfono real (no hay dispositivo en la sesión)
+
+1. Que arranque, pida el permiso de archivos y encuentre los juegos.
+2. CD y 64 con GLES (GLideN64) y con Vulkan en un Android de gama media/alta.
+3. Control en pantalla: toques simultáneos, vibración, editor.
+4. Actualizar desde la app (necesita la llave definitiva).
+5. Mandos Bluetooth en Android.
+
+### Ideas que quedan
+
+- Parte C: emuladores nuevos. Vulkan sin copia a memoria. RetroAchievements. Trucos con Satronho
+  Cheats. Versión de Android para x86_64 (emuladores de PC) si Ridds la quiere.
+
 ## Estado al 24 de noviembre de 2026 (etapa 1 completa)
 
 Etapa 1 hecha en una sola tanda (pedido de Ridds): acabados, guías con las que se habla, temas, carrusel,
 confirmación al salir, novedades de Juana, carátulas y motor gráfico OpenGL + Vulkan. Se trabajó en la
 rama `etapa-1` (con push frecuente para no perder nada si se corta la sesión) y se unió a `main`.
 
-**Etapa 2 (no empezar sin que Ridds lo pida):** Android y los emuladores nuevos (Cubo, Sueño, CD2,
-Portátil, 3DS).
+Publicada como `build-13`.
 
 ### Qué trae
 

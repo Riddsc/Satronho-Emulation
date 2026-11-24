@@ -1,0 +1,5 @@
+LZMA SDK / 7-Zip (decodificador 7z en C)
+Igor Pavlov — https://www.7-zip.org/sdk.html
+
+Los archivos del LZMA SDK usados en Satronho Emulation (carpeta external/lzma)
+son de dominio público: "LZMA SDK is placed in the public domain."
