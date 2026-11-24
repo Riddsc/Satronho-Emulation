@@ -1,0 +1,159 @@
+705|Em cima à esquerda
+706|Em cima à direita
+707|Embaixo à esquerda
+708|Embaixo à direita
+709|Logo de fundo
+710|Estas telas fecham o jogo (salvando onde você parou).
+711|Ajuda
+712|Atalhos do teclado (mudam em Controles » Atalhos):
+713|Abrir o registro (satronho.log)
+714|Sobre o Satronho Emulation
+715|   ·   Toque no jogo para continuar
+716|   ·   Esc para esconder
+717|VULKAN
+718|OPENGL
+719|%dp
+720|CLÁSSICO
+721|PIXEL EXATO
+722|NÍTIDO SUAVE
+723|SUAVE
+724|SEM EFEITO
+725|LINHAS
+726|AUTO
+727|PAUSA
+728|AVANÇO ×%d
+729|ESPAÇO %d
+730|VOLUME %d%%
+731|%s   %.0f FPS
+732|TECLADO
+733|Coisas úteis para seus jogos, seus controles e seus saves
+734|Aqui está o que não é jogar: testar seus controles, ver os saves dos seus Memory Cards e abrir as pastas do Satronho.
+735|Teste de controles
+736|Não há controles conectados. Conecte um e ele aparece aqui na hora.
+737|Analógico dir.
+738|Analógico esq.
+739|Aperte botões para vê-los aqui.
+740|Vibrar##v%d
+741|O teclado também conta: aperte uma tecla.
+742|Memory Cards do PS1
+743|Cada jogo do Satronho CD tem seu próprio Memory Card. Aqui você vê quais saves ele guarda e pode apagar os que não quer mais.
+744|Ainda não há Memory Cards: aparecem quando você salva num jogo de PS1.
+745|  ·  %d de 15 blocos
+746|   Vazio.
+747|Apagar
+748|Apagar «%s»? Não dá para desfazer.
+749|Sim, apagar
+750|Save apagado (fica uma cópia .bak por via das dúvidas).
+751|Capas
+752|São baixadas sozinhas do libretro-thumbnails quando há internet. Clique com o botão direito num jogo para pôr a sua.
+753|Procurando capas…
+754|Abrir a pasta
+755|Pastas do Satronho
+756|Dados
+757|Saves
+758|Capturas
+759|Registro (log)
+760|Noite Satronho
+761|O roxo de sempre, como no Satronho NX.
+762|Meia-noite
+763|Azul profundo, tranquilo para jogar à noite.
+764|Pôr do sol
+765|Quente, com laranjas de fliperama.
+766|Floresta
+767|Verdes suaves, descansa a vista.
+768|Claro
+769|Fundo claro para jogar de dia.
+770|Cima
+771|Baixo
+772|Esquerda
+773|Direita
+774|Turbo A
+775|Turbo B
+776|Select
+777|Start
+778|Octa
+779|jogos de NES
+780|Mega
+781|jogos de Genesis e Mega Drive
+782|Genesis
+783|MEGA
+784|Mode
+785|MODE E START
+786|Hexa
+787|jogos de SNES e Super Famicom
+788|SNES
+789|HEXA
+791|Roda perfeito.
+792|Desenhado com a placa de vídeo, em HD.
+793|Roda bem.
+794|Pode ficar no limite: se ficar lento, ponha a resolução interna em 1x.
+795|Pode ficar no limite em alguns jogos.
+796|Pode ficar no limite nos jogos mais exigentes.
+797|Pode ficar lento: o Saturn exige muito do processador.
+798|Roda bem: desenhado com a placa de vídeo (GLideN64 com OpenGL ou ParaLLEl-RDP com Vulkan).
+799|Pode ficar no limite: o processador tem poucas threads, mesmo desenhando com a placa de vídeo.
+800|Roda bem na maioria dos jogos.
+801|Alguns jogos podem ficar lentos: tudo é desenhado com o processador.
+802|Vai ficar lento: sem placa de vídeo o 64 é desenhado com o processador.
+803|Processador com %d threads: %s.
+804|de sobra para os clássicos e bem para os mais pesados
+805|de sobra para os clássicos; os mais pesados podem ficar no limite
+806|no limite, melhor economizar
+807|%.1f GB de RAM: %s.
+808|dá para rebobinar sem problema
+809|melhor não guardar muito histórico
+810|Está desenhando sem placa de vídeo (modo software), então os efeitos ficam desligados.
+811|Placa de vídeo:
+812| com
+813|o motor automático
+814|Tela a %.0f Hz%s.
+815|: em tela cheia eu mudo para 60 Hz para o movimento ficar perfeitamente uniforme
+816|Básico
+817|Seu computador roda bem os consoles clássicos, mas vamos cuidar de cada recurso.
+818|Seu computador tem força de sobra! Ativei o melhor: efeito de tela conforme o console, avanço de um quadro no NES e rebobinar longo.
+819|Seu computador roda muito bem. Deixei um equilíbrio entre boa imagem e resposta rápida.
+820|Tela CRT
+821|Conforme o console (CRT nos de TV, LCD nos portáteis e limpo nos 3D)
+822|Efeito de tela:
+823|Filtro:
+824|Avanço de 1 quadro no Satronho Octa (os controles respondem mais rápido)
+825|Sem avanço de quadros
+826|Rebobinar:
+827| segundos
+828|Rebobinar: desligado
+829|Latência do som:
+830| ms
+831|Fundo ambiente com as cores do jogo
+832|Fundo preto
+833|Sincronização vertical: ativada
+834|Satronho (verde-água)
+835|Samy (âmbar)
+836|Troya (lilás)
+837|MechaRidds (verde)
+838|Juana (rosa)
+843|Não foi possível consultar o GitHub (sem internet?).
+844|Não foi possível baixar a build nova.
+845|O download chegou danificado (a impressão digital não bate). Tente de novo.
+912|O avanço rápido vem desligado. Se quiser, ligue em Ajustes » Desempenho e segure Tab para passar rápido as partes lentas.
+913|F5 salva seu jogo na hora e F9 carrega. No menu (Esc) você vê os 8 espaços com a foto.
+914|Errou o pulo? Segure Backspace (ou o gatilho esquerdo) e rebobine uns segundos. No PS1, DS, Saturn e 64 isso se liga à parte em Ajustes » Desempenho.
+915|Clique com o botão direito num jogo para marcá-lo como favorito, abrir a pasta, continuar de onde parou ou ocultá-lo.
+916|Você pode arrastar um jogo ou uma pasta para a janela: o jogo abre e a pasta é adicionada à biblioteca.
+917|Experimente o efeito «CRT» em Ajustes » Gráficos: linhas de varredura, máscara de fósforo e vinheta, como a TV de antigamente.
+918|Com «Inteiro» os pixels ficam perfeitos, em troca de umas bordas. Com «Nítido suave» você preenche a tela sem perder nitidez.
+919|F12 salva uma captura do jogo no tamanho original. Você encontra em Ajustes » Biblioteca » Capturas.
+920|Em «Configuração sugerida» eu confiro seu computador e com um clique deixo tudo pronto para jogar.
+921|No Satronho Octa, o avanço de 1 quadro faz os pulos responderem antes. Se um jogo fizer algo estranho, desligue no menu do jogo.
+922|F3 mostra o medidor enquanto você joga. Se a velocidade cair abaixo de 100 %, me conte e a gente confere.
+923|Em «Novidades» eu conto o que traz cada build nova do Satronho Emulation.
+924|Isto está só começando: já são nove consoles e vêm mais para esta mesma casa.
+925|O Satronho Emulation não traz jogos. Use cópias dos cartuchos que você tem.
+926|Em Controles você vê seu controle desenhado: cada botão acende quando você aperta. Clique em um para trocá-lo.
+927|Crie um perfil de controles por console, por exemplo um para jogar com o controle de PS4 e outro com o de Xbox.
+928|Com o efeito «Auto», os consoles de mesa parecem uma TV CRT e os portáteis mostram sua grade de LCD.
+929|Se sua tela é de 144 Hz, jogue em tela cheia: eu mudo para 60 Hz e o movimento fica perfeito.
+930|Ao sair de um jogo eu salvo onde você parou. Na biblioteca, «Continuar» te leva exatamente ali.
+931|Carregou o espaço errado? No menu do jogo » Estados tem «Desfazer o carregamento».
+932|Cada console pode ter sua própria imagem: no menu do jogo » Ajustes rápidos, ligue «Imagem própria».
+933|No Satronho Dual, F2 (ou o clique do analógico direito) muda como as duas telas aparecem.
+934|Cada jogador lembra do seu controle: se um desconectar, o outro continua com o seu.

@@ -1,0 +1,235 @@
+235|Ogni console può avere la propria immagine: menu del gioco » Impostazioni rapide » «Immagine propria».
+236|Sfondo ambientale
+237|Riempie i bordi con i colori del gioco, morbidi e sfocati.
+238|Sincronizzazione verticale
+239|Evita che l'immagine si spezzi. Lasciala attiva a meno che tu non sappia cosa stai facendo.
+240|Dimensione dell'interfaccia
+241|«Auto» la ingrandisce su schermi 1440p e 4K perché tutto si legga comodamente.
+242|Volume
+243|Latenza
+244|Meno è più veloce, ma se l'audio gracchia, alzala un po'.
+245|%d ms
+246|Silenzia durante l'avanzamento rapido
+247|Evita l'audio accelerato mentre tieni premuto Tab.
+248|Nessuna uscita audio disponibile al momento.
+249|L'anticipo dei fotogrammi fa rispondere i controlli più velocemente che sulla console originale. Per ora funziona su Satronho Octa (NES); sulle altre console resta spento da solo, perché il loro audio non vive dentro lo stato e suonerebbe strano.
+250|Anticipo dei fotogrammi
+251|Riduce il ritardo tra la pressione di un tasto e il suo effetto sullo schermo. Solo su Satronho Octa.
+252|Spento
+253|1 fotogramma
+254|2 fotogrammi
+255|Riavvolgi
+256|Tieni premuto Backspace (o il grilletto sinistro) per tornare indietro nel tempo.
+257|Anche sulle console pesanti
+258|PS1, DS, Saturn e 64 salvano diversi MB per passo e possono scattare su computer modesti. Spento di fabbrica.
+259|Quanto si può riavvolgere
+260|Secondi indietro al massimo.
+261|Memoria per la cronologia
+262|Si salva solo ciò che cambia da un momento all'altro, compresso. Se si riempie, si cancella prima il più vecchio.
+263|%d MB
+264|In questo momento: %.0f s salvati in %.0f MB.
+265|Avanzamento rapido
+266|Spento di fabbrica: il grilletto va in conflitto con i tasti di diverse console. Una volta attivo, tieni premuto Tab (e il tasto del controller che gli assegni in Controlli » Scorciatoie).
+267|Velocità dell'avanzamento rapido
+268|Mentre giochi
+269|Salva dove ero rimasto all'uscita
+270|Tornando alla libreria si salva uno slot automatico; «Continua» riprende proprio lì.
+271|Pausa quando cambi finestra
+272|Se clicchi su un altro programma, il gioco si ferma finché non torni.
+273|Il misuratore mostra dal vivo come va il gioco: fotogrammi al secondo, velocità, scatti e uso del computer. F3 lo cambia mentre giochi.
+274|Modalità
+275|Compatto
+276|Dettagliato
+277|Angolo
+278|In alto a sin.
+279|In alto a des.
+280|In basso a sin.
+281|In basso a des.
+282|Colore
+283|Anteprima
+284|Impossibile caricare il core di
+285|Il cuore di %s è %s %s. Queste sono le sue opzioni; la maggior parte si applica subito e altre riavviando il gioco.%s
+286| Bolsillo e Bolsillo Plus condividono il core, ma ognuna tiene le proprie opzioni.
+287|Manca.
+288|Non c'è (è facoltativo).
+289|Hai:
+290|BIOS di
+291| Nomi che riconosce:
+292|Aggiungi BIOS…
+293|Aggiungine un altro…
+294|Apri cartella
+295|Generale
+296|Ripristina le opzioni del core
+297|Cartelle dei giochi
+298|Si cerca in ogni cartella e nelle sue sottocartelle.
+299|Rimuovi questa cartella
+300|Ancora nessuna cartella.
+301|Aggiungi cartella##aj
+302|Cerca di nuovo
+303|Annulla la ricerca
+304|Copertine reali
+305|Si scaricano da sole da libretro-thumbnails (quelle di RetroArch). Clic destro su un gioco per mettere la tua.
+306|Cerco copertine… ne mancano %d
+307|Cerca le copertine ora
+308|Giochi compressi (.zip e .7z)
+309|Si giocano senza decomprimere. Quelli su disco si estraggono una volta in una cache fino a 4 GB che si pulisce da sola.
+310|Svuota la cache
+311|Cache dei giochi decompressi svuotata.
+312|Cartella dei dati
+313|Modalità portatile: tutto si salva accanto al programma.
+314|Screenshot
+315|Apri gli screenshot
+316|BIOS e file di sistema
+317|I giochi Famicom Disk System hanno bisogno di «disksys.rom» in questa cartella.
+318|Apri la cartella di sistema
+319|Giochi nascosti (%zu)
+320|Nessuno. Per nascondere un gioco, clic destro sulla copertina » «Nascondi dalla libreria».
+321|Mostra
+322|Mostra le guide
+323|Samy, Troya, Ñoño, Juana e MechaRidds ti spiegano le cose lungo la strada.
+324|Fumetto dei consigli
+325|Un consiglio nell'angolo della libreria ogni tanto.
+326|Il protagonista. Conosce ogni angolo di Satronho e ti accompagna ovunque.
+327|Pitbull terrier marrone e bianca. Ti spiega i giochi, i controlli, le scorciatoie e gli stati.
+328|Pitbull malinois con sopraccigli gialli e occhialini. Sa tutto di filtri, effetti e di ciò che si vede.
+329|Labrabull bianco e nero, il più grande. Controlla il tuo computer e ti dice quale configurazione gli conviene.
+330|La vecchietta meticcia nera con i capelli bianchi e il fiocchetto, la più piccola. Ti racconta le novità di ogni build.
+331|Premi…
+332|Clic: assegna (tasto o pulsante del controller, quello che premi) · Clic destro: lascia vuoto
+333|Tastiera
+334|Nessun controller
+335|Controller %d · %s
+336|Controller %d (non collegato)
+337|Il suo controller (scollegato)
+338|Profilo:
+339|Nuovo profilo (copia di quello attuale)
+340|Il mio profilo
+341|Rinomina profilo
+342|Elimina profilo
+343|Assegnazione automatica
+344|Controller assegnato con la disposizione di
+345|Mette i pulsanti del controller al loro posto naturale per questa console.
+346|Uno alla volta
+347|Ti chiede ogni pulsante in ordine. Premi il tasto o il pulsante del controller che vuoi per ciascuno.
+348|Ripristina
+349|Cancella tutto
+350|Premi il tasto o il pulsante del controller per «%s»   ·   Esc annulla
+351|Premi un pulsante qualsiasi per vederlo dal vivo.
+352|Ultimo pulsante:
+353|CROCE DIREZIONALE
+354|PULSANTI
+355|GRILLETTI E STICK
+356|GRILLETTI
+357|Assegna con
+358|Controller
+359|Grilletti sinistri
+360|Croce direzionale
+361|Stick sinistro
+362|Grilletti destri
+363|Pulsanti (C sullo stick destro)
+364|Pulsanti
+365|Stick destro
+366|Muove i pulsanti C
+367|Vibrazione
+368|Zona morta
+369|%s · clic per assegnare
+370|Inclinazione
+371|Per giochi con sensore nella cartuccia, come Kirby Tilt 'n' Tumble o WarioWare Twisted. Con la tastiera: I, K, J e L.
+372|Stick destro
+373|Sensore del controller
+374|Il tuo controller non ha il sensore di movimento (quelli di PS4, PS5 e Switch sì).
+375|Inverti orizzontale
+376|Inverti verticale
+377|Nomi dei pulsanti come su un controller %s. Clic destro su una casella per lasciarla vuota.
+378|PlayStation
+379|Switch
+380|Xbox
+381|Le scorciatoie funzionano su qualsiasi console. Clicca una casella e premi il tasto o il pulsante del controller. Select+Start sul controller apre sempre il menu, e Alt+Invio passa a schermo intero. Un pulsante del controller usato dal gioco non attiva la sua scorciatoia. L'avanzamento rapido è spento: accendilo in Impostazioni » Prestazioni.
+382|Ripristina le scorciatoie
+383|Nuovo profilo
+384|Si crea come copia delle assegnazioni attuali.
+385|Il profilo Predefinito non si può rinominare.
+386|Salva
+387|Quel nome esiste già o non è valido (senza «.», «|», «=», «#» né «;», e senza spazi all'inizio o alla fine).
+388|Annulla
+389|Assegna i pulsanti di ogni console e guardali dal vivo
+390|Giocatore 1
+391|Giocatore 2
+392|Scorciatoie
+393|PORTE
+394|Giocatore %d
+395|IMPOSTAZIONI
+396|CONTROLLER COLLEGATI
+397|Nessuno. Collegane uno quando vuoi.
+398|Console
+399|Zona morta dello stick
+400|Quanto bisogna muovere lo stick perché conti.
+401|Lo stick sinistro muove anche la croce
+402|I giochi che la usano (Rumble Pak su 64, DualShock su CD) fanno vibrare il tuo controller.
+403|Registro dei pulsanti
+404|Annota in satronho.log ogni pulsante che arriva al gioco. Serve a controllare se un pulsante si perde.
+405|Premi un pulsante qualsiasi per vederlo qui.
+406|Controller collegati
+407|Nessuno per ora. Puoi collegarne uno in qualsiasi momento.
+408|  ·  Giocatore %d
+409|Controller %d · %s (%s)%s
+410|Ogni giocatore ricorda il suo controller: se uno si scollega, gli altri continuano con il proprio.
+411|La casa degli emulatori della famiglia Satronho. Un solo posto per le tue console, con un'immagine curata, controlli che rispondono all'istante, un misuratore dal vivo e configurazioni consigliate per il tuo computer. Ci sono già:
+412|; presto arrivano altre console.
+413|Logo, guide (Samy, Troya, Ñoño, Juana e MechaRidds), interfaccia e design: Ridds. Software libero sotto GPL 3.0; le licenze dei componenti sono nella cartella «licencias».
+414|NES, Super Nintendo, Game Boy, Nintendo 64 e DS sono marchi di Nintendo; Genesis, Mega Drive e Saturn, di Sega; PlayStation, di Sony. Si usano solo per descrivere con quali giochi funziona ogni emulatore. Questo progetto non è affiliato a nessuna di loro e non include giochi.
+415|Codice sorgente
+416|https://github.com/Riddsc/Satronho-Emulation
+417|Licenze
+418|Apri la cartella dei dati
+419|Vedi il registro
+420|Nessuna altra cronologia
+421|Riavvolgimento
+422|Avanzamento rapido ×%d
+423|Cambio disco
+424|Questa sessione: %s
+425|Continua
+426|Esc
+427|Stati
+428|Impostazioni rapide
+429|%d di %u
+430|Dischi
+431|Riavvia
+432|Screenshot
+433|Controller su schermo
+434|Torna alla libreria
+435|Salva in qualsiasi momento e torna proprio lì
+436|Salvataggio automatico
+437|Spento (Impostazioni » Prestazioni)
+438|All'uscita ·
+439|Si salva quando torni alla libreria
+440|Annulla il caricamento
+441|Carica##auto
+442|Slot %d
+443|Vuoto
+444|Carica
+445|%s salva e %s carica nello slot selezionato. %s e %s cambiano slot.
+446|Cambia l'immagine senza uscire dal gioco
+447|Immagine propria per
+448|Quello che cambi qui vale solo per questa console.
+449|Spento: si usa l'immagine generale di Impostazioni » Grafica.
+450|Pixel
+451|Nitido
+452|Dimensione
+453|Scegli il disco come sulla console: si apre il coperchio, si cambia e si chiude
+454|Inserito
+455|Inserisci questo
+456|Cambio disco…
+457|Tocca un pulsante del disegno e premi il tasto o il pulsante che vuoi
+458|%.0f FPS  %3.0f %%  %.2f ms
+459|Scatti
+460|Motore
+461|%.2f ms per fotogramma
+462|%d  ·  %d in questo minuto
+463|%.0f %% del computer
+464|%.0f MB
+465|%.0f ms  ·  ×%.4f
+466|nessuna uscita
+467|  ·  vsync
+468|Un altro consiglio
+469|Nascondi per ora

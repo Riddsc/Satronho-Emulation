@@ -1,0 +1,235 @@
+235|Each console can have its own image: game menu » Quick settings » «Own image».
+236|Ambient background
+237|Fills the edges with the game's colors, soft and blurred.
+238|Vertical sync
+239|Stops the image from tearing. Leave it on unless you know what you're doing.
+240|Interface size
+241|«Auto» enlarges it on 1440p and 4K screens so everything is comfortable to read.
+242|Volume
+243|Latency
+244|Lower is faster, but if the sound crackles, raise it a bit.
+245|%d ms
+246|Mute while fast-forwarding
+247|Avoids sped-up sound while you hold Tab.
+248|No sound output is available right now.
+249|Run-ahead makes the controls respond faster than on the original console. For now it works on Satronho Octa (NES); on the other consoles it stays off by itself, because their sound doesn't live inside the state and would sound odd.
+250|Run-ahead
+251|Reduces the delay between pressing a button and seeing it on screen. Only on Satronho Octa.
+252|Off
+253|1 frame
+254|2 frames
+255|Rewind
+256|Hold Backspace (or the left trigger) to go back in time.
+257|Also on heavy consoles
+258|PS1, DS, Saturn and 64 store several MB per step and can stutter on modest computers. Off by default.
+259|How far you can rewind
+260|Maximum seconds back.
+261|History memory
+262|Only what changes from one moment to the next is stored, compressed. When it fills up, the oldest is erased first.
+263|%d MB
+264|Right now: %.0f s stored in %.0f MB.
+265|Fast-forward
+266|Off by default: the trigger clashes with buttons on several consoles. Once on, hold Tab (and the controller button you assign in Controls » Hotkeys).
+267|Fast-forward speed
+268|While playing
+269|Save where I left off when exiting
+270|When you go back to the library an automatic slot is saved; «Continue» picks up right there.
+271|Pause when switching windows
+272|If you click on another program, the game stops until you come back.
+273|The meter shows live how the game is doing: frames per second, speed, stutters and computer usage. F3 changes it while you play.
+274|Mode
+275|Compact
+276|Detailed
+277|Corner
+278|Top left
+279|Top right
+280|Bottom left
+281|Bottom right
+282|Color
+283|Preview
+284|Couldn't load the core for
+285|The heart of %s is %s %s. These are its options; most take effect right away and others after restarting the game.%s
+286| Bolsillo and Bolsillo Plus share the core, but each keeps its own options.
+287|Missing.
+288|None (it's optional).
+289|You have:
+290|BIOS for
+291| Names it recognizes:
+292|Add BIOS…
+293|Add another…
+294|Open folder
+295|General
+296|Reset core options
+297|Game folders
+298|Each folder and its subfolders are searched.
+299|Remove this folder
+300|No folders yet.
+301|Add folder##aj
+302|Search again
+303|Cancel search
+304|Real covers
+305|They download by themselves from libretro-thumbnails (the RetroArch ones). Right-click a game to set your own.
+306|Looking for covers… %d left
+307|Look for covers now
+308|Compressed games (.zip and .7z)
+309|They're played without unzipping. Disc games are extracted once to a cache of up to 4 GB that cleans itself.
+310|Empty the cache
+311|Unzipped games cache is empty.
+312|Data folder
+313|Portable mode: everything is saved next to the program.
+314|Screenshots
+315|Open screenshots
+316|BIOS and system files
+317|Famicom Disk System games need «disksys.rom» in this folder.
+318|Open system folder
+319|Hidden games (%zu)
+320|None. To hide a game, right-click its cover » «Hide from the library».
+321|Show
+322|Show the guides
+323|Samy, Troya, Ñoño, Juana and MechaRidds explain things along the way.
+324|Tips bubble
+325|A tip in the corner of the library every now and then.
+326|The star. He knows every corner of Satronho and is always by your side.
+327|Brown and white pitbull terrier. She explains games, controls, hotkeys and states.
+328|Malinois pitbull with little yellow eyebrows and glasses. Knows about filters, effects and everything you see.
+329|White and black labrabull, the biggest one. Checks your computer and tells you which setup suits it.
+330|The little old black mutt with gray hair and a bow, the smallest one. She tells you what's new in each build.
+331|Press…
+332|Click: assign (key or controller button, whatever you press) · Right-click: leave empty
+333|Keyboard
+334|No controller
+335|Controller %d · %s
+336|Controller %d (not connected)
+337|Its controller (disconnected)
+338|Profile:
+339|New profile (copy of the current one)
+340|My profile
+341|Rename profile
+342|Delete profile
+343|Auto-assign
+344|Controller assigned with the layout of
+345|Puts the controller buttons in their natural place for this console.
+346|One by one
+347|Asks for each button in order. Press the key or controller button you want for each one.
+348|Reset
+349|Clear all
+350|Press the key or controller button for «%s»   ·   Esc cancels
+351|Press any button to see it live.
+352|Last button:
+353|D-PAD
+354|BUTTONS
+355|TRIGGERS AND STICKS
+356|TRIGGERS
+357|Assign with
+358|Controller
+359|Left triggers
+360|D-pad
+361|Left stick
+362|Right triggers
+363|Buttons (C on the right stick)
+364|Buttons
+365|Right stick
+366|Moves the C buttons
+367|Vibration
+368|Dead zone
+369|%s · click to assign
+370|Tilt
+371|For games with a sensor in the cartridge, like Kirby Tilt 'n' Tumble or WarioWare Twisted. With the keyboard: I, K, J and L.
+372|Right stick
+373|Controller sensor
+374|Your controller has no motion sensor (PS4, PS5 and Switch ones do).
+375|Invert horizontal
+376|Invert vertical
+377|Button names as on a %s controller. Right-click a box to leave it empty.
+378|PlayStation
+379|Switch
+380|Xbox
+381|Hotkeys work on any console. Click a box and press the key or controller button. Select+Start on the controller always opens the menu, and Alt+Enter switches to fullscreen. A controller button used by the game doesn't trigger its hotkey. Fast-forward comes off: turn it on in Settings » Performance.
+382|Reset hotkeys
+383|New profile
+384|It's created as a copy of the current assignments.
+385|The Default profile can't be renamed.
+386|Save
+387|That name already exists or isn't valid (no «.», «|», «=», «#» or «;», and no spaces at the start or end).
+388|Cancel
+389|Assign the buttons of each console and see them live
+390|Player 1
+391|Player 2
+392|Hotkeys
+393|PORTS
+394|Player %d
+395|SETTINGS
+396|CONNECTED CONTROLLERS
+397|None. Connect one whenever you like.
+398|Console
+399|Stick dead zone
+400|How far you need to move the stick for it to count.
+401|The left stick also moves the d-pad
+402|Games that use it (Rumble Pak on 64, DualShock on CD) make your controller vibrate.
+403|Button log
+404|Writes every button that reaches the game to satronho.log. Useful to check whether a button gets lost.
+405|Press any button to see it here.
+406|Connected controllers
+407|None for now. You can connect one at any time.
+408|  ·  Player %d
+409|Controller %d · %s (%s)%s
+410|Each player remembers their controller: if one disconnects, the others keep theirs.
+411|The home of the Satronho family's emulators. One place for your consoles, with a polished image, controls that respond instantly, a live meter and setups suggested for your computer. Already here:
+412|; more consoles are coming soon.
+413|Logo, guides (Samy, Troya, Ñoño, Juana and MechaRidds), interface and design: Ridds. Free software under GPL 3.0; the component licenses are in the «licencias» folder.
+414|NES, Super Nintendo, Game Boy, Nintendo 64 and DS are trademarks of Nintendo; Genesis, Mega Drive and Saturn, of Sega; PlayStation, of Sony. They're only used to describe which games each emulator works with. This project isn't affiliated with any of them and doesn't include games.
+415|Source code
+416|https://github.com/Riddsc/Satronho-Emulation
+417|Licenses
+418|Open data folder
+419|View the log
+420|No more history
+421|Rewinding
+422|Fast-forward ×%d
+423|Changing disc
+424|This session: %s
+425|Continue
+426|Esc
+427|States
+428|Quick settings
+429|%d of %u
+430|Discs
+431|Restart
+432|Screenshot
+433|On-screen controller
+434|Exit to the library
+435|Save at any time and come back right there
+436|Auto-save
+437|Off (Settings » Performance)
+438|On exit ·
+439|Saved when you exit to the library
+440|Undo the load
+441|Load##auto
+442|Slot %d
+443|Empty
+444|Load
+445|%s saves and %s loads in the marked slot. %s and %s change slots.
+446|Change the image without leaving the game
+447|Own image for
+448|What you change here only applies to this console.
+449|Off: the general image from Settings » Graphics is used.
+450|Pixel
+451|Sharp
+452|Size
+453|Choose the disc like on the console: the lid opens, it's swapped and closes
+454|Inserted
+455|Insert this one
+456|Changing disc…
+457|Tap a button on the drawing and press the key or button you want
+458|%.0f FPS  %3.0f %%  %.2f ms
+459|Stutters
+460|Engine
+461|%.2f ms per frame
+462|%d  ·  %d this minute
+463|%.0f %% of the computer
+464|%.0f MB
+465|%.0f ms  ·  ×%.4f
+466|no output
+467|  ·  vsync
+468|Another tip
+469|Hide for now

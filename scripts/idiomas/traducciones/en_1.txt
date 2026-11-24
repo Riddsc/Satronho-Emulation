@@ -1,0 +1,235 @@
+0|Always by your side
+1|Features and controls
+2|Graphics and effects
+3|Setup for your computer
+4|What's new
+5|Unknown
+6|#version 300 es
+7|#version 330 core
+8|%dx%d
+9|automatic
+10|Setup
+11| applied. Ready to play!
+12|core
+13|@migrado
+14|Build
+15| is out! Go to What's new to update.
+16|Confirm the installation in the Android window.
+17|Couldn't open the installer. Download it from GitHub.
+18|Looking for games in the new folder…
+19|New cover for «
+20|BIOS
+21|bin;rom;bios
+22|All files
+23|I couldn't read that file.
+24|That file doesn't look like a BIOS for
+25| (its size doesn't match any).
+26|I couldn't copy the BIOS:
+27|Done! It was saved as
+28|. It's used from the next game on.
+29| It's not the version the core recommends, but it usually works fine.
+30|;zip;7z
+31|Games from every console
+32|Slot
+33|Paused
+34|Let's go on!
+35|Game restarted
+36|Screens swapped
+37|This file isn't for any Satronho Emulation console.
+38| needs the console's original BIOS. Add it here with «Add BIOS…».
+39|Missing core for
+40|. Download Satronho Emulation again.
+41|Couldn't open the core for
+42|Without a PlayStation BIOS I use OpenBIOS, which is free. If a game fails, add yours in Settings » Core » CD.
+43| — Satronho Emulation
+44|Let's play! Esc opens the menu.
+45|Picking up where you left off.
+46|I couldn't load where you left off; starting from your saved game.
+47|This game doesn't support run-ahead; I turned it off.
+48|Couldn't save the state.
+49|State saved in slot
+50|There's no auto-save yet.
+51|Slot
+52| is empty.
+53|Auto-save loaded
+54|State from slot
+55| loaded
+56|. Wrong one? You can undo it from the menu.
+57|Done: you're back to where you were before loading.
+58|Couldn't change the disc.
+59|Opening the lid…
+60|You inserted
+61|Couldn't insert that disc.
+62|Screenshot saved in the screenshots folder
+63|High
+64|Balanced
+65|Automatic
+66|OpenGL ES
+67|On
+68|Off
+69|Yes
+70|No
+71|None
+72|Default
+73|Library
+74|Controls
+75|Suggested setup
+76|Settings
+77|About
+78|Guides
+79|Tools
+80|Loading
+81|%zu
+82|   PLAY
+83|   CONSOLES
+84|Ready
+85|   COMING SOON
+86|Next: %s  ·  and %zu more
+87|Coming soon, in this order:
+88|Satronho
+89|: for
+90|It's the next one.
+91|Coming soon.
+92|Next
+93|Soon
+94|   SATRONHO
+95|Ask the guides
+96|New
+97|by Ridds
+98|Build %d
+99|Development version
+100|Missing core for:
+101|Those emulators need their files in the «cores» folder next to the program. Download the full build again from Releases.
+102|For %s · %zu %s
+103|All your consoles · %zu %s
+104|Add folder
+105|Open a game without adding it
+106|Search for games again
+107|Search the library
+108|Looking for games…
+109|Cancel##busqueda
+110|Recent
+111|Most played
+112|Favorites only
+113|Grid
+114|Carousel
+115|View:
+116|VIEW
+117|COVER SIZE
+118|Small
+119|Medium
+120|Large
+121|ORDER
+122|Name (A-Z)
+123|Recently played
+124|Use this view on every console
+125|Updating…
+126|Cancel##busqueda2
+127|You haven't picked favorites yet. Use a game's star.
+128|No games with that name.
+129|%s  ·  %zu %s
+130|Show only these
+131|CONTINUE PLAYING
+132| played
+133|  ·  you continue where you left off
+134|Continue##hero
+135|Favorite
+136|Play
+137|Continue where I left off
+138|Open the game's folder
+139|Open the saves folder
+140|Open the states folder
+141|Cover
+142|Choose an image…
+143|Remove my cover
+144|Search it online again
+145|Play time
+146|Not played
+147|Reset to zero
+148|Converting «
+149|» to .chd. Your original stays.
+150|Verify the file
+151|Copy
+152|The name
+153|The file path
+154|Create shortcut
+155|On the desktop
+156|Done: «
+157|» is on your desktop.
+158|Hide from the library
+159|» is hidden. Show it again in Settings » Library.
+160|«%s»: %.1f MB · CRC32 %08lX. Compare it with your game's list (No-Intro or Redump).
+161|I couldn't read «
+162|Your library is ready to be filled
+163|Add the folder where you keep your games (from any of the nine consoles) and I'll also look in its subfolders; each game goes to its console. If you prefer, drag a game onto the window and we'll open it right away.
+164|Add folder##vacia
+165|Open a game##vacia
+166|Satronho Emulation doesn't include games. Use copies of the cartridges you own.
+167|Ñoño checks your computer and gets everything ready to play
+168|Your computer
+169|PROCESSOR
+170|  ·  %d threads
+171|RAM
+172|%.1f GB
+173|GRAPHICS CARD
+174|  ·  %d GB
+175|SCREEN
+176|%d × %d at %.0f Hz
+177|GRAPHICS ENGINE
+178|What I recommend
+179|Apply it for me
+180|Applied
+181|How each console runs
+182|Based on your processor's threads. It's a guide: an old processor can be slower even with many threads.
+183|What's new in Satronho Emulation
+184|You're on build %d. Here's what each version brings: what we added, improved and fixed.
+185|This is a development version. Here's what each build brings.
+186|Nothing new to show.
+187|New
+188|Improved
+189|Fixed
+190|Build %d is out!
+191|It downloads, installs over this one and Satronho Emulation reopens by itself. Your games, saves and settings stay untouched.
+192|Checking for updates…
+193|Downloading the new build…
+194|Installing…
+195|You have the latest build
+196|Couldn't check for new builds
+197|Updates
+198|Automatic updates are for Windows.
+199|Update now
+200|Check now
+201|View on GitHub
+202|Check on startup
+203|Everything is saved instantly
+204|Graphics
+205|Sound
+206|Performance
+207|Meter
+208|Core
+209|Appearance
+210|«Smooth sharp» keeps pixels square and without wobbly edges at any size. To feel like you're in front of an old TV, try the «CRT screen».
+211|Fullscreen
+212|Also with F11 or Alt+Enter.
+213|Fullscreen at 60 Hz
+214|If your screen is 120 or 144 Hz, I switch it to 60 Hz when you play in fullscreen: consoles run at 60 frames, so movement stays perfectly smooth.
+215|Image size
+216|Fit fills the screen without distortion. Integer uses exact multiples only (pixel perfect, with borders).
+217|Fit
+218|Integer
+219|Stretch
+220|Filter
+221|How pixels are enlarged.
+222|Exact pixel
+223|Smooth sharp
+224|Smooth
+225|Screen effect
+226|«Auto» uses a CRT TV on 2D home consoles, an LCD screen on handhelds and a clean image on 3D ones (CD, 64, Anillo and Dual).
+227|Lines
+228|Auto
+229|Effect strength
+230|%d %s its own image
+231|console has
+232|consoles have
+233|It's chosen from the game menu » Quick settings » «Own image». There it overrides this page.
+234|Use the general one on all

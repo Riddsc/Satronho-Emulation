@@ -1,0 +1,235 @@
+0|Sempre com você
+1|Funções e controles
+2|Gráficos e efeitos
+3|Configuração para o seu computador
+4|Novidades
+5|Desconhecida
+6|#version 300 es
+7|#version 330 core
+8|%dx%d
+9|automática
+10|Configuração
+11| aplicada. Pronto para jogar!
+12|núcleo
+13|@migrado
+14|Saiu a build
+15|! Vá em Novidades para atualizar.
+16|Confirme a instalação na janela do Android.
+17|Não foi possível abrir o instalador. Baixe pelo GitHub.
+18|Procurando jogos na pasta nova…
+19|Capa nova para «
+20|BIOS
+21|bin;rom;bios
+22|Todos os arquivos
+23|Não consegui ler esse arquivo.
+24|Esse arquivo não parece uma BIOS de
+25| (não tem o tamanho de nenhuma).
+26|Não consegui copiar a BIOS:
+27|Pronto! Ficou salva como
+28|. Será usada a partir do próximo jogo.
+29| Não é a versão que o núcleo recomenda, mas costuma funcionar bem.
+30|;zip;7z
+31|Jogos de todos os consoles
+32|Espaço
+33|Pausado
+34|Vamos continuar!
+35|Jogo reiniciado
+36|Telas trocadas
+37|Este arquivo não é de nenhum console do Satronho Emulation.
+38| precisa da BIOS original do console. Adicione aqui com «Adicionar BIOS…».
+39|Falta o núcleo de
+40|. Baixe o Satronho Emulation de novo.
+41|Não foi possível abrir o núcleo de
+42|Sem BIOS de PlayStation eu uso o OpenBIOS, que é livre. Se um jogo falhar, adicione a sua em Ajustes » Núcleo » CD.
+43| — Satronho Emulation
+44|Bora jogar! Esc abre o menu.
+45|Continuando de onde você parou.
+46|Não consegui carregar de onde você parou; começando do seu jogo salvo.
+47|Este jogo não aceita o avanço de quadros; desliguei.
+48|Não foi possível salvar o estado.
+49|Estado salvo no espaço
+50|Ainda não há um salvamento automático.
+51|O espaço
+52| está vazio.
+53|Salvamento automático carregado
+54|Estado do espaço
+55| carregado
+56|. Era outro? Você pode desfazer no menu.
+57|Pronto: você voltou a como estava antes de carregar.
+58|Não foi possível trocar o disco.
+59|Abrindo a tampa…
+60|Você colocou
+61|Não foi possível colocar esse disco.
+62|Captura salva na pasta de capturas
+63|Alto
+64|Equilibrado
+65|Automático
+66|OpenGL ES
+67|Ativado
+68|Desativado
+69|Sim
+70|Não
+71|Nenhum
+72|Padrão
+73|Biblioteca
+74|Controles
+75|Configuração sugerida
+76|Ajustes
+77|Sobre
+78|Guias
+79|Ferramentas
+80|Carregando
+81|%zu
+82|   JOGAR
+83|   CONSOLES
+84|Pronto
+85|   EM BREVE
+86|Próximo: %s  ·  e mais %zu
+87|Estão a caminho, nesta ordem:
+88|Satronho
+89|: para
+90|É o próximo.
+91|Está a caminho.
+92|Próximo
+93|Em breve
+94|   SATRONHO
+95|Pergunte aos guias
+96|Nova
+97|por Ridds
+98|Build %d
+99|Versão de desenvolvimento
+100|Falta o núcleo de:
+101|Esses emuladores precisam dos seus arquivos na pasta «cores» ao lado do programa. Baixe a build completa de novo nos Releases.
+102|Para %s · %zu %s
+103|Todos os seus consoles · %zu %s
+104|Adicionar pasta
+105|Abrir um jogo sem adicioná-lo
+106|Procurar jogos de novo
+107|Buscar na biblioteca
+108|Procurando jogos…
+109|Cancelar##busqueda
+110|Recentes
+111|Mais jogados
+112|Só favoritos
+113|Grade
+114|Carrossel
+115|Visualização:
+116|VISUALIZAÇÃO
+117|TAMANHO DAS CAPAS
+118|Pequenas
+119|Médias
+120|Grandes
+121|ORDEM
+122|Nome (A-Z)
+123|Jogados recentemente
+124|Usar esta visualização em todos os consoles
+125|Atualizando…
+126|Cancelar##busqueda2
+127|Você ainda não marcou favoritos. Use a estrela de um jogo.
+128|Nenhum jogo com esse nome.
+129|%s  ·  %zu %s
+130|Ver só estes
+131|CONTINUAR JOGANDO
+132| jogado
+133|  ·  você continua de onde parou
+134|Continuar##hero
+135|Favorito
+136|Jogar
+137|Continuar de onde parei
+138|Abrir a pasta do jogo
+139|Abrir a pasta de saves
+140|Abrir a pasta de estados
+141|Capa
+142|Escolher uma imagem…
+143|Remover minha capa
+144|Buscar de novo na internet
+145|Tempo de jogo
+146|Não jogado
+147|Zerar
+148|Convertendo «
+149|» para .chd. Seu original fica.
+150|Verificar o arquivo
+151|Copiar
+152|O nome
+153|O caminho do arquivo
+154|Criar atalho
+155|Na área de trabalho
+156|Pronto: «
+157|» está na sua área de trabalho.
+158|Ocultar da biblioteca
+159|» ficou oculto. Mostre de novo em Ajustes » Biblioteca.
+160|«%s»: %.1f MB · CRC32 %08lX. Compare com a lista do seu jogo (No-Intro ou Redump).
+161|Não consegui ler «
+162|Sua biblioteca está pronta para ser preenchida
+163|Adicione a pasta onde você guarda seus jogos (de qualquer um dos nove consoles) e eu procuro também nas subpastas; cada jogo vai para o seu console. Se preferir, arraste um jogo para a janela e abrimos na hora.
+164|Adicionar pasta##vacia
+165|Abrir um jogo##vacia
+166|O Satronho Emulation não inclui jogos. Use cópias dos cartuchos que você tem.
+167|Ñoño confere seu computador e deixa tudo pronto para jogar
+168|Seu computador
+169|PROCESSADOR
+170|  ·  %d threads
+171|MEMÓRIA RAM
+172|%.1f GB
+173|PLACA DE VÍDEO
+174|  ·  %d GB
+175|TELA
+176|%d × %d a %.0f Hz
+177|MOTOR GRÁFICO
+178|O que eu recomendo
+179|Aplique para mim
+180|Aplicada
+181|Como cada console roda
+182|De acordo com as threads do seu processador. É um guia: um processador antigo pode ser mais lento mesmo com muitas threads.
+183|Novidades do Satronho Emulation
+184|Você está na build %d. Aqui conto o que cada versão traz: o que adicionamos, melhoramos e corrigimos.
+185|Esta é uma versão de desenvolvimento. Aqui conto o que cada build traz.
+186|Não há novidades para mostrar.
+187|Novo
+188|Melhoria
+189|Correção
+190|Saiu a build %d!
+191|Ela é baixada, instalada por cima e o Satronho Emulation abre de novo sozinho. Seus jogos, saves e ajustes não são tocados.
+192|Procurando atualizações…
+193|Baixando a build nova…
+194|Instalando…
+195|Você tem a última build
+196|Não foi possível verificar se há builds novas
+197|Atualizações
+198|As atualizações automáticas são para Windows.
+199|Atualizar agora
+200|Verificar agora
+201|Ver no GitHub
+202|Verificar ao abrir
+203|Tudo é salvo na hora
+204|Gráficos
+205|Som
+206|Desempenho
+207|Medidor
+208|Núcleo
+209|Aparência
+210|«Nítido suave» deixa os pixels quadrados e sem bordas tremidas em qualquer tamanho. Para se sentir na frente da TV de antigamente, experimente a «Tela CRT».
+211|Tela cheia
+212|Também com F11 ou Alt+Enter.
+213|Tela cheia a 60 Hz
+214|Se sua tela é de 120 ou 144 Hz, ao jogar em tela cheia eu mudo para 60 Hz: os consoles rodam a 60 quadros e o movimento fica perfeitamente uniforme.
+215|Tamanho da imagem
+216|Ajustar preenche a tela sem deformar. Inteiro usa só múltiplos exatos (pixels perfeitos, com bordas).
+217|Ajustar
+218|Inteiro
+219|Esticar
+220|Filtro
+221|Como os pixels são aumentados.
+222|Pixel exato
+223|Nítido suave
+224|Suave
+225|Efeito de tela
+226|«Auto» usa TV CRT nos consoles de mesa em 2D, tela LCD nos portáteis e a imagem limpa nos 3D (CD, 64, Anillo e Dual).
+227|Linhas
+228|Auto
+229|Intensidade do efeito
+230|%d %s sua própria imagem
+231|console tem
+232|consoles têm
+233|Escolhe-se no menu do jogo » Ajustes rápidos » «Imagem própria». Lá, vale mais que esta página.
+234|Usar a geral em todos

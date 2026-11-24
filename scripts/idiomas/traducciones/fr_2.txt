@@ -1,0 +1,235 @@
+235|Chaque console peut avoir sa propre image : menu du jeu » Réglages rapides » «Image propre».
+236|Fond d'ambiance
+237|Remplit les bords avec les couleurs du jeu, douces et floues.
+238|Synchronisation verticale
+239|Empêche l'image de se déchirer. Laisse-la activée sauf si tu sais ce que tu fais.
+240|Taille de l'interface
+241|«Auto» l'agrandit sur les écrans 1440p et 4K pour que tout se lise confortablement.
+242|Volume
+243|Latence
+244|Moins, c'est plus rapide, mais si le son grésille, augmente-la un peu.
+245|%d ms
+246|Couper le son en avance rapide
+247|Évite le son accéléré pendant que tu maintiens Tab.
+248|Aucune sortie audio n'est disponible pour le moment.
+249|L'avance d'images fait réagir les commandes plus vite que sur la console d'origine. Pour l'instant, ça marche sur Satronho Octa (NES) ; sur les autres consoles elle reste désactivée, car leur son ne vit pas dans l'état et sonnerait bizarre.
+250|Avance d'images
+251|Réduit le délai entre l'appui sur un bouton et son effet à l'écran. Seulement sur Satronho Octa.
+252|Désactivé
+253|1 image
+254|2 images
+255|Rembobiner
+256|Maintiens Retour arrière (ou la gâchette gauche) pour remonter le temps.
+257|Aussi sur les consoles lourdes
+258|PS1, DS, Saturn et 64 enregistrent plusieurs Mo par étape et peuvent saccader sur les ordinateurs modestes. Désactivé par défaut.
+259|Jusqu'où rembobiner
+260|Secondes en arrière au maximum.
+261|Mémoire de l'historique
+262|Seul ce qui change d'un instant à l'autre est enregistré, compressé. S'il se remplit, le plus ancien est effacé en premier.
+263|%d Mo
+264|En ce moment : %.0f s enregistrées dans %.0f Mo.
+265|Avance rapide
+266|Désactivée par défaut : la gâchette entre en conflit avec des boutons de plusieurs consoles. Une fois activée, maintiens Tab (et le bouton de manette que tu lui donnes dans Commandes » Raccourcis).
+267|Vitesse de l'avance rapide
+268|En jouant
+269|Garder où j'en étais en quittant
+270|En revenant à la bibliothèque, un emplacement automatique est enregistré ; «Continuer» reprend juste là.
+271|Mettre en pause en changeant de fenêtre
+272|Si tu cliques sur un autre programme, le jeu s'arrête jusqu'à ton retour.
+273|Le compteur montre en direct comment va le jeu : images par seconde, vitesse, saccades et utilisation de l'ordinateur. F3 le change pendant que tu joues.
+274|Mode
+275|Compact
+276|Détaillé
+277|Coin
+278|Haut gauche
+279|Haut droite
+280|Bas gauche
+281|Bas droite
+282|Couleur
+283|Aperçu
+284|Impossible de charger le cœur de
+285|Le cœur de %s est %s %s. Ce sont ses options ; la plupart s'appliquent tout de suite et d'autres en redémarrant le jeu.%s
+286| Bolsillo et Bolsillo Plus partagent le cœur, mais chacune garde ses propres options.
+287|Manquant.
+288|Aucun (c'est facultatif).
+289|Tu as :
+290|BIOS de
+291| Noms qu'il reconnaît :
+292|Ajouter un BIOS…
+293|En ajouter un autre…
+294|Ouvrir le dossier
+295|Général
+296|Réinitialiser les options du cœur
+297|Dossiers de jeux
+298|Chaque dossier et ses sous-dossiers sont parcourus.
+299|Retirer ce dossier
+300|Pas encore de dossiers.
+301|Ajouter un dossier##aj
+302|Rechercher à nouveau
+303|Annuler la recherche
+304|Vraies jaquettes
+305|Elles se téléchargent toutes seules depuis libretro-thumbnails (celles de RetroArch). Clic droit sur un jeu pour mettre la tienne.
+306|Recherche de jaquettes… il en reste %d
+307|Chercher les jaquettes maintenant
+308|Jeux compressés (.zip et .7z)
+309|Ils se jouent sans décompresser. Ceux sur disque sont extraits une fois dans un cache de 4 Go maximum qui se nettoie tout seul.
+310|Vider le cache
+311|Cache des jeux décompressés vidé.
+312|Dossier de données
+313|Mode portable : tout est enregistré à côté du programme.
+314|Captures d'écran
+315|Ouvrir les captures
+316|BIOS et fichiers système
+317|Les jeux Famicom Disk System ont besoin de «disksys.rom» dans ce dossier.
+318|Ouvrir le dossier système
+319|Jeux masqués (%zu)
+320|Aucun. Pour masquer un jeu, clic droit sur sa jaquette » «Masquer de la bibliothèque».
+321|Afficher
+322|Afficher les guides
+323|Samy, Troya, Ñoño, Juana et MechaRidds t'expliquent les choses en chemin.
+324|Bulle de conseils
+325|Un conseil dans le coin de la bibliothèque de temps en temps.
+326|Le héros. Il connaît chaque recoin de Satronho et t'accompagne partout.
+327|Pitbull terrier marron et blanc. Elle t'explique les jeux, les commandes, les raccourcis et les états.
+328|Pitbull malinois aux petits sourcils jaunes et lunettes. S'y connaît en filtres, effets et tout ce qui se voit.
+329|Labrabull blanc et noir, le plus grand. Il vérifie ton ordinateur et te dit quelle configuration lui convient.
+330|La petite vieille créole noire aux cheveux gris et au petit nœud, la plus petite. Elle te raconte les nouveautés de chaque build.
+331|Appuie…
+332|Clic : assigner (touche ou bouton de manette, ce que tu appuies) · Clic droit : laisser vide
+333|Clavier
+334|Sans manette
+335|Manette %d · %s
+336|Manette %d (non connectée)
+337|Sa manette (déconnectée)
+338|Profil :
+339|Nouveau profil (copie de l'actuel)
+340|Mon profil
+341|Renommer le profil
+342|Supprimer le profil
+343|Assignation automatique
+344|Manette assignée avec la disposition de
+345|Met les boutons de la manette à leur place naturelle pour cette console.
+346|Un par un
+347|Te demande chaque bouton dans l'ordre. Appuie sur la touche ou le bouton de manette voulu pour chacun.
+348|Réinitialiser
+349|Tout effacer
+350|Appuie sur la touche ou le bouton de manette pour «%s»   ·   Échap annule
+351|Appuie sur n'importe quel bouton pour le voir en direct.
+352|Dernier bouton :
+353|CROIX
+354|BOUTONS
+355|GÂCHETTES ET STICKS
+356|GÂCHETTES
+357|Assigner avec
+358|Manette
+359|Gâchettes gauches
+360|Croix directionnelle
+361|Stick gauche
+362|Gâchettes droites
+363|Boutons (C sur le stick droit)
+364|Boutons
+365|Stick droit
+366|Déplace les boutons C
+367|Vibration
+368|Zone morte
+369|%s · clic pour assigner
+370|Inclinaison
+371|Pour les jeux avec capteur dans la cartouche, comme Kirby Tilt 'n' Tumble ou WarioWare Twisted. Au clavier : I, K, J et L.
+372|Stick droit
+373|Capteur de la manette
+374|Ta manette n'a pas de capteur de mouvement (celles de PS4, PS5 et Switch en ont un).
+375|Inverser l'horizontal
+376|Inverser le vertical
+377|Noms des boutons comme sur une manette %s. Clic droit sur une case pour la laisser vide.
+378|PlayStation
+379|Switch
+380|Xbox
+381|Les raccourcis marchent sur toutes les consoles. Clique sur une case et appuie sur la touche ou le bouton de manette. Select+Start sur la manette ouvre toujours le menu, et Alt+Entrée passe en plein écran. Un bouton de manette utilisé par le jeu ne déclenche pas son raccourci. L'avance rapide est désactivée : active-la dans Réglages » Performances.
+382|Réinitialiser les raccourcis
+383|Nouveau profil
+384|Il est créé comme copie des assignations actuelles.
+385|Le profil Par défaut ne peut pas être renommé.
+386|Enregistrer
+387|Ce nom existe déjà ou n'est pas valide (sans «.», «|», «=», «#» ni «;», et sans espaces au début ou à la fin).
+388|Annuler
+389|Assigne les boutons de chaque console et vois-les en direct
+390|Joueur 1
+391|Joueur 2
+392|Raccourcis
+393|PORTS
+394|Joueur %d
+395|RÉGLAGES
+396|MANETTES CONNECTÉES
+397|Aucune. Connecte-en une quand tu veux.
+398|Console
+399|Zone morte du stick
+400|De combien il faut bouger le stick pour que ça compte.
+401|Le stick gauche bouge aussi la croix
+402|Les jeux qui l'utilisent (Rumble Pak sur 64, DualShock sur CD) font vibrer ta manette.
+403|Journal des boutons
+404|Note dans satronho.log chaque bouton qui arrive au jeu. Utile pour vérifier si un bouton se perd.
+405|Appuie sur n'importe quel bouton pour le voir ici.
+406|Manettes connectées
+407|Aucune pour l'instant. Tu peux en connecter une à tout moment.
+408|  ·  Joueur %d
+409|Manette %d · %s (%s)%s
+410|Chaque joueur se souvient de sa manette : si l'une se déconnecte, les autres gardent la leur.
+411|La maison des émulateurs de la famille Satronho. Un seul endroit pour tes consoles, avec une image soignée, des commandes qui répondent instantanément, un compteur en direct et des configurations conseillées pour ton ordinateur. Déjà là :
+412|; d'autres consoles arrivent bientôt.
+413|Logo, guides (Samy, Troya, Ñoño, Juana et MechaRidds), interface et design : Ridds. Logiciel libre sous GPL 3.0 ; les licences des composants sont dans le dossier «licencias».
+414|NES, Super Nintendo, Game Boy, Nintendo 64 et DS sont des marques de Nintendo ; Genesis, Mega Drive et Saturn, de Sega ; PlayStation, de Sony. Elles ne servent qu'à décrire avec quels jeux fonctionne chaque émulateur. Ce projet n'est affilié à aucune d'elles et n'inclut pas de jeux.
+415|Code source
+416|https://github.com/Riddsc/Satronho-Emulation
+417|Licences
+418|Ouvrir le dossier de données
+419|Voir le journal
+420|Plus d'historique
+421|Rembobinage
+422|Avance rapide ×%d
+423|Changement de disque
+424|Cette session : %s
+425|Continuer
+426|Échap
+427|États
+428|Réglages rapides
+429|%d sur %u
+430|Disques
+431|Redémarrer
+432|Capture
+433|Manette à l'écran
+434|Revenir à la bibliothèque
+435|Enregistre à tout moment et reviens pile là
+436|Sauvegarde automatique
+437|Désactivée (Réglages » Performances)
+438|En quittant ·
+439|Enregistrée en revenant à la bibliothèque
+440|Annuler le chargement
+441|Charger##auto
+442|Emplacement %d
+443|Vide
+444|Charger
+445|%s enregistre et %s charge dans l'emplacement marqué. %s et %s changent d'emplacement.
+446|Change l'image sans quitter le jeu
+447|Image propre pour
+448|Ce que tu changes ici ne vaut que pour cette console.
+449|Désactivée : l'image générale de Réglages » Graphismes est utilisée.
+450|Pixel
+451|Net
+452|Taille
+453|Choisis le disque comme sur la console : le capot s'ouvre, on change et il se ferme
+454|Inséré
+455|Insérer celui-ci
+456|Changement de disque…
+457|Touche un bouton du dessin et appuie sur la touche ou le bouton voulu
+458|%.0f FPS  %3.0f %%  %.2f ms
+459|Saccades
+460|Moteur
+461|%.2f ms par image
+462|%d  ·  %d cette minute
+463|%.0f %% de l'ordinateur
+464|%.0f Mo
+465|%.0f ms  ·  ×%.4f
+466|sans sortie
+467|  ·  vsync
+468|Un autre conseil
+469|Masquer pour l'instant
