@@ -38,6 +38,7 @@ add_executable(satronho-emulation WIN32
   src/core/audio.cpp
   src/core/core_host.cpp
   src/core/input.cpp
+  src/core/rewind.cpp
   src/core/video.cpp
   src/sys/hardware.cpp
   src/sys/library.cpp
@@ -46,6 +47,7 @@ add_executable(satronho-emulation WIN32
   src/ui/kit.cpp
   src/ui/controllers.cpp
   src/sys/systems.cpp
+  src/util/hash.cpp
   src/util/ini.cpp
   src/util/json.cpp
   src/util/log.cpp
@@ -66,7 +68,10 @@ else()
 endif()
 
 if(WIN32)
-  target_sources(satronho-emulation PRIVATE dist/windows/satronho.rc)
+  # El .rc lleva el número de build (Propiedades del .exe) y la ruta completa del ícono.
+  set(SATRONHO_ICON "${CMAKE_SOURCE_DIR}/dist/windows/satronho.ico")
+  configure_file(dist/windows/satronho.rc.in ${CMAKE_BINARY_DIR}/satronho.rc @ONLY)
+  target_sources(satronho-emulation PRIVATE ${CMAKE_BINARY_DIR}/satronho.rc)
   target_link_libraries(satronho-emulation PRIVATE dxgi psapi)
   target_compile_definitions(satronho-emulation PRIVATE NOMINMAX)
   if(MINGW)

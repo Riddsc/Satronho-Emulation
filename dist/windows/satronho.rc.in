@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Lo genera CMake (configure_file) con el número de build real.
+#pragma code_page(65001)
 #include <windows.h>
 
-1 ICON "satronho.ico"
+1 ICON "@SATRONHO_ICON@"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 1,0,0,0
-PRODUCTVERSION 1,0,0,0
+FILEVERSION 1,0,@SATRONHO_BUILD@,0
+PRODUCTVERSION 1,0,@SATRONHO_BUILD@,0
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 BEGIN
@@ -15,7 +17,9 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "Ridds"
       VALUE "FileDescription", "Satronho Emulation"
+      VALUE "FileVersion", "1.0.@SATRONHO_BUILD@ (build @SATRONHO_BUILD@)"
       VALUE "ProductName", "Satronho Emulation"
+      VALUE "ProductVersion", "Build @SATRONHO_BUILD@"
       VALUE "OriginalFilename", "satronho-emulation.exe"
       VALUE "LegalCopyright", "© 2026 Ridds · GPL-3.0-or-later"
     END

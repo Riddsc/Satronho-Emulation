@@ -47,6 +47,43 @@ std::string SafeName(const std::string& s) {
     return out.empty() ? "juego" : out;
 }
 
+namespace {
+// Relativa a la carpeta del programa si están en la misma unidad; si no, vacía.
+fs::path RelativeToBase(const fs::path& p) {
+    if (!p.is_absolute() || p.root_name() != g_base.root_name()) return {};
+    const fs::path rel = p.lexically_normal().lexically_relative(g_base.lexically_normal());
+    return rel.empty() ? fs::path{} : rel;
+}
+
+std::string Slashes(std::string s) {
+    for (auto& c : s)
+        if (c == '\\') c = '/';
+    return s;
+}
+} // namespace
+
+std::string StoreFolder(const fs::path& folder) {
+    if (g_portable) {
+        const fs::path rel = RelativeToBase(folder);
+        if (!rel.empty()) return Slashes(ToUtf8(rel));
+    }
+    return ToUtf8(folder);
+}
+
+fs::path ResolveFolder(const std::string& stored) {
+    const fs::path p = FromUtf8(stored);
+    if (p.is_relative()) return (g_base / p).lexically_normal();
+    return p;
+}
+
+std::string StableId(const fs::path& file) {
+    if (g_portable) {
+        const fs::path rel = RelativeToBase(file);
+        if (!rel.empty()) return Slashes(ToUtf8(rel));
+    }
+    return ToUtf8(file);
+}
+
 void Init() {
     const char* base = SDL_GetBasePath();
     g_base = base ? FromUtf8(base) : fs::current_path();

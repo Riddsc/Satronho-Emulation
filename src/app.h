@@ -13,6 +13,7 @@
 #include "core/audio.h"
 #include "core/core_host.h"
 #include "core/input.h"
+#include "core/rewind.h"
 #include "core/video.h"
 #include "sys/hardware.h"
 #include "sys/library.h"
@@ -51,21 +52,36 @@ private:
     void SetFullscreen(bool on);
     void UpdateRefresh();
     bool EnsureCore(const SystemDef& sys, std::string* error);
+    // Opciones del núcleo de cada consola: Bolsillo y Bolsillo Plus comparten mGBA, pero cada
+    // una tiene sus valores por defecto y sus cambios guardados («nucleo.<consola>.<opción>»).
+    void ApplySystemOptions(const SystemDef& sys);
+    void SaveCoreOptions(const std::string& sys_id, const std::vector<CoreOption>& opts);
+    std::vector<CoreOption> OptionsFor(const SystemDef& sys, std::vector<CoreOption> base) const;
     void UpdateScale();
     float AutoScale() const;
     void ProcessPendingPaths();
 
     // Juego
+    // Pide abrir un juego: primero se dibuja «Cargando…» y en el cuadro siguiente se abre
+    // (los juegos de disco tardan un poco y la ventana no debe quedarse congelada sin aviso).
+    void RequestStart(const fs::path& rom, bool resume = false);
     bool StartGame(const fs::path& rom);
     void StopGame();
     void EmulateTick(double dt);
     void Step(bool rewinding, bool fast_forward);
     void RunAheadFrame(int frames);
     void PushRewind();
-    void SaveSlot(int slot);
+    void SaveSlot(int slot, bool quiet = false);
     void LoadSlot(int slot);
+    void UndoLoad();
     void Screenshot();
-    fs::path StatePath(int slot) const;
+    fs::path StatePath(int slot) const; // 0 = ranura automática (al salir)
+    static fs::path StatePathFor(const Game& g, int slot);
+    fs::path LegacyStatePath(int slot) const;
+    void MigrateLegacyStates();
+    bool HasAutoState(const Game& g) const;
+    void ServiceDiskSwap();
+    void RequestDisk(unsigned index);
     void RefreshSlotThumbs();
     void SetMenuOpen(bool open);
     void CommitPlaytime();
@@ -100,6 +116,8 @@ private:
     void DrawMeter(bool preview = false, ImVec2 preview_pos = {});
     void DrawToasts();
     void DrawGuideBubble();
+    void DrawLoading();
+    void DrawHiddenGames();
     void DrawWelcome();
     void DrawCoreMissing();
     void GuideSays(GuideId id, const char* text, float width = 0);
@@ -146,6 +164,17 @@ private:
     std::string core_file_;         // archivo del núcleo cargado
     std::vector<std::string> missing_cores_; // consolas sin su núcleo instalado
     const SystemDef* sys_ = &Systems().front(); // consola del juego en curso
+    std::string options_sys_;       // consola cuyas opciones tiene ahora el núcleo cargado
+    // Copia de las opciones de cada núcleo (por archivo), para mostrarlas en Ajustes » Núcleo sin
+    // tener que cargar y descargar el .dll cada vez que se mira otra consola.
+    struct CoreSnapshot {
+        std::vector<CoreOption> options;
+        std::vector<CoreCategory> categories;
+        std::string name, version;
+    };
+    std::map<std::string, CoreSnapshot> core_cache_;
+    std::vector<CoreOption> tab_options_;   // opciones mostradas de una consola sin su núcleo cargado
+    std::string tab_options_sys_;
     std::string lib_system_;        // consola elegida en la biblioteca ("" = todas)
     std::string ctrl_system_ = "octa";
     int ctrl_tab_ = 1;              // 0 general, 1 jugador 1, 2 jugador 2, 3 atajos
@@ -182,7 +211,18 @@ private:
     double uncommitted_s_ = 0;
     double sram_timer_ = 0;
     std::vector<uint8_t> runahead_state_;
-    std::deque<std::vector<uint8_t>> rewind_;
+    RewindBuffer rewind_;
+    std::vector<uint8_t> rewind_tmp_;
+    bool RewindActive() const; // rebobinar encendido para la consola actual
+    std::vector<uint8_t> undo_state_;   // estado antes de la última carga de ranura
+    bool resume_pending_ = false;       // cargar la ranura automática al empezar
+    int disk_swap_target_ = -1;         // disco que se pone cuando termina de «abrirse la tapa»
+    int disk_swap_wait_ = 0;            // cuadros que faltan
+    int screens_pulse_ = 0;             // cuadros con R3 presionado (cambiar pantallas en DS)
+    bool focus_paused_ = false;         // pausado porque la ventana perdió el foco
+    fs::path pending_start_;            // juego por abrir (tras dibujar «Cargando…»)
+    bool pending_resume_ = false;
+    int pending_frames_ = 0;
     bool rewinding_ = false;
     bool fast_forward_ = false;
     int slot_ = 1;

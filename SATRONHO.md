@@ -1,12 +1,14 @@
 # Satronho Emulation: cómo está hecho y cómo se mantiene
 
-Memoria técnica del proyecto. Léela antes de tocar algo.
+Memoria técnica del proyecto. Léela antes de tocar algo. Para el estado actual, lo pendiente y
+cómo trabajar con Ridds, mira también `CONTINUAR.md`.
 
 ## Qué es
 
 Hub de emuladores de la familia Satronho (por Ridds). Un frontend propio que carga núcleos
 **libretro** (.dll) y les pone encima la capa Satronho: biblioteca, imagen, medidor, guías,
-configuración sugerida. Primera consola: NES con Nestopia UE. Todo GPL 3.0 o posterior.
+configuración sugerida. Hoy son 9 emuladores (ver «Nombres» y `src/sys/systems.cpp`). Todo GPL 3.0 o
+posterior.
 
 Decisiones de Ridds:
 - Repo público (Actions gratis). Las builds se publican como **Releases `build-N`**, sin artifacts.
@@ -25,8 +27,10 @@ Mega (Genesis), Anillo (Saturn), Sueño (Dreamcast), CD (PS1), CD2 (PS2), Portá
 ## Actualizaciones
 
 `src/sys/updater.cpp` (solo Windows): consulta `releases/latest` con urlmon, compara `build-N`,
-descarga el zip y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre la app, hace
-`Expand-Archive` + `Copy-Item` encima de la carpeta del programa y la vuelve a abrir.
+descarga el zip, comprueba su SHA-256 con el asset `…windows-x64.zip.sha256` (lo publica el CI desde
+la build 11) y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre la app, hace
+`Expand-Archive`, aparta `cores/`, `assets/` y `licencias/` como `.viejo`, copia lo nuevo (si falla,
+las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
 
 ## Varias consolas (fase 2)
 
@@ -61,21 +65,70 @@ descarga el zip y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre
 ## Compilar y probar
 
 - CI: `.github/workflows/build.yml`, Linux + llvm-mingw → `satronho-emulation.exe` estático (solo
-  DLL del sistema y UCRT) + `cores/nestopia_libretro.dll`. Push a `main` con cambios en código o
-  assets → Release `build-N` con las notas de la primera entrada de `assets/novedades.json`.
+  DLL del sistema y UCRT) + los 8 núcleos en `cores/` (en caché de Actions: se recompilan solo si
+  cambia un `scripts/build-core-*.sh` o la versión de llvm-mingw). Antes de publicar compila también
+  para Linux y abre la app en modo de revisión (offscreen + render software) en varias páginas; si
+  se cae, no hay Release. Push a `main` con cambios en código o assets → Release `build-N` (N =
+  número de ejecución del workflow) con el zip, su `.sha256` y las notas de la primera entrada de
+  `assets/novedades.json`. Desde otra rama compila y prueba, pero no publica.
 - Local (entorno remoto): compila nativo en Linux con SDL3 de `release-3.4.20`, y para Windows con
   llvm-mingw (`cmake/llvm-mingw.cmake`). Revisión visual con Xvfb y el modo de revisión:
-  `SATRONHO_QA="page=ajustes;tab=0;frames=50;shot=/tmp/x.png"` (también `rom=`, `menu=1`,
-  `welcome=1`, `estados=1`, `fresh=1`). Con `portable.txt` junto al ejecutable los datos quedan en
-  `user/`.
+  `SATRONHO_QA="page=ajustes;tab=0;frames=50;shot=/tmp/x.png"` (también `rom=`, `continuar=1` (con
+  `rom=`, como el botón Continuar), `carpeta=` (agrega una carpeta), `menu=1` + `seccion=N`,
+  `welcome=1`, `estados=1`, `fresh=1`, `sistema=`, `ctrl=`). Con `portable.txt` junto al ejecutable
+  los datos quedan en `user/`. Sin pantalla: `SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy`
+  (y `SDL_RENDER_DRIVER=software` si no hay EGL). Para probar con un juego de verdad en Linux:
+  compilar el núcleo nativo (p. ej. `make -C nestopia/libretro`) y ponerlo en `cores/`; hay homebrew
+  libre en GitHub (p. ej. `nesdoug/01_Hello`, `BUILD/hello.nes`).
 - Dear ImGui 1.93.0: ojo, `AddRect`, `PathStroke` y `AddPolyline` llevan el grosor **antes** de las
   banderas.
+
+## Datos del usuario (dónde queda cada cosa)
+
+- `partidas/<consola>/<juego>.srm` (+ `.srm.bak`, copia antes de la primera escritura de cada sesión).
+  El núcleo también guarda ahí lo suyo (tarjetas de memoria de PS1, `.bkr` de Saturn): la carpeta se
+  le da por `GET_SAVE_DIRECTORY` con `CoreHost::SetSaveDir` (el texto queda fijo en memoria, hay
+  núcleos que guardan el puntero). Hasta la build 10 iban sueltas en `partidas/`: si no existe la
+  nueva, `LoadSram` toma la vieja **solo si mide lo mismo** (si no, es de otra consola).
+- `estados/<clave>-<título>.estadoN` (+ `.png`); la ranura automática es `.estado-auto`.
+- `satronho.ini`: ajustes, controles (`perfil.<consola>.<perfil>.tN/mN`, `jugador.N.mando_id` = GUID
+  del mando), atajos (`atajo.N`, N = orden del enum `Hotkey`: **los nuevos van al final**), opciones
+  de núcleo por consola (`nucleo.<consola>.<clave>` y `nucleo.<consola>.@migrado`; antes de la build
+  11 eran por núcleo, `nucleo.<NombreDelNúcleo>.…`, y se siguen leyendo hasta la migración) e imagen
+  por consola (`video.<consola>.propio/escala/filtro/efecto/intensidad`).
+- `biblioteca.ini`: por clave de juego (`favorito`, `tiempo`, `ultima`, `oculto`). La clave es el
+  FNV-1a de la ruta en minúsculas; en modo portátil, de la ruta relativa a la carpeta del programa
+  (`Paths::StableId`), y se migra sola desde la clave vieja (`legacy_key`). Las carpetas de juegos
+  en modo portátil se guardan relativas (`Paths::StoreFolder` / `ResolveFolder`).
+
+## Piezas que conviene conocer
+
+- Rebobinar (`src/core/rewind.cpp`): guarda el último estado entero y, por cada paso atrás, un parche
+  XOR comprimido (tramos iguales se saltan). Tope por segundos (`rewind_seconds`) y por memoria
+  (`rewind_mb`). En consolas con `cpu_need >= 1` (PS1, DS, Saturn, 64) solo si `rewind_heavy`.
+- Adelanto de cuadros: solo en núcleos con `runahead_ok` (hoy solo Octa).
+- Mandos (`Input::ResolvePads`): cada jugador conserva su mando conectado; si no, lo recupera por
+  GUID; si no, toma el libre en su posición. Turbo con contador propio (`turbo_tick_`).
+- Vibración: `RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE` → `CoreHost::rumble` → `Input::ApplyRumble`
+  (órdenes de 250 ms que se renuevan; en pausa o menú se corta).
+- Discos: `RequestDisk` abre la tapa, espera 45 cuadros y pone el disco (`ServiceDiskSwap`).
+- Abrir un juego pasa por `RequestStart` (dibuja «Cargando…» y lo abre en el cuadro siguiente).
+  `StartGame` directo solo en el modo de revisión.
+- Ajustes » Núcleo no carga el `.dll` de cada consola que se mira: usa `core_cache_` (copia de las
+  opciones del núcleo tomada la primera vez que se cargó) y guarda directo en `satronho.ini`.
+- BIOS: `SystemDef::bios` con nombre, tamaño, palabras clave y SHA-1 si se conoce (las de PS1 salen
+  del código de Beetle PSX). `App::ImportBios` reconoce por huella, nombre, tamaño + palabra clave y,
+  al final, solo tamaño.
+- Cierres inesperados (Windows): `Log::InstallCrashHandler` anota el código y `archivo+desplazamiento`
+  (exe o dll del núcleo) en `satronho.log`.
 
 ## Al agregar una consola
 
 1. Script `scripts/build-core-<núcleo>.sh` y paso en el workflow.
-2. Entrada en la barra lateral (hoy «Pronto»), extensiones, botones del mando y valores por
-   defecto del núcleo.
+2. `SystemDef` en `src/sys/systems.cpp`: extensiones, botones, forma del control, `cpu_need`, BIOS
+   (con SHA-1 si el núcleo la verifica), `core_defaults` (comprobar las claves en el código del
+   núcleo, en la versión fijada) y `runahead_ok` (solo si su sonido vive dentro del estado). Quitarla
+   de `SoonSystems()`.
 3. Novedades en `assets/novedades.json` (la primera entrada son las notas del Release).
 
 ### Núcleos ya integrados (cómo se compilan)

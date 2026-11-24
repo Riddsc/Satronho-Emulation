@@ -16,6 +16,7 @@ struct BiosFile {
     const char* name;      // como lo busca el núcleo: "scph5501.bin"
     unsigned size;         // en bytes, para reconocerlo
     const char* keywords;  // palabras del nombre original que lo delatan: "jap|101"
+    const char* sha1 = ""; // huella del archivo correcto (minúsculas), si se conoce
 };
 
 // Un emulador de la familia Satronho dentro del hub.
@@ -44,6 +45,10 @@ struct SystemDef {
     bool touch = false;               // pantalla táctil (el mouse toca)
     unsigned port_device = 1;  // RETRO_DEVICE_JOYPAD; en CD, el DualShock
     bool analog = false;       // los sticks van al juego
+    // Cuánto procesador pide (para Ñoño y los valores por defecto): 0 poco (8 y 16 bits),
+    // 1 medio (PS1, DS), 2 mucho (Saturn), 3 muchísimo (64 con Angrylion, todo por software).
+    int cpu_need = 0;
+    bool Heavy() const { return cpu_need >= 1; } // estados de varios MB: rebobinar pesa
     bool disc = false;         // juegos en disco (cue, chd…)
     std::vector<BiosFile> bios; // BIOS que acepta (opcional salvo bios_required)
     bool bios_required = false;

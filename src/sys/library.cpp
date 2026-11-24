@@ -68,6 +68,11 @@ void SplitTitle(const std::string& name, std::string& title, std::vector<std::st
 } // namespace
 
 Library::~Library() {
+    {
+        std::lock_guard lock(mutex_);
+        queued_ = false;
+    }
+    cancel_ = true; // al cerrar no se espera a que termine una búsqueda larga
     if (worker_.joinable()) worker_.join();
 }
 
@@ -149,30 +154,68 @@ Game Library::MakeGame(const fs::path& file) {
     if (sys && sys->disc) sys = DiscSystem(file, g.ext);
     if (sys) g.system = sys->id;
     char hex[16];
-    std::snprintf(hex, sizeof hex, "%08x", Fnv(Lower(g.path_utf8)));
+    std::snprintf(hex, sizeof hex, "%08x", Fnv(Lower(Paths::StableId(file))));
     g.key = hex;
+    std::snprintf(hex, sizeof hex, "%08x", Fnv(Lower(g.path_utf8)));
+    g.legacy_key = hex;
     g.hue = Fnv(g.title) % 360;
     return g;
 }
 
-void Library::ApplyMeta(Game& g) const {
+bool Library::ApplyMeta(Game& g) {
+    bool migrated = false;
+    // Modo portátil: los datos viejos se guardaron con la ruta completa; se pasan a la clave nueva.
+    if (g.legacy_key != g.key) {
+        for (const char* field : {".favorito", ".tiempo", ".ultima", ".oculto"}) {
+            const std::string nk = g.key + field, ok = g.legacy_key + field;
+            if (!meta_.Values().count(nk) && meta_.Values().count(ok)) {
+                meta_.Set(nk, meta_.Get(ok));
+                migrated = true;
+            }
+        }
+    }
+    g.hidden = meta_.GetBool(g.key + ".oculto", false);
     g.favorite = meta_.GetBool(g.key + ".favorito", false);
     g.playtime_s = meta_.GetI64(g.key + ".tiempo", 0);
     g.last_played = meta_.GetI64(g.key + ".ultima", 0);
+    return migrated;
 }
 
 void Library::Rescan(const std::vector<std::string>& folders) {
-    if (scanning_) return;
-    const std::vector<std::string> extensions = AllExtensions();
+    {
+        std::lock_guard lock(mutex_);
+        queued_folders_ = folders;
+        queued_ = true;
+        cancel_ = false;
+    }
+    if (scanning_) return; // la búsqueda en curso toma la fila al terminar
     if (worker_.joinable()) worker_.join();
     scanning_ = true;
-    worker_ = std::thread([this, folders, extensions] {
+    worker_ = std::thread([this] { ScanLoop(); });
+}
+
+void Library::ScanLoop() {
+    const std::vector<std::string> extensions = AllExtensions();
+    for (;;) {
+        std::vector<std::string> folders;
+        {
+            std::lock_guard lock(mutex_);
+            if (!queued_) {
+                // Se apaga dentro del candado: un Rescan que llegue ahora ve scanning_ en false
+                // y arranca otro hilo después de esperar a este.
+                scanning_ = false;
+                return;
+            }
+            folders = queued_folders_;
+            queued_ = false;
+        }
+        cancel_ = false;
         std::vector<Game> found;
         for (const auto& f : folders) {
             std::error_code ec;
-            const fs::path root = Paths::FromUtf8(f);
+            const fs::path root = Paths::ResolveFolder(f);
             fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
-            for (; !ec && it != end; it.increment(ec)) {
+            for (; !ec && it != end && !cancel_; it.increment(ec)) {
                 if (it.depth() > 6) {
                     it.disable_recursion_pending();
                     continue;
@@ -186,6 +229,11 @@ void Library::Rescan(const std::vector<std::string>& folders) {
                 found.push_back(MakeGame(it->path()));
                 if (found.size() > 20000) break;
             }
+        }
+        if (cancel_) {
+            // Cancelada: se queda la biblioteca anterior.
+            Log::Info("Biblioteca: búsqueda cancelada");
+            continue;
         }
         // Juegos en disco: los .bin que nombra un .cue y los discos que nombra un .m3u son partes
         // de un mismo juego, no juegos aparte (y un .bin de PlayStation no es de Mega).
@@ -226,13 +274,14 @@ void Library::Rescan(const std::vector<std::string>& folders) {
         const size_t count = found.size();
         {
             std::lock_guard lock(mutex_);
-            for (auto& g : found) ApplyMeta(g);
+            bool migrated = false;
+            for (auto& g : found) migrated |= ApplyMeta(g);
             games_ = std::move(found);
+            if (migrated) meta_.Save(Paths::LibraryFile());
         }
         Log::Info("Biblioteca: %zu juegos", count);
         changed_ = true;
-        scanning_ = false;
-    });
+    }
 }
 
 bool Library::TakeChanged() { return changed_.exchange(false); }
@@ -258,6 +307,14 @@ void Library::ToggleFavorite(const std::string& key) {
     const bool fav = !meta_.GetBool(key + ".favorito", false);
     meta_.SetBool(key + ".favorito", fav);
     if (Game* g = Find(key)) g->favorite = fav;
+    meta_.Save(Paths::LibraryFile());
+}
+
+void Library::SetHidden(const std::string& key, bool hidden) {
+    std::lock_guard lock(mutex_);
+    if (hidden) meta_.SetBool(key + ".oculto", true);
+    else meta_.Erase(key + ".oculto");
+    if (Game* g = Find(key)) g->hidden = hidden;
     meta_.Save(Paths::LibraryFile());
 }
 

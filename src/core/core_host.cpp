@@ -4,10 +4,12 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <mutex>
 
 #include <SDL3/SDL.h>
 
@@ -50,6 +52,8 @@ bool WriteFileAtomic(const fs::path& file, const void* data, size_t size) {
 
 // Los núcleos escriben muchísimo (mGBA anota cada carga de estado). Se guarda solo lo útil:
 // todo mientras se carga el juego, y después únicamente avisos y errores, sin repetirlos.
+// Algunos núcleos (Mupen64Plus-Next, melonDS DS) escriben desde varios hilos a la vez.
+std::mutex g_log_mutex;
 bool g_verbose = false;
 int g_core_lines = 0;
 std::string g_last_line;
@@ -57,6 +61,7 @@ int g_repeat = 0;
 
 void CoreLog(enum retro_log_level level, const char* fmt, ...) {
     if (level == RETRO_LOG_DEBUG) return;
+    std::lock_guard lock(g_log_mutex);
     if (level == RETRO_LOG_INFO && !g_verbose) return;
     if (g_core_lines > 400) return;
     char buf[1024];
@@ -106,6 +111,11 @@ struct CoreCallbacks {
     static size_t Batch(const int16_t* data, size_t frames) {
         if (g_host && g_host->audio_enabled && g_host->on_audio) g_host->on_audio(data, frames);
         return frames;
+    }
+    static bool Rumble(unsigned port, enum retro_rumble_effect effect, uint16_t strength) {
+        if (!g_host || port >= 4 || effect > RETRO_RUMBLE_WEAK) return false;
+        g_host->rumble[port][effect] = strength;
+        return true;
     }
     static void Poll() {}
     static int16_t State(unsigned port, unsigned device, unsigned index, unsigned id) {
@@ -189,7 +199,7 @@ bool CoreHost::LoadCore(const fs::path& path, std::string* error) {
     }
 
     system_dir_ = Paths::ToUtf8(Paths::System());
-    save_dir_ = Paths::ToUtf8(Paths::Saves());
+    if (save_path_.empty()) SetSaveDir(Paths::Saves());
     options_.clear();
     categories_.clear();
 
@@ -290,6 +300,7 @@ void CoreHost::UnloadGame() {
     rom_data_.clear();
     sram_snapshot_.clear();
     for (auto& p : pads) p = {};
+    std::memset(rumble, 0, sizeof rumble);
 }
 
 void CoreHost::RunFrame() {
@@ -342,14 +353,36 @@ bool CoreHost::LoadStateFile(const fs::path& file) {
     return LoadState(data);
 }
 
-fs::path CoreHost::SramPath() const { return Paths::Saves() / (GameKey() + ".srm"); }
+void CoreHost::SetSaveDir(const fs::path& dir) {
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    save_path_ = dir;
+    // El texto queda guardado para siempre en el mapa: su c_str() no cambia aunque se pida otra carpeta.
+    const std::string utf8 = Paths::ToUtf8(dir);
+    auto it = save_dirs_.find(utf8);
+    if (it == save_dirs_.end()) it = save_dirs_.emplace(utf8, utf8).first;
+    save_dir_ = it->second;
+}
+
+fs::path CoreHost::SramPath() const { return save_path_ / (GameKey() + ".srm"); }
 
 void CoreHost::LoadSram() {
+    sram_backed_up_ = false;
     const size_t size = retro_get_memory_size_(RETRO_MEMORY_SAVE_RAM);
     void* mem = retro_get_memory_data_(RETRO_MEMORY_SAVE_RAM);
     if (!size || !mem) return;
     std::vector<uint8_t> data;
-    if (ReadFile(SramPath(), data)) {
+    // Hasta la build 10 todas las partidas iban sueltas en partidas/; si aún no hay una en la
+    // carpeta de la consola, se toma la vieja (se copia al guardar, la original no se toca).
+    const fs::path legacy = Paths::Saves() / (GameKey() + ".srm");
+    bool loaded = ReadFile(SramPath(), data);
+    // Solo si mide lo mismo: si no, es de otra consola con un juego del mismo nombre.
+    if (!loaded && legacy != SramPath() && ReadFile(legacy, data)) {
+        loaded = data.size() == size;
+        if (loaded) Log::Info("Partida tomada de la carpeta anterior: %s", Paths::ToUtf8(legacy.filename()).c_str());
+        else data.clear();
+    }
+    if (loaded) {
         std::memcpy(mem, data.data(), std::min(size, data.size()));
         Log::Info("Partida cargada (%zu bytes)", data.size());
     }
@@ -362,6 +395,18 @@ void CoreHost::SaveSram() {
     const auto* mem = static_cast<const uint8_t*>(retro_get_memory_data_(RETRO_MEMORY_SAVE_RAM));
     if (!size || !mem) return;
     if (sram_snapshot_.size() == size && std::memcmp(sram_snapshot_.data(), mem, size) == 0) return;
+    // Antes de la primera escritura de cada sesión se guarda una copia de la partida anterior
+    // (.srm.bak), por si el juego o el núcleo la dañan.
+    if (!sram_backed_up_) {
+        std::error_code ec;
+        const fs::path cur = SramPath();
+        if (fs::exists(cur, ec)) {
+            fs::path bak = cur;
+            bak += ".bak";
+            fs::copy_file(cur, bak, fs::copy_options::overwrite_existing, ec);
+        }
+        sram_backed_up_ = true;
+    }
     if (WriteFileAtomic(SramPath(), mem, size)) {
         sram_snapshot_.assign(mem, mem + size);
         Log::Info("Partida guardada (%zu bytes)", size);
@@ -430,45 +475,69 @@ void CoreHost::SetOption(const std::string& key, const std::string& value) {
     }
 }
 
-void CoreHost::OverrideDefault(const std::string& key, const std::string& value) {
-    for (auto& o : options_) {
+void ResetToCoreDefaults(std::vector<CoreOption>& opts) {
+    for (auto& o : opts) {
+        o.def = o.core_def;
+        o.current = o.core_def;
+    }
+}
+
+bool OverrideDefault(std::vector<CoreOption>& opts, const std::string& key, const std::string& value) {
+    bool found = false;
+    for (auto& o : opts) {
         if (o.key != key) continue;
         for (const auto& v : o.values) {
             if (v.value == value) {
                 o.def = value;
                 o.current = value;
-                options_updated_ = true;
+                found = true;
             }
         }
     }
+    return found;
 }
 
-void CoreHost::ApplySavedOptions(const std::function<std::string(const std::string&)>& lookup) {
-    for (auto& o : options_) {
-        std::string v = lookup(o.key);
+void ApplySaved(std::vector<CoreOption>& opts, const std::function<std::string(const std::string&)>& lookup) {
+    for (auto& o : opts) {
+        const std::string v = lookup(o.key);
         if (v.empty()) continue;
         for (const auto& val : o.values) {
             if (val.value == v) {
                 o.current = v;
-                options_updated_ = true;
                 break;
             }
         }
     }
 }
 
-void CoreHost::SetCoreOptionsV1(const retro_core_option_definition* defs) {
+void CoreHost::SetCoreOptionsV1(const retro_core_option_definition* defs, const retro_core_option_definition* local) {
     options_.clear();
+    auto find_local = [&](const char* key) -> const retro_core_option_definition* {
+        for (auto* d = local; d && d->key; ++d)
+            if (std::strcmp(d->key, key) == 0) return d;
+        return nullptr;
+    };
     for (; defs && defs->key; ++defs) {
+        const auto* ld = find_local(defs->key);
         CoreOption o;
         o.key = defs->key;
-        o.label = defs->desc ? defs->desc : defs->key;
-        o.info = defs->info ? defs->info : "";
+        const char* desc = ld && ld->desc ? ld->desc : defs->desc;
+        o.label = desc ? desc : defs->key;
+        const char* info = ld && ld->info ? ld->info : defs->info;
+        o.info = info ? info : "";
         for (const auto& v : defs->values) {
             if (!v.value) break;
-            o.values.push_back({v.value, v.label ? v.label : v.value});
+            const char* label = v.label;
+            if (ld) {
+                for (const auto& lv : ld->values) {
+                    if (!lv.value) break;
+                    if (std::strcmp(lv.value, v.value) == 0 && lv.label) label = lv.label;
+                }
+            }
+            o.values.push_back({v.value, label ? label : v.value});
         }
         o.def = defs->default_value ? defs->default_value : (o.values.empty() ? "" : o.values[0].value);
+        o.core_def = o.def;
         o.current = o.def;
         options_.push_back(std::move(o));
     }
@@ -517,6 +586,7 @@ void CoreHost::SetCoreOptionsV2(const retro_core_options_v2* us, const retro_cor
             o.values.push_back({d->values[i].value, label ? label : d->values[i].value});
         }
         o.def = d->default_value ? d->default_value : (o.values.empty() ? "" : o.values[0].value);
+        o.core_def = o.def;
         o.current = o.def;
         options_.push_back(std::move(o));
     }
@@ -574,17 +644,18 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
                 pos = bar + 1;
             }
             o.def = o.values.empty() ? "" : o.values[0].value;
+            o.core_def = o.def;
             o.current = o.def;
             options_.push_back(std::move(o));
         }
         return true;
     }
     case Cmd(RETRO_ENVIRONMENT_SET_CORE_OPTIONS):
-        SetCoreOptionsV1(static_cast<const retro_core_option_definition*>(data));
+        SetCoreOptionsV1(static_cast<const retro_core_option_definition*>(data), nullptr);
         return true;
     case Cmd(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL): {
         const auto* intl = static_cast<const retro_core_options_intl*>(data);
-        SetCoreOptionsV1(intl->us);
+        SetCoreOptionsV1(intl->us, intl->local);
         return true;
     }
     case Cmd(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2):
@@ -637,9 +708,15 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
         geometry_changed_ = true;
         return true;
     }
-    case Cmd(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO):
-        av_info_ = *static_cast<const retro_system_av_info*>(data);
+    case Cmd(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO): {
+        const auto* av = static_cast<const retro_system_av_info*>(data);
+        if (std::fabs(av->timing.sample_rate - av_info_.timing.sample_rate) > 0.5) audio_rate_changed_ = true;
+        av_info_ = *av;
         geometry_changed_ = true;
+        return true;
+    }
+    case Cmd(RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE):
+        static_cast<retro_rumble_interface*>(data)->set_rumble_state = &CoreCallbacks::Rumble;
         return true;
     case Cmd(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION):
         *static_cast<unsigned*>(data) = 1;
@@ -725,6 +802,16 @@ std::string CoreHost::DiskLabel(unsigned i) const {
     char buf[256] = {};
     if (has_disk_ && disk_.get_image_label && disk_.get_image_label(i, buf, sizeof buf) && buf[0]) return buf;
     return "Disco " + std::to_string(i + 1);
+}
+
+bool CoreHost::EjectDisk(bool open) {
+    if (!has_disk_ || !game_loaded_ || !disk_.set_eject_state) return false;
+    return disk_.set_eject_state(open);
+}
+
+bool CoreHost::InsertDisk(unsigned index) {
+    if (!has_disk_ || !game_loaded_ || !disk_.set_image_index) return false;
+    return disk_.set_image_index(index);
 }
 
 bool CoreHost::SetDisk(unsigned index) {

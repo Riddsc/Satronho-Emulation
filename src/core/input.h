@@ -31,12 +31,19 @@ struct Mapping {
     }
 };
 
+// Cada jugador recuerda SU mando por su identidad (GUID), no por la posición: si se desconecta
+// el mando del jugador 1, el del jugador 2 sigue siendo del jugador 2.
 struct PlayerConfig {
     bool keyboard = false;
-    int pad = -1; // posición del mando entre los conectados (0 = primero), -1 ninguno
+    int pad = -1;              // posición actual del mando entre los conectados, -1 ninguno
+    std::string guid;          // identidad del mando elegido ("" = por posición)
+    int want_pos = -1;         // posición elegida (para mandos sin identidad guardada), -1 ninguno
+    SDL_JoystickID bound = 0;  // mando conectado que tiene ahora
+    bool Disconnected() const { return pad < 0 && !guid.empty(); }
 };
 
-enum class Hotkey { Menu, SaveState, LoadState, PrevSlot, NextSlot, FastForward, Rewind, Pause, Reset, Meter, Screenshot, Fullscreen, Count };
+// El orden importa: el número de cada atajo se guarda en satronho.ini (atajo.N). Los nuevos van al final.
+enum class Hotkey { Menu, SaveState, LoadState, PrevSlot, NextSlot, FastForward, Rewind, Pause, Reset, Meter, Screenshot, Fullscreen, Screens, Count };
 
 struct HotkeyDef {
     const char* name;
@@ -73,6 +80,9 @@ public:
     void ClearProfile(int player, const SystemDef& sys);
 
     PlayerConfig players[kPlayers];
+    void SetPlayerPad(int player, int slot); // -1 = sin mando
+    void ResolvePads();                      // reparte los mandos conectados entre los jugadores
+    void ApplyRumble(const CoreHost& core, bool enabled);
 
     // Vista en vivo: botones del RetroPad presionados ahora mismo por el jugador.
     uint16_t LiveButtons(int player, const SystemDef& sys);
@@ -102,6 +112,8 @@ public:
     bool HotkeyHeld(Hotkey h) const;
     std::vector<Hotkey> TakeHotkeyPresses();
     bool MenuComboPressed(); // Select+Start en cualquier mando
+    // Aviso pendiente de una asignación que choca con otra («Esa tecla también es el atajo…»).
+    std::string TakeConflict() { std::string c; c.swap(conflict_); return c; }
     void ClearGameCodes() { game_codes_.clear(); }
 
     // Mandos conectados.
@@ -147,7 +159,12 @@ private:
     std::vector<Hotkey> presses_;
     std::vector<int> game_codes_; // botones del mando que usa el juego actual (no disparan atajos)
     bool GameUses(int code) const;
+    std::string GuidOfSlot(int slot) const;
     bool combo_latched_ = false;
+    std::string conflict_;
+    uint64_t turbo_tick_ = 0;   // cuenta propia del turbo (no depende de los cuadros que dibuja el núcleo)
+    uint16_t rumble_sent_[kPlayers][2] = {};
+    Uint64 rumble_time_[kPlayers] = {};
     uint16_t logged_[kPlayers] = {};
 };
 

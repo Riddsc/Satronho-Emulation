@@ -13,6 +13,7 @@
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 
+#include "util/hash.h"
 #include "util/log.h"
 
 #ifndef SATRONHO_BUILD
@@ -80,6 +81,7 @@ bool App::Init() {
     }
     Paths::Init();
     Log::Open();
+    Log::InstallCrashHandler();
     Log::Info("Satronho Emulation · build %d · %s", build_, SDL_GetPlatform());
     Log::Info("Datos en %s%s", Paths::ToUtf8(Paths::User()).c_str(), Paths::Portable() ? " (portátil)" : "");
 
@@ -198,7 +200,15 @@ bool App::Init() {
     }
     if (qa_.count("ctrl")) ctrl_tab_ = std::atoi(qa_["ctrl"].c_str());
     if (qa_.count("tab")) tab_ = static_cast<SettingsTab>(std::clamp(std::atoi(qa_["tab"].c_str()), 0, 7));
-    if (qa_.count("rom")) StartGame(Paths::FromUtf8(qa_["rom"]));
+    if (qa_.count("rom")) {
+        // «continuar=1»: como el botón Continuar (pasa por «Cargando…» y la ranura automática).
+        if (qa_.count("continuar")) RequestStart(Paths::FromUtf8(qa_["rom"]), true);
+        else StartGame(Paths::FromUtf8(qa_["rom"]));
+    }
+    if (qa_.count("carpeta")) {
+        std::lock_guard lock(pending_mutex_);
+        pending_folders_.push_back(qa_["carpeta"]);
+    }
     return true;
 }
 
@@ -279,13 +289,7 @@ void App::Shutdown() {
 void App::SaveConfig() {
     settings_.Save(ini_);
     input_.Save(ini_);
-    if (core_.CoreLoaded()) {
-        const std::string prefix = "nucleo." + Paths::SafeName(core_name_) + ".";
-        for (const auto& o : core_.Options()) {
-            if (o.current != o.def) ini_.Set(prefix + o.key, o.current);
-            else ini_.Erase(prefix + o.key);
-        }
-    }
+    if (core_.CoreLoaded()) SaveCoreOptions(options_sys_, core_.Options());
     if (!qa_.count("fresh")) ini_.Save(Paths::ConfigFile());
 }
 
@@ -308,16 +312,65 @@ void App::Rescan() { library_.Rescan(settings_.folders); }
 
 bool App::EnsureCore(const SystemDef& sys, std::string* error) {
     const std::string file = CoreFile(sys);
-    if (core_.CoreLoaded() && core_file_ == file) return true;
+    if (core_.CoreLoaded() && core_file_ == file) {
+        // El mismo núcleo para otra consola (Bolsillo ↔ Bolsillo Plus): se cambian sus opciones.
+        if (options_sys_ != sys.id) {
+            SaveConfig();
+            ApplySystemOptions(sys);
+        }
+        return true;
+    }
     if (core_.CoreLoaded()) SaveConfig(); // guarda las opciones del núcleo anterior
+    core_.SetSaveDir(Paths::Saves() / sys.id);
+    options_sys_.clear();
+    tab_options_sys_.clear();
     core_ok_ = core_.LoadCore(Paths::Cores() / file, error);
     core_file_ = core_ok_ ? file : std::string();
     if (!core_ok_) return false;
     core_name_ = core_.SystemInfo().library_name ? core_.SystemInfo().library_name : "núcleo";
-    for (const auto& [key, value] : sys.core_defaults) core_.OverrideDefault(key, value);
-    const std::string prefix = "nucleo." + Paths::SafeName(core_name_) + ".";
-    core_.ApplySavedOptions([&](const std::string& key) { return ini_.Get(prefix + key); });
+    CoreSnapshot snap;
+    snap.options = core_.Options();
+    snap.categories = core_.Categories();
+    snap.name = core_name_;
+    snap.version = core_.SystemInfo().library_version ? core_.SystemInfo().library_version : "";
+    core_cache_[file] = std::move(snap);
+    ApplySystemOptions(sys);
     return true;
+}
+
+std::vector<CoreOption> App::OptionsFor(const SystemDef& sys, std::vector<CoreOption> opts) const {
+    ResetToCoreDefaults(opts);
+    for (const auto& [key, value] : sys.core_defaults) OverrideDefault(opts, key, value);
+    const std::string prefix = "nucleo." + sys.id + ".";
+    const bool migrated = ini_.GetBool(prefix + "@migrado", false);
+    // Antes de la build 11 las opciones se guardaban por núcleo («nucleo.mGBA.…»); se siguen
+    // leyendo hasta que la consola guarde las suyas.
+    auto it = core_cache_.find(CoreFile(sys));
+    const std::string legacy = "nucleo." + Paths::SafeName(it != core_cache_.end() ? it->second.name : core_name_) + ".";
+    ApplySaved(opts, [&](const std::string& key) {
+        std::string v = ini_.Get(prefix + key);
+        if (v.empty() && !migrated) v = ini_.Get(legacy + key);
+        return v;
+    });
+    return opts;
+}
+
+void App::ApplySystemOptions(const SystemDef& sys) {
+    auto& opts = core_.Options();
+    opts = OptionsFor(sys, opts);
+    core_.MarkOptionsChanged();
+    options_sys_ = sys.id;
+    tab_options_sys_.clear();
+}
+
+void App::SaveCoreOptions(const std::string& sys_id, const std::vector<CoreOption>& opts) {
+    if (sys_id.empty() || opts.empty()) return;
+    const std::string prefix = "nucleo." + sys_id + ".";
+    for (const auto& o : opts) {
+        if (o.current != o.def) ini_.Set(prefix + o.key, o.current);
+        else ini_.Erase(prefix + o.key);
+    }
+    ini_.SetBool(prefix + "@migrado", true);
 }
 
 void App::UpdateRefresh() {
@@ -384,7 +437,8 @@ void App::Frame() {
     PollUpdater();
 
     // El cursor se esconde mientras se juega.
-    const bool want_hidden = in_game_ && !menu_open_ && SDL_GetTicks() - last_mouse_move_ > 2000;
+    // En Satronho Dual el mouse es el lápiz de la pantalla táctil: no se esconde.
+    const bool want_hidden = in_game_ && !menu_open_ && !sys_->touch && SDL_GetTicks() - last_mouse_move_ > 2000;
     if (want_hidden != cursor_hidden_) {
         cursor_hidden_ = want_hidden;
         if (want_hidden) SDL_HideCursor();
@@ -405,7 +459,9 @@ void App::Frame() {
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
     if (in_game_ && !paused_ && !menu_open_) EmulateTick(dt);
+    else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) video_.Upload(core_);
+    if (const std::string c = input_.TakeConflict(); !c.empty()) Toast(c, GuideId::Samy, 7);
 
     usage_timer_ += dt;
     if (usage_timer_ > 0.5) {
@@ -426,11 +482,19 @@ void App::Frame() {
     if (in_game_) {
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderClear(renderer_);
-        video_.Draw(core_, settings_, pw, ph, sys_->handheld);
+        video_.Draw(core_, settings_.ForSystem(sys_->id), pw, ph, sys_->handheld);
     }
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
     QaTick();
     SDL_RenderPresent(renderer_);
+
+    // Juego pedido: ya se mostró «Cargando…», ahora se abre.
+    if (!pending_start_.empty() && ++pending_frames_ >= 2) {
+        const fs::path rom = pending_start_;
+        const bool resume = pending_resume_;
+        pending_start_.clear();
+        if (StartGame(rom) && resume) resume_pending_ = true;
+    }
 
     if (!settings_.vsync || (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)) {
         // Sin sincronización vertical se descansa un poco para no gastar CPU de más.
@@ -498,14 +562,15 @@ void App::ProcessPendingPaths() {
     }
     if (!folders.empty()) {
         for (const auto& f : folders) {
-            if (std::find(settings_.folders.begin(), settings_.folders.end(), f) == settings_.folders.end())
-                settings_.folders.push_back(f);
+            const std::string stored = Paths::StoreFolder(Paths::FromUtf8(f));
+            if (std::find(settings_.folders.begin(), settings_.folders.end(), stored) == settings_.folders.end())
+                settings_.folders.push_back(stored);
         }
         SaveConfig();
         Rescan();
         Toast("Buscando juegos en la carpeta nueva…", GuideId::Samy);
     }
-    if (!roms.empty()) StartGame(Paths::FromUtf8(roms.front()));
+    if (!roms.empty()) RequestStart(Paths::FromUtf8(roms.front()));
     std::vector<std::string> bios;
     {
         std::lock_guard lock(pending_mutex_);
@@ -535,34 +600,55 @@ void App::ImportBios(const std::string& sys_id, const fs::path& file) {
     if (!sys || sys->bios.empty()) return;
     std::error_code ec;
     const auto size = fs::file_size(file, ec);
+    if (ec) {
+        Toast("No pude leer ese archivo.", GuideId::Nono, 5);
+        return;
+    }
     std::string name = Paths::ToUtf8(file.filename());
     std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    // 1) Ya tiene el nombre que busca el núcleo. 2) Si no, el que coincide en tamaño y, entre
-    // varios del mismo tamaño, el que tenga en el nombre una pista (región, modelo).
+    // Se reconoce en este orden: 1) la huella exacta, 2) el nombre que busca el núcleo, 3) el
+    // tamaño y una pista del nombre (modelo o región), 4) solo el tamaño (el primero de la lista).
     const BiosFile* pick = nullptr;
-    for (const auto& b : sys->bios)
-        if (name == b.name) pick = &b;
+    bool by_hash = false;
+    std::string sha;
+    for (const auto& b : sys->bios) {
+        if (b.size != size || !*b.sha1) continue;
+        if (sha.empty()) sha = Hash::Sha1File(file);
+        if (sha == b.sha1) {
+            pick = &b;
+            by_hash = true;
+            break;
+        }
+    }
+    if (!pick)
+        for (const auto& b : sys->bios)
+            if (name == b.name) pick = &b;
+    auto size_ok = [&](const BiosFile& b) {
+        return b.size == size || (std::string(b.name) == "firmware.bin" && (size == 131072 || size == 524288));
+    };
     if (!pick) {
         for (const auto& b : sys->bios) {
-            if (b.size != size && !(std::string(b.name) == "firmware.bin" && (size == 131072 || size == 524288))) continue;
-            if (!pick) pick = &b;
+            if (!size_ok(b)) continue;
             std::string kw = b.keywords;
             size_t pos = 0;
-            while (pos <= kw.size()) {
+            while (!pick && pos <= kw.size()) {
                 const size_t bar = kw.find('|', pos);
                 const std::string word = kw.substr(pos, bar == std::string::npos ? std::string::npos : bar - pos);
-                if (!word.empty() && name.find(word) != std::string::npos) {
-                    pick = &b;
-                    pos = kw.size() + 1;
-                    break;
-                }
+                if (!word.empty() && name.find(word) != std::string::npos) pick = &b;
                 if (bar == std::string::npos) break;
                 pos = bar + 1;
             }
+            if (pick) break;
         }
     }
-    if (!pick || (ec && pick)) {
-        Toast("Ese archivo no parece una BIOS de " + sys->full + ".", GuideId::Nono, 5);
+    if (!pick)
+        for (const auto& b : sys->bios)
+            if (size_ok(b)) {
+                pick = &b;
+                break;
+            }
+    if (!pick) {
+        Toast("Ese archivo no parece una BIOS de " + sys->full + " (no tiene el tamaño de ninguna).", GuideId::Nono, 5);
         return;
     }
     fs::create_directories(Paths::System(), ec);
@@ -571,8 +657,14 @@ void App::ImportBios(const std::string& sys_id, const fs::path& file) {
         Toast("No pude copiar la BIOS: " + ec.message(), GuideId::Nono, 5);
         return;
     }
-    Log::Info("BIOS de %s agregada: %s", sys->full.c_str(), pick->name);
-    Toast("¡Listo! " + std::string(pick->name) + " quedó en su lugar. Se usa desde el próximo juego.", GuideId::Nono, 5);
+    Log::Info("BIOS de %s agregada: %s%s", sys->full.c_str(), pick->name, by_hash ? " (huella correcta)" : "");
+    std::string msg = "¡Listo! Quedó como " + std::string(pick->name) + ". Se usa desde el próximo juego.";
+    // Con huella conocida y distinta: el núcleo la usa, pero no es la que recomienda.
+    if (!by_hash && *pick->sha1) {
+        if (sha.empty()) sha = Hash::Sha1File(file);
+        if (sha != pick->sha1) msg += " No es la versión que recomienda el núcleo, pero suele andar bien.";
+    }
+    Toast(msg, GuideId::Nono, 6);
 }
 
 void App::AddFolderDialog() {
@@ -622,7 +714,21 @@ void App::HandleEvent(const SDL_Event& e) {
         UpdateRefresh();
         break;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
-        if (in_game_ && !menu_open_) audio_.Clear();
+        if (in_game_ && !menu_open_) {
+            audio_.Clear();
+            if (settings_.pause_on_focus_loss && !paused_) {
+                paused_ = true;
+                focus_paused_ = true;
+                audio_.SetPaused(true);
+            }
+        }
+        break;
+    case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        if (focus_paused_) {
+            focus_paused_ = false;
+            paused_ = false;
+            audio_.SetPaused(menu_open_);
+        }
         break;
     case SDL_EVENT_MOUSE_MOTION:
         last_mouse_move_ = SDL_GetTicks();
@@ -635,7 +741,7 @@ void App::HandleEvent(const SDL_Event& e) {
                 std::lock_guard lock(pending_mutex_);
                 pending_folders_.push_back(e.drop.data);
             } else {
-                StartGame(p);
+                RequestStart(p);
             }
         }
         break;
@@ -689,11 +795,23 @@ void App::DoHotkey(Hotkey h) {
         core_.Reset();
         Toast("Juego reiniciado", GuideId::Samy, 2.0);
         break;
+    case Hotkey::Screens:
+        if (sys_->id == "dual") {
+            screens_pulse_ = 3; // R3 del RetroPad durante 3 cuadros: melonDS DS pasa a la siguiente forma
+            Toast("Pantallas cambiadas", GuideId::Troya, 1.5);
+        }
+        break;
     default: break;
     }
 }
 
 // ---------------------------------------------------------------- juego
+
+void App::RequestStart(const fs::path& rom, bool resume) {
+    pending_start_ = rom;
+    pending_resume_ = resume;
+    pending_frames_ = 0;
+}
 
 bool App::StartGame(const fs::path& rom) {
     if (in_game_) StopGame();
@@ -713,12 +831,18 @@ bool App::StartGame(const fs::path& rom) {
     }
     std::string err;
     if (!EnsureCore(*sys, &err)) {
-        Toast("Falta el núcleo de " + sys->full + ". Vuelve a descargar Satronho Emulation.", GuideId::MechaRidds, 6);
+        std::error_code ec;
+        if (!fs::exists(Paths::Cores() / CoreFile(*sys), ec))
+            Toast("Falta el núcleo de " + sys->full + ". Vuelve a descargar Satronho Emulation.", GuideId::MechaRidds, 6);
+        else
+            Toast("No se pudo abrir el núcleo de " + sys->full + ". " + err, GuideId::MechaRidds, 6);
         Log::Error("%s", err.c_str());
         return false;
     }
     sys_ = sys;
     core_.port_device = sys->port_device;
+    // Cada consola guarda sus partidas en su propia carpeta (partidas/<consola>).
+    core_.SetSaveDir(Paths::Saves() / sys->id);
     if (!core_.LoadGame(rom, &err)) {
         Toast(err, GuideId::MechaRidds, 6);
         return false;
@@ -729,6 +853,7 @@ bool App::StartGame(const fs::path& rom) {
               GuideId::Nono, 8);
     }
     current_ = Library::MakeGame(rom);
+    MigrateLegacyStates();
     library_.MarkPlayed(current_.key);
     games_dirty_ = true;
     core_.target_refresh = hw_.refresh;
@@ -736,7 +861,13 @@ bool App::StartGame(const fs::path& rom) {
     audio_.Configure(core_.SampleRate());
     ApplyAudioSettings();
     video_.Invalidate();
-    rewind_.clear();
+    rewind_.Clear();
+    undo_state_.clear();
+    resume_pending_ = false;
+    disk_swap_target_ = -1;
+    disk_swap_wait_ = 0;
+    screens_pulse_ = 0;
+    focus_paused_ = false;
     emu_frames_ = 0;
     acc_ = 0;
     session_s_ = 0;
@@ -763,16 +894,26 @@ void App::CommitPlaytime() {
 
 void App::StopGame() {
     if (!in_game_) return;
+    // Ranura automática: al volver, «Continuar» sigue justo aquí.
+    if (settings_.autosave_exit && core_.GameLoaded() && emu_frames_ > 30) SaveSlot(0, true);
     input_.ClearGameCodes();
     CommitPlaytime();
     core_.UnloadGame();
+    input_.ApplyRumble(core_, false);
     audio_.Clear();
     audio_.SetPaused(true);
     in_game_ = false;
     menu_open_ = false;
     paused_ = false;
-    rewind_.clear();
-    rewind_.shrink_to_fit();
+    focus_paused_ = false;
+    rewinding_ = false;
+    fast_forward_ = false;
+    rewind_.Clear();
+    undo_state_.clear();
+    undo_state_.shrink_to_fit();
+    runahead_state_.clear();
+    runahead_state_.shrink_to_fit();
+    disk_swap_target_ = -1;
     for (auto& [k, img] : slot_thumbs_) Ui::FreeImage(img);
     slot_thumbs_.clear();
     SDL_SetWindowTitle(window_, "Satronho Emulation");
@@ -780,6 +921,7 @@ void App::StopGame() {
         SDL_ShowCursor();
         cursor_hidden_ = false;
     }
+    games_dirty_ = true;
 }
 
 void App::SetMenuOpen(bool open) {
@@ -793,13 +935,24 @@ void App::SetMenuOpen(bool open) {
     }
 }
 
+bool App::RewindActive() const { return settings_.rewind && (!sys_->Heavy() || settings_.rewind_heavy); }
+
 void App::EmulateTick(double dt) {
+    // «Continuar» desde la biblioteca: se carga la ranura automática antes del primer cuadro (si
+    // el núcleo todavía no la acepta, después de correr uno).
+    if (resume_pending_) {
+        resume_pending_ = false;
+        bool ok = core_.LoadStateFile(StatePath(0));
+        if (!ok) {
+            core_.RunFrame();
+            ok = core_.LoadStateFile(StatePath(0));
+        }
+        Toast(ok ? "Seguimos donde quedaste." : "No pude cargar donde quedaste; empieza desde la partida guardada.", GuideId::Samy, 3);
+    }
     const double fps = core_.Fps();
-    const bool* ks = SDL_GetKeyboardState(nullptr);
     const bool typing = ImGui::GetIO().WantTextInput;
-    (void)ks;
-    fast_forward_ = !typing && input_.HotkeyHeld(Hotkey::FastForward);
-    rewinding_ = settings_.rewind && !typing && input_.HotkeyHeld(Hotkey::Rewind);
+    fast_forward_ = settings_.fast_forward_enabled && !typing && input_.HotkeyHeld(Hotkey::FastForward);
+    rewinding_ = RewindActive() && !typing && input_.HotkeyHeld(Hotkey::Rewind);
     core_.fast_forwarding = fast_forward_;
 
     // Si la pantalla va casi a la misma velocidad que la consola, se corre un cuadro por
@@ -835,7 +988,14 @@ void App::EmulateTick(double dt) {
     core_.audio_enabled = !(fast_forward_ && settings_.mute_fast_forward);
     for (int i = 0; i < frames; ++i) Step(rewinding_, fast_forward_);
     core_.audio_enabled = true;
+    // Algunos núcleos cambian la frecuencia del sonido a mitad del juego (cambio de región o de modo).
+    if (core_.TakeAudioRateChanged()) {
+        Log::Info("El núcleo cambió el sonido a %.0f Hz", core_.SampleRate());
+        audio_.Configure(core_.SampleRate());
+        ApplyAudioSettings();
+    }
     audio_.Update();
+    input_.ApplyRumble(core_, settings_.rumble);
 
     // Medidor.
     const double now = SDL_GetTicks() / 1000.0;
@@ -862,6 +1022,8 @@ void App::EmulateTick(double dt) {
         audio_drops_logged_ = audio_.Drops();
         Log::Info("Sonido: %d cortes y %d descartes en el último minuto · búfer %.0f ms de %d · velocidad %.4f · %d tirones",
                   cuts, drops, audio_.QueuedMs(), audio_.LatencyMs(), audio_.Ratio(), perf_.stutters_minute);
+        if (RewindActive())
+            Log::Info("Rebobinar: %zu pasos, %.1f MB", rewind_.Steps(), static_cast<double>(rewind_.Bytes()) / (1024.0 * 1024.0));
     }
 
     // Tiempo de juego y partida de la batería.
@@ -877,6 +1039,11 @@ void App::EmulateTick(double dt) {
 
 void App::Step(bool rewinding, bool fast_forward) {
     input_.Update(core_, *sys_, !ImGui::GetIO().WantTextInput);
+    if (screens_pulse_ > 0) {
+        core_.pads[0].buttons |= 1u << RETRO_DEVICE_ID_JOYPAD_R3;
+        --screens_pulse_;
+    }
+    ServiceDiskSwap();
     if (sys_->touch && !menu_open_) {
         // Pantalla táctil con el mouse: la posición dentro de la imagen del juego, en el rango
         // de libretro. El núcleo decide qué parte de la imagen es la pantalla de abajo.
@@ -895,9 +1062,8 @@ void App::Step(bool rewinding, bool fast_forward) {
     }
     perf_.emu_times.push_back(SDL_GetTicks() / 1000.0);
     if (rewinding) {
-        if (!rewind_.empty()) {
-            core_.LoadState(rewind_.back());
-            rewind_.pop_back();
+        if (rewind_.Pop(rewind_tmp_)) {
+            core_.LoadState(rewind_tmp_);
             const bool a = core_.audio_enabled;
             core_.audio_enabled = false;
             core_.RunFrame();
@@ -910,7 +1076,7 @@ void App::Step(bool rewinding, bool fast_forward) {
     if (settings_.runahead > 0 && !fast_forward && sys_->runahead_ok) RunAheadFrame(settings_.runahead);
     else core_.RunFrame();
     ++emu_frames_;
-    if (settings_.rewind && emu_frames_ % 2 == 0) PushRewind();
+    if (RewindActive() && emu_frames_ % 2 == 0) PushRewind();
 }
 
 void App::RunAheadFrame(int frames) {
@@ -935,21 +1101,43 @@ void App::RunAheadFrame(int frames) {
 }
 
 void App::PushRewind() {
-    size_t max = static_cast<size_t>(settings_.rewind_seconds * core_.Fps() / 2.0);
-    // Tope de memoria: un estado de PlayStation pesa varios MB, así que en esas consolas se
-    // guardan menos segundos para no pasar de unos 600 MB.
-    const size_t state = std::max<size_t>(core_.StateSize(), 1);
-    max = std::clamp<size_t>(max, 1, std::max<size_t>(60, (600u * 1024 * 1024) / state));
-    std::vector<uint8_t> buf;
-    if (rewind_.size() >= max && !rewind_.empty()) {
-        buf = std::move(rewind_.front());
-        rewind_.pop_front();
-    }
-    if (core_.SaveState(buf)) rewind_.push_back(std::move(buf));
+    // Un paso cada 2 cuadros; el tope de memoria corta antes si los estados pesan mucho.
+    rewind_.SetMaxSteps(static_cast<size_t>(std::max(30.0, settings_.rewind_seconds * core_.Fps() / 2.0)));
+    rewind_.SetBudget(static_cast<size_t>(settings_.rewind_mb) * 1024 * 1024);
+    if (core_.SaveState(rewind_tmp_)) rewind_.Push(rewind_tmp_);
 }
 
-fs::path App::StatePath(int slot) const {
-    return Paths::States() / (current_.key + "-" + Paths::SafeName(current_.title) + ".estado" + std::to_string(slot));
+fs::path App::StatePathFor(const Game& g, int slot) {
+    const std::string base = g.key + "-" + Paths::SafeName(g.title);
+    return Paths::States() / (base + (slot == 0 ? std::string(".estado-auto") : ".estado" + std::to_string(slot)));
+}
+
+fs::path App::StatePath(int slot) const { return StatePathFor(current_, slot); }
+
+fs::path App::LegacyStatePath(int slot) const {
+    Game g = current_;
+    g.key = current_.legacy_key;
+    return StatePathFor(g, slot);
+}
+
+void App::MigrateLegacyStates() {
+    // Modo portátil: los estados viejos llevan la clave de la ruta completa; se renombran.
+    if (current_.legacy_key == current_.key) return;
+    for (int s = 0; s <= 8; ++s) {
+        std::error_code ec;
+        const fs::path now = StatePath(s), old = LegacyStatePath(s);
+        if (fs::exists(now, ec) || !fs::exists(old, ec)) continue;
+        fs::rename(old, now, ec);
+        fs::path png_old = old, png_now = now;
+        png_old += ".png";
+        png_now += ".png";
+        if (fs::exists(png_old, ec)) fs::rename(png_old, png_now, ec);
+    }
+}
+
+bool App::HasAutoState(const Game& g) const {
+    std::error_code ec;
+    return fs::exists(StatePathFor(g, 0), ec);
 }
 
 void App::RefreshSlotThumbs() {
@@ -957,7 +1145,7 @@ void App::RefreshSlotThumbs() {
     slot_thumbs_.clear();
     slot_dates_.clear();
     if (!in_game_) return;
-    for (int s = 1; s <= 8; ++s) {
+    for (int s = 0; s <= 8; ++s) {
         const fs::path p = StatePath(s);
         std::error_code ec;
         if (!fs::exists(p, ec)) continue;
@@ -974,10 +1162,10 @@ void App::RefreshSlotThumbs() {
     }
 }
 
-void App::SaveSlot(int slot) {
+void App::SaveSlot(int slot, bool quiet) {
     const fs::path p = StatePath(slot);
     if (!core_.SaveStateFile(p)) {
-        Toast("No se pudo guardar el estado.", GuideId::Samy, 3);
+        if (!quiet) Toast("No se pudo guardar el estado.", GuideId::Samy, 3);
         return;
     }
     unsigned w, h;
@@ -987,18 +1175,58 @@ void App::SaveSlot(int slot) {
         png += ".png";
         Ui::SavePng(Paths::ToUtf8(png), rgba.data(), static_cast<int>(w), static_cast<int>(h));
     }
+    if (quiet) return;
     RefreshSlotThumbs();
     Toast("Estado guardado en la ranura " + std::to_string(slot), GuideId::Samy, 2.2);
 }
 
 void App::LoadSlot(int slot) {
+    // Antes de cargar se guarda cómo iba el juego, por si la ranura era la equivocada.
+    std::vector<uint8_t> before;
+    const bool have_before = core_.SaveState(before);
     if (!core_.LoadStateFile(StatePath(slot))) {
-        Toast("La ranura " + std::to_string(slot) + " está vacía.", GuideId::Samy, 2.5);
+        Toast(slot == 0 ? std::string("No hay un guardado automático todavía.") : "La ranura " + std::to_string(slot) + " está vacía.",
+              GuideId::Samy, 2.5);
         return;
     }
-    rewind_.clear();
+    if (have_before) undo_state_ = std::move(before);
+    rewind_.Clear();
     audio_.Clear();
-    Toast("Estado de la ranura " + std::to_string(slot) + " cargado", GuideId::Samy, 2.2);
+    Toast((slot == 0 ? std::string("Guardado automático cargado") : "Estado de la ranura " + std::to_string(slot) + " cargado") +
+              ". ¿Era otra? En el menú puedes deshacerlo.",
+          GuideId::Samy, 3.5);
+}
+
+void App::UndoLoad() {
+    if (undo_state_.empty()) return;
+    if (core_.LoadState(undo_state_)) {
+        undo_state_.clear();
+        rewind_.Clear();
+        audio_.Clear();
+        Toast("Listo: volviste a como ibas antes de cargar.", GuideId::Samy, 3);
+    }
+}
+
+void App::RequestDisk(unsigned index) {
+    // Como en la consola: se abre la tapa, se espera un momento (el juego tiene que notarlo) y
+    // se pone el otro disco.
+    if (disk_swap_target_ >= 0) return;
+    if (!core_.EjectDisk(true)) {
+        Toast("No se pudo cambiar el disco.", GuideId::Samy, 3);
+        return;
+    }
+    disk_swap_target_ = static_cast<int>(index);
+    disk_swap_wait_ = 45;
+    Toast("Abriendo la tapa…", GuideId::Samy, 1.5);
+}
+
+void App::ServiceDiskSwap() {
+    if (disk_swap_target_ < 0 || --disk_swap_wait_ > 0) return;
+    const unsigned target = static_cast<unsigned>(disk_swap_target_);
+    disk_swap_target_ = -1;
+    const bool ok = core_.InsertDisk(target);
+    core_.EjectDisk(false);
+    Toast(ok ? "Pusiste el " + core_.DiskLabel(target) + "." : std::string("No se pudo poner ese disco."), GuideId::Samy, 3);
 }
 
 void App::Screenshot() {

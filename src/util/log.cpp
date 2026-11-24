@@ -3,6 +3,7 @@
 #include "util/log.h"
 
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
 #include <ctime>
 #include <mutex>
@@ -10,6 +11,11 @@
 #include <SDL3/SDL.h>
 
 #include "util/paths.h"
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 namespace Satronho::Log {
 namespace {
@@ -71,5 +77,39 @@ void Close() {
 SAT_LOG_IMPL(Info, "Info ")
 SAT_LOG_IMPL(Warn, "Aviso")
 SAT_LOG_IMPL(Error, "Error")
+
+#ifdef _WIN32
+namespace {
+LONG WINAPI OnCrash(EXCEPTION_POINTERS* info) {
+    const DWORD code = info && info->ExceptionRecord ? info->ExceptionRecord->ExceptionCode : 0;
+    void* addr = info && info->ExceptionRecord ? info->ExceptionRecord->ExceptionAddress : nullptr;
+    // Archivo (exe o dll) donde estaba la instrucción que falló y su posición dentro de él.
+    char module[MAX_PATH] = "?";
+    HMODULE mod = nullptr;
+    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           static_cast<LPCSTR>(addr), &mod) && mod) {
+        GetModuleFileNameA(mod, module, sizeof module);
+    }
+    const char* base = module;
+    for (const char* c = module; *c; ++c)
+        if (*c == '\\' || *c == '/') base = c + 1;
+    const unsigned long long offset =
+        mod ? static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(addr) - reinterpret_cast<uintptr_t>(mod)) : 0ull;
+    // Puede que el fallo haya pasado mientras se escribía el registro: no se espera al candado.
+    const bool locked = g_mutex.try_lock();
+    if (g_file) {
+        std::fprintf(g_file, "[cierre] Error Cierre inesperado: código 0x%08lX en %s+0x%llX\n", static_cast<unsigned long>(code),
+                     base, offset);
+        std::fflush(g_file);
+    }
+    if (locked) g_mutex.unlock();
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+} // namespace
+
+void InstallCrashHandler() { SetUnhandledExceptionFilter(&OnCrash); }
+#else
+void InstallCrashHandler() {}
+#endif
 
 } // namespace Satronho::Log

@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -23,10 +24,16 @@ struct CoreOption {
         std::string label;
     };
     std::vector<Value> values;
-    std::string def;
+    std::string def;       // por defecto (el de Satronho si lo cambia para esa consola)
+    std::string core_def;  // el que trae el núcleo
     std::string current;
     bool visible = true;
 };
+
+// Ayudas para listas de opciones (las del núcleo cargado o una copia guardada).
+void ResetToCoreDefaults(std::vector<CoreOption>& opts);
+bool OverrideDefault(std::vector<CoreOption>& opts, const std::string& key, const std::string& value);
+void ApplySaved(std::vector<CoreOption>& opts, const std::function<std::string(const std::string&)>& lookup);
 
 struct CoreCategory {
     std::string key;
@@ -74,8 +81,7 @@ public:
     std::vector<CoreOption>& Options() { return options_; }
     const std::vector<CoreCategory>& Categories() const { return categories_; }
     void SetOption(const std::string& key, const std::string& value);
-    void OverrideDefault(const std::string& key, const std::string& value); // valor por defecto de Satronho
-    void ApplySavedOptions(const std::function<std::string(const std::string&)>& lookup);
+    void MarkOptionsChanged() { options_updated_ = true; }
 
     // Información.
     const retro_system_info& SystemInfo() const { return sys_info_; }
@@ -86,6 +92,12 @@ public:
     std::vector<std::string> Extensions() const;
     const fs::path& RomPath() const { return rom_path_; }
     std::string GameKey() const; // nombre base del juego para partidas y estados
+
+    // Carpeta de partidas de la consola actual (partidas/<consola>). Los núcleos también
+    // guardan ahí lo suyo (tarjetas de memoria, .bkr de Saturn). La ruta queda fija en memoria
+    // porque algunos núcleos guardan el puntero que se les da.
+    void SetSaveDir(const fs::path& dir);
+    fs::path SramPath() const;
 
     // Imagen del último cuadro.
     const std::vector<uint8_t>& Frame() const { return frame_; }
@@ -109,11 +121,18 @@ public:
     float target_refresh = 60.0f;
     unsigned port_device = RETRO_DEVICE_JOYPAD; // tipo de mando que se conecta (DualShock en CD)
 
+    // Vibración que pide el núcleo (Rumble Pak, DualShock): 0..65535 por puerto, fuerte y débil.
+    uint16_t rumble[4][2] = {};
+    // true una vez si el núcleo cambió la frecuencia del sonido a mitad del juego.
+    bool TakeAudioRateChanged() { bool c = audio_rate_changed_; audio_rate_changed_ = false; return c; }
+
     // Discos (juegos de varios CD).
     unsigned DiskCount() const;
     int DiskIndex() const;
     std::string DiskLabel(unsigned i) const;
-    bool SetDisk(unsigned index);
+    bool SetDisk(unsigned index);      // todo de una vez (abrir, cambiar y cerrar)
+    bool EjectDisk(bool open);         // abrir o cerrar la tapa
+    bool InsertDisk(unsigned index);   // con la tapa abierta
 
     // Información para el medidor.
     double last_run_ms = 0.0;
@@ -123,10 +142,9 @@ private:
 
     bool Environment(unsigned cmd, void* data);
     void Video(const void* data, unsigned w, unsigned h, size_t pitch);
-    void SetCoreOptionsV1(const retro_core_option_definition* defs);
+    void SetCoreOptionsV1(const retro_core_option_definition* defs, const retro_core_option_definition* local);
     void SetCoreOptionsV2(const retro_core_options_v2* opts, const retro_core_options_v2* local);
     void LoadSram();
-    fs::path SramPath() const;
 
     void* lib_ = nullptr;
     bool game_loaded_ = false;
@@ -136,6 +154,10 @@ private:
     fs::path rom_path_;
     std::vector<uint8_t> rom_data_;
     std::string system_dir_, save_dir_;
+    fs::path save_path_;
+    std::map<std::string, std::string> save_dirs_; // textos estables para GET_SAVE_DIRECTORY
+    bool sram_backed_up_ = false;
+    bool audio_rate_changed_ = false;
     retro_system_info sys_info_{};
     retro_system_av_info av_info_{};
     bool support_no_game_ = false;
