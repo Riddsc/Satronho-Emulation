@@ -1780,7 +1780,9 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         }
         ImGui::EndDisabled();
     }
-    ImGui::Dummy({0, S(4)});
+    // Asignación automática, uno por uno, restablecer y borrar (arriba en la vista compacta, abajo en la de NX).
+    const bool nx = !compact && ImGui::GetContentRegionAvail().x >= S(900);
+    auto toolbar = [&]() {
     {
         FontScope f(GetFonts().medium, 14);
         if (Button("Asignación automática", ButtonKind::Secondary, {0, S(38)}, Icon::Sparkle, true)) {
@@ -1802,6 +1804,11 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             input_.ClearProfile(player, sys);
             changed = true;
         }
+    }
+    };
+    if (!nx) {
+        ImGui::Dummy({0, S(4)});
+        toolbar();
     }
     ImGui::Dummy({0, S(6)});
 
@@ -1936,7 +1943,164 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     const float wide_cell = S(150);
     const float wide_side = wide_cell * 2 + gap;
     const float right_side = wide_cell * face_cols + gap * (face_cols - 1);
-    if (!compact && W >= wide_side + right_side + col_gap * 2 + S(420)) {
+    if (nx) {
+        // Como en Satronho NX: el mando grande al centro y sus botones alrededor, cada grupo en su
+        // recuadro. Se asigna un dispositivo a la vez (mando o teclado), con casillas pequeñas.
+        const bool dev_key = ctrl_device_ == 1;
+        const float colw = std::clamp(W * 0.27f, S(260), S(340));
+        const float pad = S(12), title_box = S(30), cgap = S(8);
+        const float item_h = S(50);
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        auto box = [&](const char* title, ImVec2 p, float w, float h) {
+            dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(Color::Surface, 0.75f), S(12));
+            dl->AddRect(p, {p.x + w, p.y + h}, U32(Color::Border), S(12));
+            FontScope f(GetFonts().semibold, 12.5f);
+            const float tw = ImGui::CalcTextSize(title).x;
+            dl->AddText({p.x + (w - tw) * 0.5f, p.y + S(8)}, U32(Color::Muted), title);
+        };
+        auto nx_cell = [&](int id, ImVec2 pos, float w) {
+            ImGui::PushID(id);
+            const bool down = (live >> id) & 1;
+            const bool cap = cap_here && input_.capture.button == id;
+            {
+                FontScope f(GetFonts().medium, 12.5f);
+                const char* l = label_of(id);
+                const float tw = ImGui::CalcTextSize(l).x;
+                dl->AddText({pos.x + (w - tw) * 0.5f, pos.y}, U32(down ? Color::Gold : Color::Text), l);
+            }
+            ImGui::SetCursorScreenPos({pos.x, pos.y + S(18)});
+            const int r = BindingChip("##b", dev_key, dev_key ? Input::KeyLabel(m.keys[id]) : Input::PadCodeLabel(m.pad[id], family), cap, down, w);
+            if (r == 1) input_.StartCapture(player, sys, id, !dev_key, false);
+            if (r == 2) {
+                if (dev_key) m.keys[id] = SDL_SCANCODE_UNKNOWN;
+                else m.pad[id] = kPadNone;
+                changed = true;
+            }
+            ImGui::PopID();
+        };
+        // Recuadro con filas de casillas (cada fila centrada, como en el mando); devuelve su alto.
+        auto rows_box = [&](const char* title, const std::vector<std::vector<int>>& rows, ImVec2 p, float w) {
+            int cols = 1;
+            for (const auto& r : rows) cols = std::max(cols, static_cast<int>(r.size()));
+            const int nr = static_cast<int>(rows.size());
+            const float h = title_box + nr * item_h + (nr - 1) * cgap + pad;
+            box(title, p, w, h);
+            const float cw = (w - pad * 2 - cgap * (cols - 1)) / cols;
+            for (int r = 0; r < nr; ++r) {
+                const int in_row = static_cast<int>(rows[r].size());
+                const float row_w = in_row * cw + (in_row - 1) * cgap;
+                float x = p.x + (w - row_w) * 0.5f;
+                for (int id : rows[r]) {
+                    nx_cell(id, {x, p.y + title_box + r * (item_h + cgap)}, cw);
+                    x += cw + cgap;
+                }
+            }
+            return h;
+        };
+        auto grid_box = [&](const char* title, const std::vector<int>& ids, ImVec2 p, float w, int per_row) {
+            std::vector<std::vector<int>> rows;
+            for (size_t i = 0; i < ids.size(); i += per_row)
+                rows.emplace_back(ids.begin() + i, ids.begin() + std::min(ids.size(), i + per_row));
+            return rows_box(title, rows, p, w);
+        };
+        // Palanca en vivo (círculo con su punto) y, si hay, el clic de la palanca.
+        float sticks[4];
+        input_.LiveSticks(player, sticks);
+        auto stick_box = [&](const char* title, int side, int click_id, ImVec2 p, float w, const char* note) {
+            const float r = S(36);
+            const float h = title_box + r * 2 + S(14) + (click_id >= 0 ? item_h + cgap : 0.0f) + (note ? S(20) : 0.0f) + pad;
+            box(title, p, w, h);
+            const ImVec2 c(p.x + w * 0.5f, p.y + title_box + r + S(4));
+            dl->AddCircleFilled(c, r, U32(Color::Bg));
+            dl->AddCircle(c, r, U32(Color::Border), 0, S(1.5f));
+            dl->AddCircle(c, r * input_.deadzone, U32(Color::Accent, 0.35f), 0, S(1));
+            const float x = sticks[side * 2], y = sticks[side * 2 + 1];
+            const bool moved = x * x + y * y > 0.04f;
+            dl->AddCircleFilled({c.x + x * r, c.y + y * r}, S(6), U32(moved ? Color::Gold : Color::Accent));
+            float yy = p.y + title_box + r * 2 + S(14);
+            if (note) {
+                FontScope f(GetFonts().regular, 12);
+                const float tw = ImGui::CalcTextSize(note).x;
+                dl->AddText({p.x + (w - tw) * 0.5f, yy}, U32(Color::Dim), note);
+                yy += S(20);
+            }
+            if (click_id >= 0) nx_cell(click_id, {p.x + pad + (w - pad * 2) * 0.2f, yy}, (w - pad * 2) * 0.6f);
+            return h;
+        };
+        auto has_btn = [&](int id) {
+            return std::any_of(sys.buttons.begin(), sys.buttons.end(), [&](const auto& b) { return b.first == id; });
+        };
+        // Gatillos de cada lado (L, Z… a la izquierda; R a la derecha). L3/R3 van con su palanca.
+        std::vector<int> left_sh, right_sh;
+        for (int id : sys.shoulders) {
+            if (sys.analog && (id == RETRO_DEVICE_ID_JOYPAD_L3 || id == RETRO_DEVICE_ID_JOYPAD_R3)) continue;
+            const char c0 = label_of(id)[0];
+            (c0 == 'R' ? right_sh : left_sh).push_back(id);
+        }
+        std::vector<int> face;
+        for (const auto& row : sys.face) face.insert(face.end(), row.begin(), row.end());
+        int face_per_row = 2;
+        for (const auto& row : sys.face) face_per_row = std::max(face_per_row, static_cast<int>(row.size()));
+
+        // Fila de arriba: qué se asigna (mando o teclado).
+        {
+            FontScope f(GetFonts().semibold, 13.5f);
+            ImGui::SetCursorScreenPos(o);
+            ImGui::TextUnformatted("Asignar con");
+            ImGui::SameLine(0, S(10));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(8));
+            int dev = ctrl_device_;
+            if (Segmented("##dispositivo", &dev, {"Mando", "Teclado"}, S(240))) ctrl_device_ = dev;
+        }
+        const float top = o.y + S(46);
+        // Columna izquierda.
+        float ly = top;
+        if (!left_sh.empty()) ly += grid_box("Gatillos izquierdos", left_sh, {o.x, ly}, colw, 2) + col_gap * 0.5f;
+        ly += grid_box("Cruceta", {RETRO_DEVICE_ID_JOYPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_UP, RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_RIGHT},
+                       {o.x, ly}, colw, 2) + col_gap * 0.5f;
+        if (sys.analog) ly += stick_box("Palanca izquierda", 0, has_btn(RETRO_DEVICE_ID_JOYPAD_L3) ? RETRO_DEVICE_ID_JOYPAD_L3 : -1, {o.x, ly}, colw, nullptr);
+        // Columna derecha.
+        const float rx = o.x + W - colw;
+        float ry = top;
+        if (!right_sh.empty()) ry += grid_box("Gatillos derechos", right_sh, {rx, ry}, colw, 2) + col_gap * 0.5f;
+        (void)face_per_row;
+        ry += rows_box(sys.layout == Layout::N64 ? "Botones (C en la palanca derecha)" : "Botones", sys.face, {rx, ry}, colw) + col_gap * 0.5f;
+        if (sys.analog)
+            ry += stick_box("Palanca derecha", 1, has_btn(RETRO_DEVICE_ID_JOYPAD_R3) ? RETRO_DEVICE_ID_JOYPAD_R3 : -1, {rx, ry}, colw,
+                            sys.layout == Layout::N64 ? "Mueve los botones C" : nullptr);
+        // Centro: Select/Start arriba y el mando grande.
+        const float cx0 = o.x + colw + col_gap, cx1 = rx - col_gap;
+        float cy = top;
+        if (!sys.center.empty()) {
+            const float cw = std::min(S(170), (cx1 - cx0) * 0.4f);
+            const float bw = cw * static_cast<float>(sys.center.size()) + cgap * (sys.center.size() - 1) + pad * 2;
+            cy += grid_box(sys.center_title, sys.center, {(cx0 + cx1 - bw) * 0.5f, cy}, bw, static_cast<int>(sys.center.size())) + S(14);
+        }
+        const float bottom = std::max({ly, ry, cy + S(300)});
+        const float dh = bottom - cy;
+        const float dw = std::min(cx1 - cx0, dh * aspect);
+        drawing({(cx0 + cx1 - dw) * 0.5f, cy}, {dw, dh});
+        total_h = bottom - o.y;
+        // Abajo, como en NX: vibración y los botones de asignar, restablecer y borrar.
+        ImGui::SetCursorScreenPos({o.x, o.y + total_h + S(16)});
+        {
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            if (Toggle("##vibracion_nx", &settings_.rumble)) changed = true;
+            ImGui::SameLine(0, S(8));
+            ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, p.y + S(3)});
+            Muted("Vibración", 13.5f);
+            ImGui::SameLine(0, S(22));
+            ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, p.y - S(4)});
+            FontScope f(GetFonts().medium, 13);
+            ImGui::TextDisabled("Zona muerta");
+            ImGui::SameLine(0, S(8));
+            changed |= SliderPercent("##zona_nx", &input_.deadzone, S(200));
+            ImGui::SameLine(0, S(22));
+            ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, p.y - S(6)});
+            toolbar();
+        }
+        total_h += S(60);
+    } else if (!compact && W >= wide_side + right_side + col_gap * 2 + S(420)) {
         // Pantalla ancha: el control al centro y los grupos alrededor, como en DuckStation.
         cell_w = wide_cell;
         const float lh = dpad_group(o);
