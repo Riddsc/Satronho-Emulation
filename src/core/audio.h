@@ -37,6 +37,7 @@ private:
     SDL_AudioStream* stream_ = nullptr;
     double in_rate_ = 48000.0;
     double ratio_ = 1.0;
+    double integ_ = 0.0;   // parte integral del control (corrige diferencias fijas de reloj)
     int latency_ms_ = 64;
     int underruns_ = 0;
     int drops_ = 0;

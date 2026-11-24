@@ -3,6 +3,41 @@
     {
       "version": "Esta build",
       "fecha": "23 de noviembre de 2026",
+      "titulo": "Llega Satronho CD y la biblioteca se ordena por consola",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho CD, para juegos de PlayStation, con el núcleo Beetle PSX: imagen al doble de resolución, mando con dos sticks (L1, L2, R1, R2, L3 y R3) y tarjeta de memoria propia para cada juego. Abre .cue, .chd, .pbp, .m3u y .ccd."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Juegos de varios discos: «Cambiar disco» en el menú de pausa. Sin BIOS de PlayStation se usa OpenBIOS, que es libre; la original se agrega en Ajustes » Núcleo » CD."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "El sonido de Satronho Hexa ya no suena mal: bsnes guarda parte de su sonido fuera del estado del juego, así que con el adelanto de cuadros se repetía. En Hexa el adelanto queda apagado."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El búfer de sonido ahora se queda en la latencia elegida (antes vivía a la mitad y a veces se cortaba)."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "La biblioteca separa los juegos por consola, cada grupo con su control en miniatura, y cada tarjeta lleva el distintivo de su consola."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "En la barra lateral, «En camino» muestra todas las consolas que vienen: 64, Dual, Cubo, Anillo, Sueño, CD2 y Portátil."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Las pistas .bin de los discos ya no aparecen como juegos de Mega, y los botones del mando que usa el juego (como L2 y R2 en CD) ya no adelantan ni rebobinan."
+        }
+      ]
+    },
+    {
+      "version": "Build 7",
+      "fecha": "23 de noviembre de 2026",
       "titulo": "Llegan Satronho Mega y Satronho Hexa",
       "cambios": [
         {

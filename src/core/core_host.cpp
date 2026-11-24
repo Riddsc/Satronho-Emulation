@@ -205,6 +205,8 @@ void CoreHost::UnloadCore() {
     lib_ = nullptr;
     options_.clear();
     categories_.clear();
+    disk_ = {};
+    has_disk_ = false;
 }
 
 std::vector<std::string> CoreHost::Extensions() const {
@@ -227,8 +229,13 @@ bool CoreHost::LoadGame(const fs::path& rom, std::string* error) {
     if (!lib_) return false;
     UnloadGame();
     rom_data_.clear();
-    if (!ReadFile(rom, rom_data_)) {
+    // Los núcleos de disco (need_fullpath) abren el archivo ellos mismos: no se lee entero.
+    if (!sys_info_.need_fullpath && !ReadFile(rom, rom_data_)) {
         if (error) *error = "No se pudo leer el archivo del juego.";
+        return false;
+    }
+    if (sys_info_.need_fullpath && !fs::exists(rom)) {
+        if (error) *error = "No se encontró el archivo del juego.";
         return false;
     }
     const std::string path_utf8 = Paths::ToUtf8(rom);
@@ -253,7 +260,7 @@ bool CoreHost::LoadGame(const fs::path& rom, std::string* error) {
     std::memset(&av_info_, 0, sizeof av_info_);
     retro_get_system_av_info_(&av_info_);
     geometry_changed_ = true;
-    for (unsigned port = 0; port < 2; ++port) retro_set_controller_port_device_(port, RETRO_DEVICE_JOYPAD);
+    for (unsigned port = 0; port < 2; ++port) retro_set_controller_port_device_(port, port_device);
     LoadSram();
     Log::Info("Juego cargado: %s (%ux%u, %.4f fps, %.0f Hz)", path_utf8.c_str(), av_info_.geometry.base_width,
               av_info_.geometry.base_height, av_info_.timing.fps, av_info_.timing.sample_rate);
@@ -654,6 +661,20 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
         si->get_sensor_input = &CoreCallbacks::SensorInput;
         return true;
     }
+    case Cmd(RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION):
+        *static_cast<unsigned*>(data) = 1;
+        return true;
+    case Cmd(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE): {
+        const auto* cb = static_cast<const retro_disk_control_callback*>(data);
+        disk_ = {};
+        std::memcpy(&disk_, cb, sizeof *cb); // los primeros campos son los mismos
+        has_disk_ = true;
+        return true;
+    }
+    case Cmd(RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE):
+        disk_ = *static_cast<const retro_disk_control_ext_callback*>(data);
+        has_disk_ = true;
+        return true;
     case Cmd(RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS):
         *static_cast<unsigned*>(data) = 4;
         return true;
@@ -670,6 +691,31 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
     default:
         return false;
     }
+}
+
+// ---------------------------------------------------------------- discos
+
+unsigned CoreHost::DiskCount() const {
+    return has_disk_ && game_loaded_ && disk_.get_num_images ? disk_.get_num_images() : 0;
+}
+
+int CoreHost::DiskIndex() const {
+    return has_disk_ && game_loaded_ && disk_.get_image_index ? static_cast<int>(disk_.get_image_index()) : -1;
+}
+
+std::string CoreHost::DiskLabel(unsigned i) const {
+    char buf[256] = {};
+    if (has_disk_ && disk_.get_image_label && disk_.get_image_label(i, buf, sizeof buf) && buf[0]) return buf;
+    return "Disco " + std::to_string(i + 1);
+}
+
+bool CoreHost::SetDisk(unsigned index) {
+    if (!has_disk_ || !game_loaded_ || !disk_.set_eject_state || !disk_.set_image_index) return false;
+    // Como en la consola: abrir la tapa, cambiar el disco y cerrarla.
+    if (!disk_.set_eject_state(true)) return false;
+    const bool ok = disk_.set_image_index(index);
+    disk_.set_eject_state(false);
+    return ok;
 }
 
 } // namespace Satronho

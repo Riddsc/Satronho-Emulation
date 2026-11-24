@@ -95,3 +95,9 @@ descarga el zip y escribe un `instalar.ps1` en %TEMP% que espera a que se cierre
 `App::EmulateTick` corre un cuadro de más o de menos cuando el búfer de sonido se aleja mucho de la
 latencia elegida (pantallas de 120/144 Hz), y `AudioOut` ajusta la velocidad ±1 %. Cada minuto de
 juego anota en el registro: cortes, descartes, búfer y tirones.
+- **CD (Beetle PSX, software)**: `platform=win` con `SHARED` propio. Sin BIOS usa OpenBIOS (viene
+  dentro del núcleo). El mando se conecta como DualShock (`port_device`), el stick derecho va al
+  juego (`analog`), y `disc` activa el aviso de BIOS. La biblioteca esconde los .bin que nombra un
+  .cue y los discos que nombra un .m3u; un .bin de más de 16 MB no se toma como juego de Mega.
+  El rebobinado se limita a ~600 MB de estados.
+- Hexa también va sin adelanto: el remuestreo de bsnes queda fuera del estado.

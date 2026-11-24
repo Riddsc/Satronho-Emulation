@@ -71,6 +71,11 @@ jobs:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-bsnes.sh build/cores
 
+      - name: Núcleo de PlayStation (Beetle PSX)
+        env:
+          LLVM_MINGW: /home/runner/llvm-mingw
+        run: scripts/build-core-beetle-psx.sh build/cores
+
       - name: Satronho Emulation
         env:
           LLVM_MINGW: /home/runner/llvm-mingw

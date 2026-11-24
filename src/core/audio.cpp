@@ -34,6 +34,7 @@ void AudioOut::Configure(double sample_rate) {
     SDL_SetAudioStreamFormat(stream_, &src, nullptr);
     SDL_ClearAudioStream(stream_);
     ratio_ = 1.0;
+    integ_ = 0.0;
     SDL_SetAudioStreamFrequencyRatio(stream_, 1.0f);
 }
 
@@ -64,8 +65,12 @@ void AudioOut::Update() {
     starved_ = starved;
     // Si hay más sonido del esperado se reproduce un poquito más rápido, y viceversa.
     // ±1 % no se nota en el tono y alcanza para corregir pantallas de 144 Hz.
+    // Proporcional + integral: la integral absorbe la diferencia fija entre el reloj de la
+    // tarjeta de sonido y el de la consola, así el búfer se queda en la latencia elegida en vez
+    // de vivir a la mitad (build 7: 30 ms de 64 en todas las consolas).
     const double error = std::clamp((queued - target) / target, -1.0, 1.0);
-    const double wanted = 1.0 + error * 0.01;
+    integ_ = std::clamp(integ_ + error * 0.00015, -0.008, 0.008);
+    const double wanted = 1.0 + std::clamp(error * 0.006 + integ_, -0.012, 0.012);
     ratio_ = ratio_ * 0.85 + wanted * 0.15;
     SDL_SetAudioStreamFrequencyRatio(stream_, static_cast<float>(ratio_));
 }
