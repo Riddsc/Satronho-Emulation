@@ -149,6 +149,23 @@ Mapping Input::DefaultMapping(const SystemDef& sys, bool keyboard_keys) {
     m.pad[RETRO_DEVICE_ID_JOYPAD_SELECT] = SDL_GAMEPAD_BUTTON_BACK;
     if (has(RETRO_DEVICE_ID_JOYPAD_L)) m.pad[RETRO_DEVICE_ID_JOYPAD_L] = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
     if (has(RETRO_DEVICE_ID_JOYPAD_R)) m.pad[RETRO_DEVICE_ID_JOYPAD_R] = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+    // Segundos gatillos y clic de los sticks (mando de PlayStation).
+    if (has(RETRO_DEVICE_ID_JOYPAD_L2)) {
+        if (keyboard_keys) m.keys[RETRO_DEVICE_ID_JOYPAD_L2] = SDL_SCANCODE_E;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_L2] = kPadLT;
+    }
+    if (has(RETRO_DEVICE_ID_JOYPAD_R2)) {
+        if (keyboard_keys) m.keys[RETRO_DEVICE_ID_JOYPAD_R2] = SDL_SCANCODE_R;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_R2] = kPadRT;
+    }
+    if (has(RETRO_DEVICE_ID_JOYPAD_L3)) {
+        if (keyboard_keys) m.keys[RETRO_DEVICE_ID_JOYPAD_L3] = SDL_SCANCODE_F;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_L3] = SDL_GAMEPAD_BUTTON_LEFT_STICK;
+    }
+    if (has(RETRO_DEVICE_ID_JOYPAD_R3)) {
+        if (keyboard_keys) m.keys[RETRO_DEVICE_ID_JOYPAD_R3] = SDL_SCANCODE_G;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_R3] = SDL_GAMEPAD_BUTTON_RIGHT_STICK;
+    }
     if (sys.layout == Layout::Genesis) {
         // Mando de 6 botones: A B C abajo y X Y Z arriba, como quedan en un mando moderno.
         // (BlastEm: A = B del RetroPad, B = A, C = R, X = Y, Y = X, Z = L.)
@@ -474,6 +491,7 @@ void Input::HandleEvent(const SDL_Event& e) {
             }
             break;
         }
+        if (GameUses(e.gbutton.button)) break;
         for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i)
             if (hk_pad[i] == e.gbutton.button && !HotkeyInfo(static_cast<Hotkey>(i)).hold) presses_.push_back(static_cast<Hotkey>(i));
         break;
@@ -492,7 +510,7 @@ void Input::HandleEvent(const SDL_Event& e) {
                     capture.pad = true;
                     AssignCaptured(SDL_SCANCODE_UNKNOWN, code);
                 }
-            } else {
+            } else if (!GameUses(code)) {
                 for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i)
                     if (hk_pad[i] == code && !HotkeyInfo(static_cast<Hotkey>(i)).hold) presses_.push_back(static_cast<Hotkey>(i));
             }
@@ -526,9 +544,14 @@ bool Input::HotkeyHeld(Hotkey h) const {
     const int i = static_cast<int>(h);
     const bool* ks = SDL_GetKeyboardState(nullptr);
     if (hk_keys[i] != SDL_SCANCODE_UNKNOWN && ks[hk_keys[i]]) return true;
+    if (GameUses(hk_pad[i])) return false; // ese botón es del juego (L2/R2 en CD)
     for (const auto& p : pads_)
         if (PadCodeDown(p.pad, hk_pad[i])) return true;
     return false;
+}
+
+bool Input::GameUses(int code) const {
+    return code != kPadNone && std::find(game_codes_.begin(), game_codes_.end(), code) != game_codes_.end();
 }
 
 bool Input::MenuComboPressed() {
@@ -575,6 +598,17 @@ uint16_t Input::LiveButtons(int player, const SystemDef& sys) {
 
 void Input::Update(CoreHost& core, const SystemDef& sys, bool keyboard_enabled) {
     for (auto& p : core.pads) p = {};
+    // Los botones del mando que este juego usa no disparan atajos (por ejemplo, L2 y R2 en CD
+    // no adelantan ni rebobinan).
+    game_codes_.clear();
+    for (int pl = 0; pl < kPlayers; ++pl) {
+        if (players[pl].pad < 0) continue;
+        const Mapping& m = Edit(pl, sys);
+        for (const auto& [id, label] : sys.buttons) {
+            (void)label;
+            if (m.pad[id] != kPadNone) game_codes_.push_back(m.pad[id]);
+        }
+    }
     if (Capturing()) return;
     const bool phase = (core.FrameSerial() / 2) % 2 == 0;
     for (int pl = 0; pl < kPlayers; ++pl) {
@@ -603,6 +637,12 @@ void Input::Update(CoreHost& core, const SystemDef& sys, bool keyboard_enabled) 
         if (SDL_Gamepad* pad = PadAt(players[pl].pad)) {
             core.pads[pl].analog[0][0] = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX);
             core.pads[pl].analog[0][1] = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY);
+            // El stick derecho solo va al juego en consolas con dos sticks (en las portátiles
+            // sirve para inclinar).
+            if (sys.analog) {
+                core.pads[pl].analog[1][0] = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTX);
+                core.pads[pl].analog[1][1] = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTY);
+            }
         }
     }
 }

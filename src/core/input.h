@@ -102,6 +102,7 @@ public:
     bool HotkeyHeld(Hotkey h) const;
     std::vector<Hotkey> TakeHotkeyPresses();
     bool MenuComboPressed(); // Select+Start en cualquier mando
+    void ClearGameCodes() { game_codes_.clear(); }
 
     // Mandos conectados.
     struct PadInfo {
@@ -144,6 +145,8 @@ private:
     std::map<std::string, std::string> player_profile_[kPlayers];
     std::vector<Open> pads_;
     std::vector<Hotkey> presses_;
+    std::vector<int> game_codes_; // botones del mando que usa el juego actual (no disparan atajos)
+    bool GameUses(int code) const;
     bool combo_latched_ = false;
     uint16_t logged_[kPlayers] = {};
 };

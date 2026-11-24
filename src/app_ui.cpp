@@ -182,11 +182,63 @@ void App::DrawSidebar(float width) {
         DrawControllerMini(ImGui::GetWindowDrawList(), sys.layout, {r0.x + S(24), (r0.y + r1.y) * 0.5f},
                            sys.handheld ? S(26) : S(30), sel || hov ? 1.0f : 0.75f);
     }
+    // Las que vienen, una por una y en orden de llegada: la primera es la próxima.
+    ImGui::Dummy({0, S(8)});
+    SectionLabel("   EN CAMINO");
+    ImGui::Dummy({0, S(2)});
     {
-        std::string names;
-        for (const auto& c : SoonSystems()) names += (names.empty() ? "" : ", ") + std::string(c.name);
-        NavItem("Más consolas", Icon::Gamepad, false, "Pronto", true, Color::Accent);
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) HelpTooltip(("Vienen en camino: " + names + ".").c_str());
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const float w = ImGui::GetContentRegionAvail().x, h = S(30);
+        // Si la ventana es bajita y no cabe todo, la lista se resume en una sola fila.
+        const bool collapsed = sidebar_full_h_ > ImGui::GetWindowHeight();
+        if (collapsed) {
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            ImGui::InvisibleButton("##en_camino", {w, h});
+            const bool hov = ImGui::IsItemHovered();
+            if (hov) dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(Color::Surface2, 0.6f), S(10));
+            dl->AddCircleFilled({p.x + S(24), p.y + h * 0.5f}, S(4), U32(Color::Accent));
+            FontScope f(GetFonts().medium, 14);
+            const std::string t = Fmt("Sigue %s  ·  y %zu más", SoonSystems().front().name, SoonSystems().size() - 1);
+            dl->AddText({p.x + S(44), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Muted), t.c_str());
+            if (hov) {
+                std::string names;
+                for (const auto& c : SoonSystems()) names += std::string(names.empty() ? "" : ", ") + c.name + " (" + c.hint + ")";
+                HelpTooltip(("Vienen en camino, en este orden: " + names + ".").c_str());
+            }
+        }
+        int i = 0;
+        for (const auto& c : SoonSystems()) {
+            if (collapsed) break;
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            ImGui::PushID(c.name);
+            ImGui::InvisibleButton("##pronto", {w, h});
+            const bool hov = ImGui::IsItemHovered();
+            ImGui::PopID();
+            if (hov) dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(Color::Surface2, 0.6f), S(10));
+            const bool next = i == 0;
+            // Puntito: lila si es la próxima, gris las demás.
+            dl->AddCircleFilled({p.x + S(24), p.y + h * 0.5f}, S(4), U32(next ? Color::Accent : Color::Border));
+            if (next) dl->AddCircle({p.x + S(24), p.y + h * 0.5f}, S(7), U32(Color::Accent, 0.35f), 0, S(1.5f));
+            {
+                FontScope f(GetFonts().medium, 14);
+                const std::string name = std::string("Satronho ") + c.name;
+                dl->AddText({p.x + S(44), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(next ? Color::Muted : Color::Dim), c.name);
+                const float lw = ImGui::CalcTextSize(c.name).x;
+                FontScope f2(GetFonts().regular, 12);
+                dl->AddText({p.x + S(44) + lw + S(6), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Dim), c.hint);
+                if (hov) HelpTooltip((name + ": para " + c.games + ". " + (next ? "Es la que sigue." : "Viene en camino.")).c_str());
+            }
+            {
+                FontScope f(GetFonts().semibold, 11);
+                const char* badge = next ? "Próxima" : "Pronto";
+                const ImVec2 bs = ImGui::CalcTextSize(badge);
+                const ImVec2 b1(p.x + w - S(12), p.y + h * 0.5f + bs.y * 0.5f + S(3));
+                const ImVec2 b0(b1.x - bs.x - S(14), b1.y - bs.y - S(6));
+                dl->AddRectFilled(b0, b1, next ? U32(Color::Accent, 0.2f) : U32(Color::Surface2), S(20));
+                dl->AddText({b0.x + S(7), b0.y + S(2.5f)}, U32(next ? Color::Accent : Color::Dim), badge);
+            }
+            ++i;
+        }
     }
     ImGui::Dummy({0, S(10)});
     SectionLabel("   SATRONHO");
@@ -199,6 +251,12 @@ void App::DrawSidebar(float width) {
 
     // Pie: autor y build.
     const float foot_h = S(58);
+    {
+        // Alto que ocuparía todo con la lista completa de «En camino»; si no cabe, se resume.
+        const bool was_collapsed = sidebar_full_h_ > ImGui::GetWindowHeight();
+        const float extra = was_collapsed ? S(30) * static_cast<float>(SoonSystems().size() - 1) : 0.0f;
+        sidebar_full_h_ = ImGui::GetCursorPosY() + extra + foot_h + S(16);
+    }
     const float y = ImGui::GetWindowHeight() - foot_h - S(16);
     if (ImGui::GetCursorPosY() < y) ImGui::SetCursorPosY(y);
     const ImVec2 p = ImGui::GetCursorScreenPos();
@@ -216,7 +274,6 @@ void App::DrawSidebar(float width) {
         dl->AddText({p.x + S(58), p.y + S(30)}, U32(Color::Dim), b.c_str());
     }
     ImGui::Dummy({w, foot_h});
-
     ImGui::EndChild();
     ImGui::PopStyleVar(2);
 }
@@ -343,33 +400,81 @@ void App::DrawLibrary() {
         return;
     }
 
-    // Cuadrícula.
+    // Cuadrícula. En «todas las consolas» (orden A-Z, sin buscar) los juegos se separan por
+    // consola, cada grupo con su control en miniatura y su nombre.
     const float gap = S(18);
     const float min_w = S(188);
     const float width = ImGui::GetContentRegionAvail().x;
     const int cols = std::max(1, static_cast<int>((width + gap) / (min_w + gap)));
     const float cw = std::floor((width - gap * (cols - 1)) / cols);
     const float ch = cw * 0.95f + S(78);
-    const int rows = (static_cast<int>(list.size()) + cols - 1) / cols;
 
-    ImGuiListClipper clipper;
-    clipper.Begin(rows, ch + gap);
-    while (clipper.Step()) {
-        for (int r = clipper.DisplayStart; r < clipper.DisplayEnd; ++r) {
-            const ImVec2 row0 = ImGui::GetCursorScreenPos();
-            for (int c = 0; c < cols; ++c) {
-                const int i = r * cols + c;
-                if (i >= static_cast<int>(list.size())) break;
-                ImGui::SetCursorScreenPos({row0.x + c * (cw + gap), row0.y});
-                const Game& g = *list[i];
-                if (DrawGameCard(g, cw, ch, g.key == selected_key_)) {
-                    StartGame(g.path);
-                    return;
+    auto draw_grid = [&](const std::vector<const Game*>& items) -> bool {
+        const int rows = (static_cast<int>(items.size()) + cols - 1) / cols;
+        ImGuiListClipper clipper;
+        clipper.Begin(rows, ch + gap);
+        while (clipper.Step()) {
+            for (int r = clipper.DisplayStart; r < clipper.DisplayEnd; ++r) {
+                const ImVec2 row0 = ImGui::GetCursorScreenPos();
+                for (int c = 0; c < cols; ++c) {
+                    const int i = r * cols + c;
+                    if (i >= static_cast<int>(items.size())) break;
+                    ImGui::SetCursorScreenPos({row0.x + c * (cw + gap), row0.y});
+                    const Game& g = *items[i];
+                    if (DrawGameCard(g, cw, ch, g.key == selected_key_)) {
+                        StartGame(g.path);
+                        return true;
+                    }
                 }
+                ImGui::SetCursorScreenPos({row0.x, row0.y + ch + gap});
+                ImGui::Dummy({0, 0});
             }
-            ImGui::SetCursorScreenPos({row0.x, row0.y + ch + gap});
-            ImGui::Dummy({0, 0});
         }
+        return false;
+    };
+
+    const bool grouped = !lib_sys && query.empty() && settings_.sort == 0;
+    if (!grouped) {
+        draw_grid(list);
+        return;
+    }
+    for (const auto& sys : Systems()) {
+        std::vector<const Game*> part;
+        for (const Game* g : list)
+            if (g->system == sys.id) part.push_back(g);
+        if (part.empty()) continue;
+        // Encabezado del grupo: control en miniatura, nombre, cantidad y «Ver solo estos».
+        ImGui::Dummy({0, S(6)});
+        const ImVec2 hp = ImGui::GetCursorScreenPos();
+        const float hh = S(40);
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        DrawControllerMini(dl, sys.layout, {hp.x + S(22), hp.y + hh * 0.5f}, sys.handheld ? S(28) : S(40), 1.0f);
+        {
+            FontScope f(GetFonts().bold, 19);
+            dl->AddText({hp.x + S(54), hp.y + (hh - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), sys.full.c_str());
+            const float nw = ImGui::CalcTextSize(sys.full.c_str()).x;
+            FontScope f2(GetFonts().medium, 13);
+            const std::string sub = Fmt("%s  ·  %zu %s", sys.hint.c_str(), part.size(), part.size() == 1 ? "juego" : "juegos");
+            dl->AddText({hp.x + S(54) + nw + S(12), hp.y + (hh - ImGui::GetFontSize()) * 0.5f + S(1)}, U32(sys.color), sub.c_str());
+        }
+        // Línea fina con el color de la consola.
+        dl->AddRectFilled({hp.x, hp.y + hh + S(6)}, {hp.x + width, hp.y + hh + S(7.5f)}, U32(Color::Border));
+        dl->AddRectFilled({hp.x, hp.y + hh + S(5.5f)}, {hp.x + S(54), hp.y + hh + S(8)}, U32(sys.color), S(2));
+        {
+            FontScope f(GetFonts().medium, 13.5f);
+            const char* more = "Ver solo estos";
+            const ImVec2 ms = ImGui::CalcTextSize(more);
+            ImGui::SetCursorScreenPos({hp.x + width - ms.x - S(26), hp.y + (hh - ms.y) * 0.5f});
+            ImGui::PushID(sys.id.c_str());
+            if (ImGui::InvisibleButton("##ver", {ms.x + S(24), ms.y})) lib_system_ = sys.id;
+            const bool mh = ImGui::IsItemHovered();
+            ImGui::PopID();
+            dl->AddText({hp.x + width - ms.x - S(26), hp.y + (hh - ms.y) * 0.5f}, U32(mh ? Color::Text : Color::Muted), more);
+            DrawIcon(dl, Icon::ChevronRight, {hp.x + width - S(10), hp.y + hh * 0.5f}, S(12), U32(mh ? Color::Text : Color::Muted));
+        }
+        ImGui::SetCursorScreenPos({hp.x, hp.y + hh + S(22)});
+        if (draw_grid(part)) return;
+        ImGui::Dummy({0, S(8)});
     }
 }
 
@@ -446,6 +551,17 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     const SystemDef* gs = SystemById(g.system);
     DrawCartridge(dl, a, {b.x, a.y + cover_h}, g.hue, g.title, rr, hv > 0.5f, gs ? gs->layout : Layout::Nes, gs ? gs->label.c_str() : "OCTA");
     if (selected || hv > 0) dl->AddRect(a, b, U32(selected ? Color::Accent : Color::Surface3, selected ? 1.0f : hv), rr, S(selected ? 2.0f : 1.5f));
+    // Distintivo de la consola arriba a la izquierda: su control en miniatura y su nombre.
+    if (gs) {
+        FontScope f(GetFonts().semibold, 11.5f);
+        const ImVec2 ts = ImGui::CalcTextSize(gs->name.c_str());
+        const float ph = S(26), icon_w = gs->handheld ? S(16) : S(24);
+        const ImVec2 b0(a.x + S(10), a.y + S(10)), b1(b0.x + S(10) + icon_w + S(6) + ts.x + S(10), b0.y + ph);
+        dl->AddRectFilled(b0, b1, IM_COL32(15, 13, 23, 190), ph * 0.5f);
+        dl->AddRect(b0, b1, U32(gs->color, 0.45f), ph * 0.5f, 1.0f);
+        DrawControllerMini(dl, gs->layout, {b0.x + S(10) + icon_w * 0.5f, b0.y + ph * 0.5f}, icon_w, 1.0f);
+        dl->AddText({b0.x + S(10) + icon_w + S(6), b0.y + (ph - ts.y) * 0.5f}, U32(gs->color), gs->name.c_str());
+    }
 
     // Botón de jugar al pasar el mouse.
     if (hv > 0.01f) {
@@ -476,9 +592,7 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     {
         FontScope f(GetFonts().regular, 12.5f);
         std::string meta = g.playtime_s > 0 ? FormatPlaytime(g.playtime_s) : std::string("Sin jugar");
-        if (lib_system_.empty()) {
-            if (const SystemDef* gsys = SystemById(g.system)) meta += "  ·  " + gsys->name;
-        } else if (!g.tags.empty()) {
+        if (!g.tags.empty()) {
             meta += "  ·  " + g.tags.front();
         }
         Ellipsize(dl, GetFonts().regular, S(12.5f), {a.x + S(14), a.y + cover_h + S(38)}, U32(Color::Muted), meta, w - S(28), 1);
@@ -943,7 +1057,7 @@ void App::DrawSettingsCore() {
             if (&Systems()[i] == sys_) cur = static_cast<int>(i);
     }
     ImGui::BeginDisabled(in_game_);
-    if (Segmented("##nucleo_sis", &cur, names, S(420))) core_tab_system_ = Systems()[cur].id;
+    if (Segmented("##nucleo_sis", &cur, names, std::min(ImGui::GetContentRegionAvail().x, S(110) * names.size()))) core_tab_system_ = Systems()[cur].id;
     ImGui::EndDisabled();
     ImGui::Dummy({0, S(10)});
     const SystemDef& tsys = Systems()[cur];
@@ -959,6 +1073,19 @@ void App::DrawSettingsCore() {
                   tsys.full.c_str(), si.library_name, si.library_version,
                   tsys.core == "mgba" ? " Bolsillo y Bolsillo Plus comparten el mismo núcleo y sus opciones." : "").c_str());
     ImGui::Dummy({0, S(16)});
+    if (tsys.disc) {
+        // BIOS de PlayStation: sin ella se usa OpenBIOS (libre), que va bien con casi todo.
+        const std::string bios = PsxBiosFound();
+        RowBegin("BIOS de PlayStation",
+                 bios.empty() ? "No hay BIOS: se usa OpenBIOS, libre e incluida. Con la original (scph5501.bin para juegos de "
+                                "América, scph5500 de Japón, scph5502 de Europa) algunos juegos andan mejor y sale la animación de inicio."
+                              : ("Usando " + bios + ". Gracias: así cada juego arranca como en la consola.").c_str());
+        if (Button(bios.empty() ? "Agregar BIOS…" : "Cambiar BIOS…", ButtonKind::Secondary, {0, 0}, Icon::Chip, true)) PickPsxBios();
+        ImGui::SameLine(0, S(8));
+        if (Button("Abrir carpeta", ButtonKind::Ghost, {0, 0}, Icon::Folder, true)) OpenFolder(Paths::System());
+        RowEnd();
+        ImGui::Dummy({0, S(6)});
+    }
     bool changed = false;
     auto& opts = core_.Options();
     auto draw_option = [&](CoreOption& o) {
@@ -1302,10 +1429,15 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         float h = title_h + cell_h;
         if (shoulders) {
             const float y = p.y + h + gap * 1.5f;
-            group_title("GATILLOS", {p.x, y});
-            cell(sys.shoulders[0], {p.x, y + title_h});
-            if (sys.shoulders.size() > 1) cell(sys.shoulders[1], {p.x + cell_w + gap, y + title_h});
-            h = y - p.y + title_h + cell_h;
+            group_title(sys.shoulders.size() > 2 ? "GATILLOS Y STICKS" : "GATILLOS", {p.x, y});
+            // De a dos por fila: L1 R1, L2 R2, L3 R3.
+            float ry = y + title_h;
+            for (size_t i = 0; i < sys.shoulders.size(); i += 2) {
+                cell(sys.shoulders[i], {p.x, ry});
+                if (i + 1 < sys.shoulders.size()) cell(sys.shoulders[i + 1], {p.x + cell_w + gap, ry});
+                ry += cell_h + gap;
+            }
+            h = ry - gap - p.y;
         }
         return h;
     };
@@ -1332,7 +1464,8 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     } else {
         // Más angosto: el control grande arriba y los tres grupos debajo.
         // El dibujo crece hasta donde quepan debajo las casillas sin tener que bajar.
-        const int rows = std::max<int>(3, static_cast<int>(sys.face.size()));
+        const int center_rows = 1 + static_cast<int>((sys.shoulders.size() + 1) / 2);
+        const int rows = std::max({3, static_cast<int>(sys.face.size()), center_rows});
         const float groups_h = S(18) + title_h + rows * cell_h + (rows - 1) * gap;
         const float fit_h = ImGui::GetContentRegionAvail().y - groups_h - S(48);
         const float draw_h = std::clamp(std::min(W / aspect, fit_h), S(200), compact ? S(240) : S(320));
@@ -1671,6 +1804,16 @@ void App::DrawPauseMenu() {
     if (NavItem("Estados", Icon::Save, menu_section_ == 0)) menu_section_ = 0;
     if (NavItem("Ajustes rápidos", Icon::Gear, menu_section_ == 1, nullptr, false, Color::Accent)) menu_section_ = 1;
     if (NavItem("Controles", Icon::Gamepad, menu_section_ == 2, nullptr, false, Color::Amber)) menu_section_ = 2;
+    // Juegos de varios discos: cambiar de disco como en la consola.
+    if (const unsigned discs = core_.DiskCount(); discs > 1) {
+        const int idx = core_.DiskIndex();
+        const std::string badge = Fmt("%d de %u", idx + 1, discs);
+        if (NavItem("Cambiar disco", Icon::Refresh, false, badge.c_str(), false, Color::Teal)) {
+            const unsigned next = (static_cast<unsigned>(std::max(idx, 0)) + 1) % discs;
+            if (core_.SetDisk(next)) Toast("Pusiste el " + core_.DiskLabel(next) + ".", GuideId::Samy, 3);
+            else Toast("No se pudo cambiar el disco.", GuideId::Samy, 3);
+        }
+    }
     if (NavItem("Reiniciar", Icon::Restart, false)) {
         core_.Reset();
         SetMenuOpen(false);

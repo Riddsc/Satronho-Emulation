@@ -9,7 +9,7 @@
 namespace Satronho {
 
 // Forma del control que se dibuja en Controles.
-enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes };
+enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes, PlayStation };
 
 // Un emulador de la familia Satronho dentro del hub.
 struct SystemDef {
@@ -33,6 +33,9 @@ struct SystemDef {
     std::vector<std::vector<int>> face;
     std::vector<int> shoulders;
     const char* center_title = "SELECT Y START";
+    unsigned port_device = 1;  // RETRO_DEVICE_JOYPAD; en CD, el DualShock
+    bool analog = false;       // los sticks van al juego
+    bool disc = false;         // juegos en disco (cue, chd…)
     // Valores por defecto de Satronho para opciones del núcleo.
     std::vector<std::pair<const char*, const char*>> core_defaults;
 };
@@ -48,6 +51,7 @@ std::string SystemsSentence();
 struct SoonSystem {
     const char* name;
     const char* hint;
+    const char* games; // «juegos de Nintendo 64»
 };
 const std::vector<SoonSystem>& SoonSystems();
 

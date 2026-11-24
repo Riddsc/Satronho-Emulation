@@ -104,6 +104,13 @@ public:
     bool audio_enabled = true;
     bool fast_forwarding = false;
     float target_refresh = 60.0f;
+    unsigned port_device = RETRO_DEVICE_JOYPAD; // tipo de mando que se conecta (DualShock en CD)
+
+    // Discos (juegos de varios CD).
+    unsigned DiskCount() const;
+    int DiskIndex() const;
+    std::string DiskLabel(unsigned i) const;
+    bool SetDisk(unsigned index);
 
     // Información para el medidor.
     double last_run_ms = 0.0;
@@ -120,6 +127,8 @@ private:
 
     void* lib_ = nullptr;
     bool game_loaded_ = false;
+    retro_disk_control_ext_callback disk_{};
+    bool has_disk_ = false;
     fs::path rom_path_;
     std::vector<uint8_t> rom_data_;
     std::string system_dir_, save_dir_;

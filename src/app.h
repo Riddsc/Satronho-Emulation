@@ -111,6 +111,9 @@ private:
     void ApplySuggestion();
     void AddFolderDialog();
     void OpenRomDialog();
+    std::string PsxBiosFound() const;
+    void PickPsxBios();
+    void ImportPsxBios(const fs::path& file);
     void Rescan();
     void LoadAssets();
     void QaTick();
@@ -223,6 +226,9 @@ private:
     std::mutex pending_mutex_;
     std::vector<std::string> pending_folders_;
     std::vector<std::string> pending_roms_;
+    std::vector<std::string> pending_bios_;
+    bool bios_hint_shown_ = false;
+    float sidebar_full_h_ = 0;
 
     // Modo de revisión automática (SATRONHO_QA).
     std::map<std::string, std::string> qa_;
@@ -230,6 +236,7 @@ private:
 
     friend void FolderDialogCallback(void*, const char* const*, int);
     friend void FileDialogCallback(void*, const char* const*, int);
+    friend void BiosDialogCallback(void*, const char* const*, int);
 };
 
 } // namespace Satronho

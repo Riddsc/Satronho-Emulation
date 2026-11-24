@@ -3,6 +3,7 @@
 #include "app.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <ctime>
 #include <fstream>
@@ -43,6 +44,13 @@ void FileDialogCallback(void* user, const char* const* list, int) {
     if (!list) return;
     std::lock_guard lock(app->pending_mutex_);
     for (; *list; ++list) app->pending_roms_.push_back(*list);
+}
+
+void BiosDialogCallback(void* user, const char* const* list, int) {
+    auto* app = static_cast<App*>(user);
+    if (!list || !*list) return;
+    std::lock_guard lock(app->pending_mutex_);
+    app->pending_bios_.push_back(*list);
 }
 
 // ---------------------------------------------------------------- inicio y cierre
@@ -491,6 +499,56 @@ void App::ProcessPendingPaths() {
         Toast("Buscando juegos en la carpeta nueva…", GuideId::Samy);
     }
     if (!roms.empty()) StartGame(Paths::FromUtf8(roms.front()));
+    std::vector<std::string> bios;
+    {
+        std::lock_guard lock(pending_mutex_);
+        bios.swap(pending_bios_);
+    }
+    for (const auto& b : bios) ImportPsxBios(Paths::FromUtf8(b));
+}
+
+// ---------------------------------------------------------------- BIOS de PlayStation
+
+namespace {
+// Nombres que busca el núcleo (Japón, Estados Unidos, Europa y otras revisiones).
+const char* const kPsxBios[] = {"scph5501.bin", "scph5500.bin", "scph5502.bin", "scph5503.bin", "scph7003.bin",
+                                "scph5552.bin", "scph1001.bin", "scph7001.bin", "scph7502.bin", "scph101.bin", "psxonpsp660.bin"};
+} // namespace
+
+std::string App::PsxBiosFound() const {
+    std::error_code ec;
+    for (const char* name : kPsxBios)
+        if (fs::exists(Paths::System() / name, ec)) return name;
+    return {};
+}
+
+void App::PickPsxBios() {
+    static const SDL_DialogFileFilter filters[] = {{"BIOS de PlayStation", "bin;rom"}, {"Todos los archivos", "*"}};
+    SDL_ShowOpenFileDialog(&BiosDialogCallback, this, window_, filters, 2, nullptr, false);
+}
+
+void App::ImportPsxBios(const fs::path& file) {
+    std::error_code ec;
+    const auto size = fs::file_size(file, ec);
+    if (ec || (size != 512 * 1024 && size != 1024 * 1024)) {
+        Toast("Ese archivo no parece una BIOS de PlayStation (pesa 512 KB).", GuideId::Nono, 5);
+        return;
+    }
+    // Se respeta el nombre si es uno de los que busca el núcleo; si no, queda como la de
+    // Estados Unidos, que es la que más juegos piden.
+    std::string name = Paths::ToUtf8(file.filename());
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    bool known = false;
+    for (const char* k : kPsxBios) known |= name == k;
+    if (!known) name = "scph5501.bin";
+    fs::create_directories(Paths::System(), ec);
+    fs::copy_file(file, Paths::System() / name, fs::copy_options::overwrite_existing, ec);
+    if (ec) {
+        Toast("No pude copiar la BIOS: " + ec.message(), GuideId::Nono, 5);
+        return;
+    }
+    Log::Info("BIOS de PlayStation agregada: %s", name.c_str());
+    Toast("¡Listo! BIOS agregada como " + name + ". Se usa desde el próximo juego.", GuideId::Nono, 5);
 }
 
 void App::AddFolderDialog() {
@@ -628,9 +686,15 @@ bool App::StartGame(const fs::path& rom) {
         return false;
     }
     sys_ = sys;
+    core_.port_device = sys->port_device;
     if (!core_.LoadGame(rom, &err)) {
         Toast(err, GuideId::MechaRidds, 6);
         return false;
+    }
+    if (sys->disc && PsxBiosFound().empty() && !bios_hint_shown_) {
+        bios_hint_shown_ = true;
+        Toast("Sin BIOS de PlayStation uso OpenBIOS, que es libre. Si un juego falla, agrega la tuya en Ajustes » Núcleo » CD.",
+              GuideId::Nono, 8);
     }
     current_ = Library::MakeGame(rom);
     library_.MarkPlayed(current_.key);
@@ -667,6 +731,7 @@ void App::CommitPlaytime() {
 
 void App::StopGame() {
     if (!in_game_) return;
+    input_.ClearGameCodes();
     CommitPlaytime();
     core_.UnloadGame();
     audio_.Clear();
@@ -822,7 +887,11 @@ void App::RunAheadFrame(int frames) {
 }
 
 void App::PushRewind() {
-    const size_t max = static_cast<size_t>(settings_.rewind_seconds * core_.Fps() / 2.0);
+    size_t max = static_cast<size_t>(settings_.rewind_seconds * core_.Fps() / 2.0);
+    // Tope de memoria: un estado de PlayStation pesa varios MB, así que en esas consolas se
+    // guardan menos segundos para no pasar de unos 600 MB.
+    const size_t state = std::max<size_t>(core_.StateSize(), 1);
+    max = std::clamp<size_t>(max, 1, std::max<size_t>(60, (600u * 1024 * 1024) / state));
     std::vector<uint8_t> buf;
     if (rewind_.size() >= max && !rewind_.empty()) {
         buf = std::move(rewind_.front());

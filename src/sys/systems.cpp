@@ -90,7 +90,36 @@ std::vector<SystemDef> Build() {
     // En rombo, como en el mando: X arriba, Y y A al medio, B abajo.
     hexa.face = {{RETRO_DEVICE_ID_JOYPAD_X}, {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_A}, {RETRO_DEVICE_ID_JOYPAD_B}};
     hexa.shoulders = {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R};
+    // bsnes remuestrea el sonido fuera del estado guardado: con adelanto, cada cuadro "del
+    // futuro" deja sonido repetido y suena mal (Fighter's History, build 7).
+    hexa.runahead_ok = false;
     v.push_back(hexa);
+
+    // PlayStation con el DualShock: análogos, L1/L2/R1/R2 y clic de los sticks.
+    SystemDef cd = Make("cd", "CD", "juegos de PlayStation", "PS1", "mednafen_psx", {"cue", "chd", "pbp", "m3u", "ccd"}, "CD",
+                        0x5B7CFF, Layout::PlayStation, false);
+    cd.buttons = With({{RETRO_DEVICE_ID_JOYPAD_B, "Cruz"},
+                       {RETRO_DEVICE_ID_JOYPAD_A, "Círculo"},
+                       {RETRO_DEVICE_ID_JOYPAD_Y, "Cuadrado"},
+                       {RETRO_DEVICE_ID_JOYPAD_X, "Triángulo"},
+                       {RETRO_DEVICE_ID_JOYPAD_L, "L1"},
+                       {RETRO_DEVICE_ID_JOYPAD_R, "R1"},
+                       {RETRO_DEVICE_ID_JOYPAD_L2, "L2"},
+                       {RETRO_DEVICE_ID_JOYPAD_R2, "R2"},
+                       {RETRO_DEVICE_ID_JOYPAD_L3, "L3"},
+                       {RETRO_DEVICE_ID_JOYPAD_R3, "R3"},
+                       {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"},
+                       {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    cd.face = {{RETRO_DEVICE_ID_JOYPAD_X}, {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_A}, {RETRO_DEVICE_ID_JOYPAD_B}};
+    cd.shoulders = {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R, RETRO_DEVICE_ID_JOYPAD_L2,
+                    RETRO_DEVICE_ID_JOYPAD_R2, RETRO_DEVICE_ID_JOYPAD_L3, RETRO_DEVICE_ID_JOYPAD_R3};
+    cd.port_device = RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1); // DualShock
+    cd.analog = true;
+    cd.disc = true;
+    cd.runahead_ok = false; // por probar con juegos reales; el estado pesa varios MB
+    // Imagen al doble de resolución (polígonos más finos) y sin el tramado de la época.
+    cd.core_defaults = {{"beetle_psx_internal_resolution", "2x"}, {"beetle_psx_dither_mode", "disabled"}};
+    v.push_back(cd);
 
     SystemDef gb = Make("bolsillo", "Bolsillo", "juegos de Game Boy y Game Boy Color", "GB · GBC", "mgba", {"gb", "gbc", "sgb"},
                         "BOLSILLO", 0x9BBC0F, Layout::GameBoy, true);
@@ -169,8 +198,15 @@ std::string SystemsSentence() {
 }
 
 const std::vector<SoonSystem>& SoonSystems() {
+    // En el orden en que van llegando.
     static const std::vector<SoonSystem> soon{
-        {"CD", "PS1"}, {"64", "N64"}, {"Dual", "DS · 3DS"}, {"Cubo", "GC · Wii"},
+        {"64", "N64", "juegos de Nintendo 64"},
+        {"Dual", "DS · 3DS", "juegos de Nintendo DS y 3DS"},
+        {"Cubo", "GC · Wii", "juegos de GameCube y Wii"},
+        {"Anillo", "Saturn", "juegos de Sega Saturn"},
+        {"Sueño", "Dreamcast", "juegos de Dreamcast"},
+        {"CD2", "PS2", "juegos de PlayStation 2"},
+        {"Portátil", "PSP", "juegos de PSP"},
     };
     return soon;
 }

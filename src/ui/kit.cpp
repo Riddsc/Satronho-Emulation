@@ -952,6 +952,22 @@ void DrawCartridge(ImDrawList* dl, ImVec2 p0, ImVec2 p1, unsigned hue, const std
             dl->AddLine({c1.x - cw * 0.07f, y}, {c1.x - cw * 0.025f, y}, IM_COL32(70, 68, 78, 255), t);
         }
         draw_label({c0.x + cw * 0.11f, c0.y + ch * 0.12f}, {c1.x - cw * 0.11f, c0.y + ch * 0.86f}, 0.18f);
+    } else if (layout == Layout::PlayStation) {
+        // Caja de CD: el disco asoma por arriba a la derecha y la portada va al frente.
+        const float cw = w * 0.62f, ch = std::min(h * 0.74f, cw * 0.95f);
+        const ImVec2 c0(p0.x + (w - cw) * 0.5f - w * 0.04f, p0.y + (h - ch) * 0.6f - lift), c1(c0.x + cw, c0.y + ch);
+        const ImVec2 dc(c1.x - cw * 0.08f, c0.y + ch * 0.12f);
+        const float dr = cw * 0.42f;
+        dl->AddCircleFilled({dc.x + 3, dc.y + 5}, dr, IM_COL32(0, 0, 0, 60), 48);
+        dl->AddCircleFilled(dc, dr, IM_COL32(196, 200, 214, 255), 48);
+        dl->AddCircle(dc, dr * 0.72f, IM_COL32(170, 176, 196, 255), 48, std::max(1.0f, dr * 0.04f));
+        dl->AddCircleFilled(dc, dr * 0.2f, IM_COL32(150, 156, 176, 255), 32);
+        dl->AddCircleFilled(dc, dr * 0.08f, IM_COL32(30, 28, 40, 255), 16);
+        dl->AddRectFilled({c0.x + 3, c0.y + 6}, {c1.x + 3, c1.y + 6}, IM_COL32(0, 0, 0, 80), cw * 0.03f);
+        dl->AddRectFilled(c0, c1, IM_COL32(40, 40, 50, 255), cw * 0.03f);
+        dl->AddRectFilled(c0, {c0.x + cw * 0.07f, c1.y}, IM_COL32(24, 24, 32, 255), cw * 0.03f, ImDrawFlags_RoundLeft);
+        draw_label({c0.x + cw * 0.1f, c0.y + ch * 0.05f}, {c1.x - cw * 0.04f, c1.y - ch * 0.05f}, 0.16f);
+        dl->AddRect(c0, c1, IM_COL32(255, 255, 255, 40), cw * 0.03f, 1.0f);
     } else if (layout == Layout::Snes) {
         // Cartucho gris claro y ancho, con los hombros redondeados arriba y estrías abajo.
         const float cw = w * 0.74f, ch = cw * 0.72f;
