@@ -102,6 +102,7 @@ void App::DrawUi() {
         DrawGameLayer();
         DrawToasts();
         if (!pending_start_.empty()) DrawLoading();
+        DrawConfirm();
         return;
     }
 
@@ -112,12 +113,22 @@ void App::DrawUi() {
     ImGui::PopStyleColor();
 
     const float side_w = S(252);
+    // Logo de Satronho de fondo (detrás de todo el contenido).
+    DrawWatermark({vp->Pos.x + side_w, vp->Pos.y}, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y});
     DrawSidebar(side_w);
     ImGui::SameLine(0, 0);
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(38), S(30)});
+    // Al cambiar de página el contenido entra con un fundido corto y sube un poco.
+    if (page_ != shown_page_) {
+        shown_page_ = page_;
+        BeginPageTransition();
+    }
+    const float tr = std::clamp(static_cast<float>((ImGui::GetTime() - page_anim_t_) / 0.22), 0.0f, 1.0f);
+    const float ease = 1.0f - (1.0f - tr) * (1.0f - tr);
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.35f + 0.65f * ease);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(38), S(30) + (1.0f - ease) * S(10)});
     ImGui::BeginChild("##contenido", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2);
     switch (page_) {
     case Page::Library: DrawLibrary(); break;
     case Page::Controls: DrawControls(); break;
@@ -125,6 +136,7 @@ void App::DrawUi() {
     case Page::News: DrawNews(); break;
     case Page::Settings: DrawSettings(); break;
     case Page::About: DrawAbout(); break;
+    case Page::Guides: DrawGuideChat(); break;
     }
     ImGui::Dummy({0, S(24)});
     ImGui::EndChild();
@@ -133,7 +145,9 @@ void App::DrawUi() {
     if (page_ == Page::Library) DrawGuideBubble();
     DrawToasts();
     if (show_welcome_) DrawWelcome();
+    else if (show_whats_new_) DrawWhatsNew();
     if (!pending_start_.empty()) DrawLoading();
+    DrawConfirm();
 }
 
 void App::DrawLoading() {
@@ -145,8 +159,7 @@ void App::DrawLoading() {
     const SystemDef* gs = SystemById(g.system);
     const float cw = S(150), chh = S(170);
     const ImVec2 c(vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f);
-    DrawCartridge(dl, {c.x - cw * 0.5f, c.y - chh * 0.5f - S(40)}, {c.x + cw * 0.5f, c.y + chh * 0.5f - S(40)}, g.hue, g.title, S(16), false,
-                  gs ? gs->layout : Layout::Nes, gs ? gs->label.c_str() : "OCTA");
+    DrawCover(dl, g, {c.x - cw * 0.5f, c.y - chh * 0.5f - S(40)}, {c.x + cw * 0.5f, c.y + chh * 0.5f - S(40)}, S(16), false);
     {
         FontScope f(GetFonts().semibold, 18);
         const std::string t = "Cargando " + g.title + "…";
@@ -278,6 +291,7 @@ void App::DrawSidebar(float width) {
     }
     ImGui::Dummy({0, S(10)});
     SectionLabel("   SATRONHO");
+    if (NavItem("Pregúntale a los guías", Icon::Heart, page_ == Page::Guides, nullptr, false, Color::Green)) page_ = Page::Guides;
     if (NavItem("Configuración sugerida", Icon::Sparkle, page_ == Page::Suggested, nullptr, false, Color::Teal)) page_ = Page::Suggested;
     const bool update = updater_.GetState() == Updater::State::Available;
     if (NavItem("Novedades", Icon::Bell, page_ == Page::News, update ? "Nueva" : nullptr, false, Color::Pink)) page_ = Page::News;
@@ -317,7 +331,7 @@ void App::DrawSidebar(float width) {
 // ---------------------------------------------------------------- biblioteca
 
 void App::DrawCoreMissing() {
-    PanelBegin("##sin_nucleo", {0, 0}, 0x2A1622);
+    PanelBegin("##sin_nucleo", {0, 0}, LightTheme() ? 0xFBE3E8 : 0x2A1622);
     std::string names;
     for (const auto& n : missing_cores_) names += (names.empty() ? "" : ", ") + n;
     IconText(Icon::Info, ("Falta el núcleo de: " + names).c_str(), U32(Color::Red));
@@ -410,6 +424,21 @@ void App::DrawLibrary() {
             SaveConfig();
         }
         (void)p;
+        // Vista: cuadrícula o carrusel (cada consola recuerda la suya).
+        {
+            const std::string vk = lib_system_.empty() ? "todas" : lib_system_;
+            int& view = settings_.lib_view[vk];
+            ImGui::SameLine(0, S(6));
+            if (IconButton("##vista_cuadricula", Icon::Grid, S(36), U32(view == 0 ? Color::Accent : Color::Muted), "Vista en cuadrícula", view == 0)) {
+                view = 0;
+                SaveConfig();
+            }
+            ImGui::SameLine(0, S(2));
+            if (IconButton("##vista_carrusel", Icon::Carousel, S(36), U32(view == 1 ? Color::Accent : Color::Muted), "Vista en carrusel", view == 1)) {
+                view = 1;
+                SaveConfig();
+            }
+        }
         if (library_.Scanning()) {
             ImGui::SameLine(0, S(16));
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(8));
@@ -438,6 +467,11 @@ void App::DrawLibrary() {
     if (list.empty()) {
         ImGui::Dummy({0, S(20)});
         Muted(settings_.favorites_only && query.empty() ? "Aún no marcas favoritos. Usa la estrella de un juego." : "No hay juegos con ese nombre.", 15);
+        return;
+    }
+
+    if (settings_.LibView(lib_system_) == 1) {
+        DrawLibraryCarousel(list, lib_sys);
         return;
     }
 
@@ -529,8 +563,8 @@ void App::DrawContinueHero(const Game& g, float width) {
                                 Hsv(hue, 0.6f, 0.35f, 0.55f), Hsv(hue, 0.6f, 0.30f, 0.0f));
     dl->AddRect(p, {p.x + width, p.y + h}, Hsv(hue, 0.5f, 0.7f, 0.35f), S(20));
     const SystemDef* gs = SystemById(g.system);
-    DrawCartridge(dl, {p.x + S(14), p.y + S(12)}, {p.x + S(144), p.y + h - S(12)}, g.hue, g.title, S(14), false,
-                  gs ? gs->layout : Layout::Nes, gs ? gs->label.c_str() : "OCTA");
+    (void)gs;
+    DrawCover(dl, g, {p.x + S(14), p.y + S(12)}, {p.x + S(144), p.y + h - S(12)}, S(14), false);
 
     const float tx = p.x + S(170);
     {
@@ -576,6 +610,8 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
             games_dirty_ = true;
         }
         if (ImGui::MenuItem("Abrir la carpeta del juego")) OpenFolder(g.path.parent_path());
+        if (ImGui::MenuItem("Elegir carátula…")) PickCoverDialog(g);
+        if (covers_.HasCustom(g) && ImGui::MenuItem("Quitar mi carátula")) covers_.RemoveCustom(g);
         ImGui::Separator();
         if (ImGui::MenuItem("Ocultar de la biblioteca")) {
             library_.SetHidden(g.key, true);
@@ -599,7 +635,7 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     dl->AddRectFilled(a, b, U32(Color::Surface), rr);
     const float cover_h = w * 0.95f;
     const SystemDef* gs = SystemById(g.system);
-    DrawCartridge(dl, a, {b.x, a.y + cover_h}, g.hue, g.title, rr, hv > 0.5f, gs ? gs->layout : Layout::Nes, gs ? gs->label.c_str() : "OCTA");
+    DrawCover(dl, g, a, {b.x, a.y + cover_h}, rr, hv > 0.5f);
     if (selected || hv > 0) dl->AddRect(a, b, U32(selected ? Color::Accent : Color::Surface3, selected ? 1.0f : hv), rr, S(selected ? 2.0f : 1.5f));
     // Distintivo de la consola arriba a la izquierda: su control en miniatura y su nombre.
     if (gs) {
@@ -854,7 +890,7 @@ void App::DrawNews() {
 
 void App::DrawUpdatePanel() {
     const Updater::State st = updater_.GetState();
-    PanelBegin("##actualizar", {0, 0}, st == Updater::State::Available ? 0x2A1B2C : Color::Surface);
+    PanelBegin("##actualizar", {0, 0}, st == Updater::State::Available ? (LightTheme() ? 0xFCE7F1 : 0x2A1B2C) : Color::Surface);
     const ImVec2 p = ImGui::GetCursorScreenPos();
     DrawIcon(ImGui::GetWindowDrawList(), Icon::Refresh, {p.x + S(12), p.y + S(13)}, S(18), U32(Color::Pink));
     ImGui::SetCursorScreenPos({p.x + S(32), p.y});
@@ -922,6 +958,7 @@ void App::DrawSettings() {
         {SettingsTab::Controls, "Controles", Icon::Gamepad}, {SettingsTab::Performance, "Rendimiento", Icon::Forward},
         {SettingsTab::Meter, "Medidor", Icon::Meter},        {SettingsTab::Core, "Núcleo", Icon::Chip},
         {SettingsTab::Library, "Biblioteca", Icon::Folder},  {SettingsTab::Guides, "Guías", Icon::Heart},
+        {SettingsTab::Appearance, "Apariencia", Icon::Palette},
     };
     ImGui::BeginChild("##tabs", {S(210), 0}, 0, ImGuiWindowFlags_NoScrollbar);
     for (const auto& t : tabs)
@@ -946,6 +983,7 @@ void App::DrawSettings() {
     case SettingsTab::Core: DrawSettingsCore(); break;
     case SettingsTab::Library: DrawSettingsLibrary(); break;
     case SettingsTab::Guides: DrawSettingsGuides(); break;
+    case SettingsTab::Appearance: DrawSettingsAppearance(); break;
     default: break;
     }
     ImGui::Dummy({0, S(10)});
@@ -1342,6 +1380,23 @@ void App::DrawSettingsLibrary() {
     if (library_.Scanning()) {
         ImGui::SameLine();
         if (Button("Cancelar búsqueda", ButtonKind::Ghost, {0, 0})) library_.CancelScan();
+    }
+    ImGui::Dummy({0, S(14)});
+    RowBegin("Carátulas reales", "Se descargan solas de libretro-thumbnails (las de RetroArch). Clic derecho en un juego para poner la tuya.");
+    if (Toggle("##caratulas", &settings_.covers)) {
+        SaveConfig();
+        if (settings_.covers) covers_.QueueDownloads(library_.Snapshot());
+        else covers_.CancelDownloads();
+    }
+    RowEnd();
+    if (settings_.covers) {
+        if (covers_.Downloading()) {
+            Spinner(S(9), Color::Accent);
+            ImGui::SameLine();
+            Muted(Fmt("Buscando carátulas… faltan %d", covers_.Remaining()).c_str(), 13);
+        } else if (Button("Buscar carátulas ahora", ButtonKind::Secondary, {0, 0}, Icon::Refresh, true)) {
+            covers_.QueueDownloads(library_.Snapshot());
+        }
     }
     ImGui::Dummy({0, S(14)});
     DrawHiddenGames();
@@ -2026,8 +2081,7 @@ void App::DrawPauseMenu() {
     {
         const ImVec2 p = ImGui::GetCursorScreenPos();
         const float w = ImGui::GetContentRegionAvail().x;
-        DrawCartridge(ImGui::GetWindowDrawList(), p, {p.x + w, p.y + S(150)}, current_.hue, current_.title, S(14), false, sys_->layout,
-                      sys_->label.c_str());
+        DrawCover(ImGui::GetWindowDrawList(), current_, p, {p.x + w, p.y + S(150)}, S(14), false);
         ImGui::Dummy({w, S(156)});
         Ellipsize(ImGui::GetWindowDrawList(), GetFonts().bold, S(18), ImGui::GetCursorScreenPos(), U32(Color::Text), current_.title, w, 2);
         ImGui::Dummy({w, S(24) * (ImGui::CalcTextSize(current_.title.c_str()).x > w ? 2 : 1)});
@@ -2050,12 +2104,7 @@ void App::DrawPauseMenu() {
         Toast("Juego reiniciado", GuideId::Samy, 2);
     }
     if (NavItem("Captura", Icon::Camera, false)) Screenshot();
-    if (NavItem("Salir a la biblioteca", Icon::Exit, false, nullptr, false, Color::Red)) {
-        ImGui::EndChild();
-        ImGui::End();
-        StopGame();
-        return;
-    }
+    if (NavItem("Salir a la biblioteca", Icon::Exit, false, nullptr, false, Color::Red)) RequestExitGame();
     ImGui::EndChild();
     ImGui::SameLine(0, 0);
 
@@ -2426,7 +2475,7 @@ void App::DrawGuideBubble() {
     tip_timer_ += ImGui::GetIO().DeltaTime;
     if (tip_timer_ > 25.0) {
         tip_timer_ = 0;
-        tip_index_ = (tip_index_ + 1) % static_cast<int>(tips_.size());
+        tip_index_ = NextTip();
     }
     const Tip& tip = tips_[tip_index_];
     const GuideInfo& g = Guide(tip.guide);
@@ -2462,9 +2511,11 @@ void App::DrawGuideBubble() {
     const Image& img = guides_[static_cast<int>(tip.guide)];
     if (img) dl->AddImageRounded(img.Ref(), {ac.x - av * 0.5f, ac.y - av * 0.5f}, {ac.x + av * 0.5f, ac.y + av * 0.5f}, {0, 0}, {1, 1}, IM_COL32_WHITE, av * 0.5f);
 
-    ImGui::SetCursorScreenPos({b1.x - S(70), b0.y + S(8)});
+    ImGui::SetCursorScreenPos({b1.x - S(102), b0.y + S(8)});
+    if (IconButton("##preguntar", Icon::Heart, S(28), U32(Color::Muted), "Pregúntale a los guías")) page_ = Page::Guides;
+    ImGui::SameLine(0, S(4));
     if (IconButton("##sig", Icon::ChevronRight, S(28), U32(Color::Muted), "Otro consejo")) {
-        tip_index_ = (tip_index_ + 1) % static_cast<int>(tips_.size());
+        tip_index_ = NextTip();
         tip_timer_ = 0;
     }
     ImGui::SameLine(0, S(4));

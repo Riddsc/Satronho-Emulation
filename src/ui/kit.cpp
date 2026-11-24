@@ -15,6 +15,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
+#define STBI_ONLY_JPEG
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -60,6 +61,47 @@ ImU32 Hsv(float h, float s, float v, float a) {
     ImGui::ColorConvertHSVtoRGB(std::fmod(h, 360.0f) / 360.0f, s, v, r, g, b);
     return ImGui::ColorConvertFloat4ToU32({r, g, b, a});
 }
+
+// ---------------------------------------------------------------- temas
+
+const std::vector<Theme>& Themes() {
+    static const std::vector<Theme> t = {
+        {"Noche Satronho", "El morado de siempre, como Satronho NX.",
+         0x0F0D17, 0x13111D, 0x1B1829, 0x241F38, 0x2E2848, 0x2E2848, 0xEBE8F5, 0xA9A4C2, 0x6E6A86, 0x9B8CFF, 0xA78BFA, false},
+        {"Medianoche", "Azul profundo, tranquilo para jugar de noche.",
+         0x0A0F1C, 0x0E1426, 0x141C33, 0x1B2542, 0x253153, 0x253153, 0xE6ECF8, 0x9DABC8, 0x65728F, 0x6EA8FF, 0x8DBBFF, false},
+        {"Atardecer", "Cálido, con naranjas de arcade.",
+         0x160E0C, 0x1C1210, 0x261915, 0x32211C, 0x422C25, 0x422C25, 0xF6EBE6, 0xC7ABA0, 0x8A7068, 0xFF9F5A, 0xFFB37A, false},
+        {"Bosque", "Verdes suaves, descansa la vista.",
+         0x0B1310, 0x0F1915, 0x15231D, 0x1C2E26, 0x263D32, 0x263D32, 0xE6F3EC, 0x9EBDAE, 0x667F72, 0x5FD39A, 0x7FE0B0, false},
+        {"Claro", "Fondo claro para jugar de día.",
+         0xF2F0F7, 0xE8E5F1, 0xFFFFFF, 0xEDE9F7, 0xDDD7EF, 0xD5CFE6, 0x1E1A2E, 0x575170, 0x878199, 0x6B55F0, 0x7E6AF2, true},
+    };
+    return t;
+}
+
+namespace {
+int g_theme = 0;
+}
+
+void ApplyTheme(int index) {
+    const auto& all = Themes();
+    g_theme = std::clamp(index, 0, static_cast<int>(all.size()) - 1);
+    const Theme& t = all[g_theme];
+    Color::Bg = t.bg;
+    Color::Side = t.side;
+    Color::Surface = t.surface;
+    Color::Surface2 = t.surface2;
+    Color::Surface3 = t.surface3;
+    Color::Border = t.border;
+    Color::Text = t.text;
+    Color::Muted = t.muted;
+    Color::Dim = t.dim;
+    Color::Accent = t.accent;
+    Color::Accent2 = t.accent2;
+}
+int CurrentTheme() { return g_theme; }
+bool LightTheme() { return Themes()[g_theme].light; }
 
 // ---------------------------------------------------------------- tipografía
 
@@ -147,35 +189,43 @@ FontScope::~FontScope() { ImGui::PopFont(); }
 
 // ---------------------------------------------------------------- imágenes
 
-ImTextureRef Image::Ref() const { return ImTextureRef(static_cast<ImTextureID>(reinterpret_cast<intptr_t>(tex))); }
+ImTextureRef Image::Ref() const { return ImTextureRef(tex); }
 
-Image ImageFromRGBA(SDL_Renderer* r, const unsigned char* rgba, int w, int h) {
+namespace {
+TextureBackend g_tex_backend;
+}
+
+void SetTextureBackend(const TextureBackend& b) { g_tex_backend = b; }
+
+Image ImageFromRGBA(const unsigned char* rgba, int w, int h, bool smooth) {
     Image img;
-    SDL_Surface* s = SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGBA32, const_cast<unsigned char*>(rgba), w * 4);
-    if (!s) return img;
-    img.tex = SDL_CreateTextureFromSurface(r, s);
-    SDL_DestroySurface(s);
-    if (img.tex) {
-        SDL_SetTextureScaleMode(img.tex, SDL_SCALEMODE_LINEAR);
-        SDL_SetTextureBlendMode(img.tex, SDL_BLENDMODE_BLEND);
+    if (!g_tex_backend.create || !rgba || w <= 0 || h <= 0) return img;
+    img.tex = g_tex_backend.create(rgba, w, h, smooth);
+    if (img.tex != ImTextureID_Invalid) {
         img.w = w;
         img.h = h;
     }
     return img;
 }
 
-Image LoadImage(SDL_Renderer* r, const std::string& file) {
-    Image img;
+bool DecodeImage(const std::string& file, std::vector<unsigned char>& rgba, int* w, int* h) {
     size_t size = 0;
     void* data = SDL_LoadFile(file.c_str(), &size);
-    if (!data) return img;
-    int w, h, n;
-    unsigned char* px = stbi_load_from_memory(static_cast<const stbi_uc*>(data), static_cast<int>(size), &w, &h, &n, 4);
+    if (!data) return false;
+    int n;
+    unsigned char* px = stbi_load_from_memory(static_cast<const stbi_uc*>(data), static_cast<int>(size), w, h, &n, 4);
     SDL_free(data);
-    if (!px) return img;
-    img = ImageFromRGBA(r, px, w, h);
+    if (!px) return false;
+    rgba.assign(px, px + static_cast<size_t>(*w) * *h * 4);
     stbi_image_free(px);
-    return img;
+    return true;
+}
+
+Image LoadImage(const std::string& file) {
+    std::vector<unsigned char> px;
+    int w = 0, h = 0;
+    if (!DecodeImage(file, px, &w, &h)) return {};
+    return ImageFromRGBA(px.data(), w, h);
 }
 
 SDL_Surface* LoadSurface(const std::string& file) {
@@ -195,7 +245,7 @@ SDL_Surface* LoadSurface(const std::string& file) {
 }
 
 void FreeImage(Image& img) {
-    if (img.tex) SDL_DestroyTexture(img.tex);
+    if (img.tex != ImTextureID_Invalid && g_tex_backend.destroy) g_tex_backend.destroy(img.tex);
     img = {};
 }
 
@@ -226,6 +276,24 @@ void DrawIcon(ImDrawList* dl, Icon icon, ImVec2 c, float sz, ImU32 col) {
             const float x = (i % 2) ? g : -g - s, y = (i / 2) ? g : -g - s;
             dl->AddRectFilled(P(x, y), P(x + s, y + s), col, sz * 0.08f);
         }
+        break;
+    }
+    case Icon::Carousel: {
+        // Una carátula grande al centro y dos más chicas a los lados.
+        dl->AddRectFilled(P(-0.34f, -0.72f), P(0.34f, 0.72f), col, sz * 0.08f);
+        dl->AddRectFilled(P(-0.95f, -0.46f), P(-0.52f, 0.46f), col, sz * 0.06f);
+        dl->AddRectFilled(P(0.52f, -0.46f), P(0.95f, 0.46f), col, sz * 0.06f);
+        break;
+    }
+    case Icon::Chat: {
+        dl->AddRectFilled(P(-0.9f, -0.7f), P(0.9f, 0.45f), col, sz * 0.22f);
+        dl->AddTriangleFilled(P(-0.5f, 0.4f), P(-0.1f, 0.4f), P(-0.55f, 0.85f), col);
+        const ImU32 bg = U32(Color::Bg);
+        for (int i = -1; i <= 1; ++i) dl->AddCircleFilled(P(i * 0.42f, -0.12f), sz * 0.07f, bg);
+        break;
+    }
+    case Icon::Send: {
+        dl->AddTriangleFilled(P(-0.85f, -0.75f), P(0.9f, 0.0f), P(-0.85f, 0.75f), col);
         break;
     }
     case Icon::Gamepad: {

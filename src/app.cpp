@@ -33,6 +33,20 @@ const GuideInfo& Guide(GuideId id) {
     return guides[static_cast<int>(id)];
 }
 
+namespace {
+// Texturas de la interfaz con el dibujador de SDL.
+SDL_Renderer* g_ui_renderer = nullptr;
+ImTextureID SdlCreateTexture(const unsigned char* rgba, int w, int h, bool smooth) {
+    SDL_Texture* t = SDL_CreateTexture(g_ui_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
+    if (!t) return ImTextureID_Invalid;
+    SDL_UpdateTexture(t, nullptr, rgba, w * 4);
+    SDL_SetTextureScaleMode(t, smooth ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
+    return static_cast<ImTextureID>(reinterpret_cast<intptr_t>(t));
+}
+void SdlDestroyTexture(ImTextureID id) { SDL_DestroyTexture(reinterpret_cast<SDL_Texture*>(static_cast<intptr_t>(id))); }
+} // namespace
+
 void FolderDialogCallback(void* user, const char* const* list, int) {
     auto* app = static_cast<App*>(user);
     if (!list) return;
@@ -45,6 +59,13 @@ void FileDialogCallback(void* user, const char* const* list, int) {
     if (!list) return;
     std::lock_guard lock(app->pending_mutex_);
     for (; *list; ++list) app->pending_roms_.push_back(*list);
+}
+
+void CoverDialogCallback(void* user, const char* const* list, int) {
+    auto* app = static_cast<App*>(user);
+    if (!list || !*list) return;
+    std::lock_guard lock(app->pending_mutex_);
+    app->pending_covers_.push_back(*list);
 }
 
 void BiosDialogCallback(void* user, const char* const* list, int) {
@@ -98,6 +119,9 @@ bool App::Init() {
     ini_.Load(Paths::ConfigFile());
     settings_.Load(ini_);
     if (qa_.count("fresh")) settings_ = Settings{};
+    if (qa_.count("tema")) settings_.theme = std::atoi(qa_["tema"].c_str());
+    if (qa_.count("vista")) settings_.lib_view[qa_.count("sistema") ? qa_["sistema"] : "todas"] = std::atoi(qa_["vista"].c_str());
+    Ui::ApplyTheme(settings_.theme);
 
     SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
     int ww = 1320, wh = 820;
@@ -145,10 +169,13 @@ bool App::Init() {
     io.LogFilename = nullptr;
     ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);
     ImGui_ImplSDLRenderer3_Init(renderer_);
+    g_ui_renderer = renderer_;
+    Ui::SetTextureBackend({&SdlCreateTexture, &SdlDestroyTexture});
     Ui::LoadFonts(Paths::ToUtf8(Paths::Assets() / "fonts"));
     UpdateScale();
 
     video_.Init(renderer_);
+    covers_.Init();
     audio_.Open();
     ApplyAudioSettings();
     input_.Init();
@@ -179,9 +206,9 @@ bool App::Init() {
     if (!settings_.first_run_done || qa_.count("welcome")) show_welcome_ = true;
     if (settings_.fullscreen) SetFullscreen(true);
 
-    // Juana avisa si hay una build nueva desde la última vez.
-    if (build_ > 0 && settings_.last_seen_build > 0 && build_ > settings_.last_seen_build)
-        Toast("¡Build " + std::to_string(build_) + " instalada! Mira las novedades.", GuideId::Juana, 6.0);
+    // Juana muestra lo nuevo si hay una build nueva desde la última vez.
+    if ((build_ > 0 && settings_.last_seen_build > 0 && build_ > settings_.last_seen_build) || qa_.count("novedades_ventana"))
+        show_whats_new_ = true;
     if (build_ > 0) settings_.last_seen_build = build_;
 
     if (settings_.auto_update && build_ > 0 && !qa_.count("fresh")) updater_.Check(build_);
@@ -192,14 +219,19 @@ bool App::Init() {
     if (qa_.count("page")) {
         const std::string pg = qa_["page"];
         page_ = pg == "controles" ? Page::Controls : pg == "sugerida" ? Page::Suggested : pg == "novedades" ? Page::News : pg == "ajustes" ? Page::Settings
-              : pg == "acerca" ? Page::About : Page::Library;
+              : pg == "acerca" ? Page::About : pg == "guias" ? Page::Guides : Page::Library;
+        shown_page_ = page_;
     }
+    if (qa_.count("preguntar")) {
+        for (std::string q : {std::string("hola"), qa_["preguntar"]}) AskGuides(q);
+    }
+    if (qa_.count("salir")) confirm_ = std::atoi(qa_["salir"].c_str());
     if (qa_.count("sistema")) {
         lib_system_ = qa_["sistema"];
         ctrl_system_ = qa_["sistema"];
     }
     if (qa_.count("ctrl")) ctrl_tab_ = std::atoi(qa_["ctrl"].c_str());
-    if (qa_.count("tab")) tab_ = static_cast<SettingsTab>(std::clamp(std::atoi(qa_["tab"].c_str()), 0, 7));
+    if (qa_.count("tab")) tab_ = static_cast<SettingsTab>(std::clamp(std::atoi(qa_["tab"].c_str()), 0, static_cast<int>(SettingsTab::Count) - 1));
     if (qa_.count("rom")) {
         // «continuar=1»: como el botón Continuar (pasa por «Cargando…» y la ranura automática).
         if (qa_.count("continuar")) RequestStart(Paths::FromUtf8(qa_["rom"]), true);
@@ -214,9 +246,9 @@ bool App::Init() {
 
 void App::LoadAssets() {
     const fs::path a = Paths::Assets();
-    logo_ = Ui::LoadImage(renderer_, Paths::ToUtf8(a / "logo.png"));
+    logo_ = Ui::LoadImage(Paths::ToUtf8(a / "logo.png"));
     for (int i = 0; i < static_cast<int>(GuideId::Count); ++i)
-        guides_[i] = Ui::LoadImage(renderer_, Paths::ToUtf8(a / "guias" / (std::string(Guide(static_cast<GuideId>(i)).key) + ".png")));
+        guides_[i] = Ui::LoadImage(Paths::ToUtf8(a / "guias" / (std::string(Guide(static_cast<GuideId>(i)).key) + ".png")));
 
     auto read = [](const fs::path& p) {
         std::ifstream in(p, std::ios::binary);
@@ -273,6 +305,7 @@ void App::Shutdown() {
     for (auto& [k, img] : slot_thumbs_) Ui::FreeImage(img);
     Ui::FreeImage(logo_);
     for (auto& g : guides_) Ui::FreeImage(g);
+    covers_.Shutdown();
     video_.Shutdown();
     audio_.Close();
     input_.Shutdown();
@@ -433,7 +466,11 @@ void App::Frame() {
     while (SDL_PollEvent(&e)) HandleEvent(e);
     ProcessPendingPaths();
 
-    if (library_.TakeChanged()) games_dirty_ = true;
+    if (library_.TakeChanged()) {
+        games_dirty_ = true;
+        if (settings_.covers && !qa_.count("fresh")) covers_.QueueDownloads(library_.Snapshot());
+    }
+    covers_.Pump();
     PollUpdater();
 
     // El cursor se esconde mientras se juega.
@@ -449,16 +486,16 @@ void App::Frame() {
     {
         const bool typing = ImGui::GetIO().WantTextInput;
         for (Hotkey h : input_.TakeHotkeyPresses())
-            if (!typing) DoHotkey(h);
-        if (in_game_ && input_.MenuComboPressed()) SetMenuOpen(!menu_open_);
+            if (!typing && confirm_ == 0) DoHotkey(h);
+        if (in_game_ && input_.MenuComboPressed() && confirm_ == 0) SetMenuOpen(!menu_open_);
     }
 
     ImGuiIO& io = ImGui::GetIO();
     // Mientras se juega, el mando es del juego; la interfaz solo lo usa con el menú abierto.
-    if ((in_game_ && !menu_open_) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
+    if ((in_game_ && !menu_open_ && confirm_ == 0) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    if (in_game_ && !paused_ && !menu_open_) EmulateTick(dt);
+    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0) EmulateTick(dt);
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) video_.Upload(core_);
     if (const std::string c = input_.TakeConflict(); !c.empty()) Toast(c, GuideId::Samy, 7);
@@ -477,7 +514,7 @@ void App::Frame() {
 
     int pw, ph;
     SDL_GetRenderOutputSize(renderer_, &pw, &ph);
-    SDL_SetRenderDrawColor(renderer_, 15, 13, 23, 255);
+    SDL_SetRenderDrawColor(renderer_, (Ui::Color::Bg >> 16) & 0xFF, (Ui::Color::Bg >> 8) & 0xFF, Ui::Color::Bg & 0xFF, 255);
     SDL_RenderClear(renderer_);
     if (in_game_) {
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
@@ -577,6 +614,17 @@ void App::ProcessPendingPaths() {
         bios.swap(pending_bios_);
     }
     for (const auto& b : bios) ImportBios(bios_target_, Paths::FromUtf8(b));
+    std::vector<std::string> covers;
+    {
+        std::lock_guard lock(pending_mutex_);
+        covers.swap(pending_covers_);
+    }
+    if (!covers.empty()) {
+        if (Game* g = library_.Find(cover_target_)) {
+            covers_.SetCustom(*g, Paths::FromUtf8(covers.front()));
+            Toast("Carátula nueva para «" + g->title + "».", GuideId::Samy, 3);
+        }
+    }
 }
 
 // ---------------------------------------------------------------- BIOS (la de cada quien)
@@ -700,10 +748,10 @@ void App::HandleEvent(const SDL_Event& e) {
     input_.HandleEvent(e);
     switch (e.type) {
     case SDL_EVENT_QUIT:
-        running_ = false;
+        RequestQuit();
         break;
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-        if (e.window.windowID == SDL_GetWindowID(window_)) running_ = false;
+        if (e.window.windowID == SDL_GetWindowID(window_)) RequestQuit();
         break;
     case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
         UpdateScale();
@@ -1151,7 +1199,7 @@ void App::RefreshSlotThumbs() {
         if (!fs::exists(p, ec)) continue;
         fs::path png = p;
         png += ".png";
-        slot_thumbs_[s] = Ui::LoadImage(renderer_, Paths::ToUtf8(png));
+        slot_thumbs_[s] = Ui::LoadImage(Paths::ToUtf8(png));
         const auto ft = fs::last_write_time(p, ec);
         if (!ec) {
             const auto sys = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
