@@ -1,0 +1,235 @@
+470|Welcome to Satronho Emulation!
+471|Hi! I'm MechaRidds. This is the home of the Satronho family's emulators. Already here:
+472|, and more consoles are coming soon. Let me introduce my team in two steps.
+473|Start
+474| (I detected %s, %.0f GB of RAM and %s.)
+475|I'll check it later
+476|Your games
+477|Tell me which folder your games are in and I'll arrange them in the library, each in its console. While playing: Esc opens the menu, F5 saves, F9 loads and holding Backspace rewinds. When you exit I save where you left off.
+478|Later
+479|Pick the theme you like best. The Satronho logo always stays in the background: raise or lower its opacity, but never below 10 %.
+480|Language
+481|Automatic (your system's)
+482|Satronho language
+483|Español, English, Français, Português or Italiano. Game names don't change.
+484|Theme
+485|Satronho logo in the background
+486|Its opacity. It goes from 10 % to 100 %; it can't be turned off.
+487|Library and game
+488|Library view
+489|How your games look. Each console can have its own from the library's «View» button; this sets it on all of them.
+490|Cover size
+491|Menu bar in game
+492|Above the game in a window: Game, Image, Sound, Controls… In fullscreen it appears with Esc.
+493|Show the on-screen controller
+494|Automatic: with a touch screen and no controller connected. Adjust it in the game menu » «On-screen controller».
+495|Always
+496|Never
+497|Button size
+498|Button opacity
+499|Vibrate on touch
+500|A short vibration every time you press an on-screen button.
+501|On exit
+502|Ask before closing the app
+503|So one extra click on the X doesn't throw you out.
+504|Ask before leaving a game
+505|From the game menu, before going back to the library.
+506|OCTA
+507|Images
+508|png;jpg;jpeg
+509|Previous
+510|Next
+511|%d of %d
+512|Continue##car
+513|Play##car
+514|From scratch##car
+515|Remove from favorites
+516|Mark as favorite
+517|Done, I won't ask again. You can change it in Settings » Appearance.
+518|Close Satronho Emulation?
+519|Leave «
+520|You're playing. Before closing I'll save where you left off.
+521|You're playing; anything you haven't saved will be lost.
+522|Sure? Your games, saves and settings stay saved.
+523|I'll save where you left off and «Continue» takes you right back there.
+524|Anything you haven't saved will be lost.
+525|Don't ask again
+526|Stay##conf
+527|Keep playing##conf
+528|Close##conf
+529|Leave##conf
+530|BUILD %d INSTALLED
+531|WHAT'S NEW
+532|Hi, dear. I'm Juana. Look at what this version brings:
+533|See all the news
+534|Let's play!
+535|Build %d is out! Install it with one click in What's new.
+536|You have the latest build.
+537|I'm checking whether there's a new build.
+538|Tap «Check for updates» and I'll tell you if there's something new.
+539|Done! I set everything up for your computer.
+540|Looking for covers for your games…
+541|Write whatever you want to know: they answer with what they know about your computer, your games and your controllers
+542|Whoever knows best
+543|Write your question…
+544|Write your question: «how does the 64 run on my PC?»
+545|Send##chat
+546|Full HD
+547|  (%dp · %s)
+548|  (%dp)
+549|  · like your screen
+550|Bilinear (smooth)
+551|3-point (like the console)
+552|internal resolution
+553|Internal resolution
+554|Off (1×)
+555|memory card 1
+556|Memory Card 1
+557|16 bpp (native)
+558|16 bits (original)
+559|32 bpp
+560|32 bits
+561|1x (native)
+562|Original (1×)
+563|internal resolution only
+564|Only at the internal resolution
+565|Automatic (OpenGL)
+566|Classic ·
+567|classic (
+568|Graphics engine
+569|OpenGL draws everything with the graphics card and lets CD and 64 use OpenGL or Vulkan. Classic is the backup one. It applies when you reopen the app. Now: %s.
+570|The graphics engine changes the next time you open Satronho Emulation.
+571|Graphics card
+572|Card
+573|The one CD and 64 use to draw.
+574|Available ·
+575|This computer has no Vulkan: OpenGL is used.
+576|Checking…
+577|With the classic engine, CD and 64 draw with the processor. Choose OpenGL above to use the graphics card.
+578|Antialiasing (MSAA)
+579|Smoother edges on polygons. Asks more of the card.
+580|Supersampling
+581|Draws big and shrinks it to the original resolution: no jagged edges.
+582|Texture filtering
+583|How textures are smoothed when enlarged.
+584|Precise geometry (PGXP)
+585|Removes the polygon wobble typical of the PS1.
+586|Undistorted textures (PGXP)
+587|Corrects texture perspective. Needs PGXP.
+588|Widescreen (16:9)
+589|Widens the view in 3D games. In some, extra things show up.
+590|Dithering
+591|The PS1's dotted pattern. Off looks cleaner.
+592|Color depth
+593|32 bits removes color banding.
+594|Aspect ratio
+595|4:3 like the console, or 16:9 for wide screens.
+596|mupen64plus-MultiSampling
+597|Smoother edges (OpenGL).
+598|mupen64plus-FXAA
+599|FXAA
+600|Smooths edges at very little cost (OpenGL).
+601|mupen64plus-txFilterMode
+602|Texture filter
+603|Smooths or sharpens textures (OpenGL).
+604|mupen64plus-txEnhancementMode
+605|Texture enhancement
+606|Enlarges textures with a filter (OpenGL).
+607|mupen64plus-BilinearMode
+608|Bilinear filter
+609|«3point» is like the real console; «standard» is smoother.
+610|Supersampling (Vulkan)
+611|Draws big and shrinks it: a cleaner image.
+612|the processor
+613|Beetle PSX drawing with the processor.
+614|Beetle PSX HW with
+615|GLideN64 with OpenGL: accepts exact sizes.
+616|ParaLLEl-RDP with Vulkan: the most faithful to the console.
+617|Angrylion with the processor: faithful, but heavy.
+618|Automatic
+619|Processor
+620|This computer has no Vulkan; OpenGL will be used.
+621|It applies the next time you open the game.
+622|Resolution
+623|Your screen is %d pixels tall.
+624|Automatic (now
+625|Graphics options appear when this console's core is installed.
+626|I couldn't unzip «
+627|». Is the file complete?
+628|». Check that there's space on the disk.
+629|» has several games inside. Which one shall we open?
+630|Cancel##zip
+631|FILE
+632|Done: %d disc%s in .chd. You saved %.0f MB (%.0f %%).
+633|No disc was converted.
+634|Couldn't convert:
+635|Discs to .chd (optional)
+636|A .chd is the same disc compressed: it takes less space and opens the same. Your originals stay, unless you choose to delete them.
+637|Converting %d of %d: %s
+638|Stop##chd
+639|There are no .cue discs to convert.
+640|%zu disc%s (%.0f MB).
+641|Convert all
+642|Delete the originals when done
+643|On-screen controller ·
+644|Drag each group to wherever is comfortable for you.
+645|Size %d %%
+646|Opacity %d %%
+647|As it came##tactil
+648|Done##tactil
+649|Choose your games folder
+650|Open a game
+651|To look for your games in any folder, Android needs you to give me «all files access» permission. I only read them; I don't touch anything else.
+652|Grant permission
+653|Internal storage
+654|SD card
+655|Downloads
+656|Download
+657|Up
+658|There are no folders here.
+659|There are no games here.
+660|Cancel##exp
+661|Use this folder
+662|Game
+663|Keep playing
+664|Pause
+665|Save state (slot %d)
+666|Load state (slot %d)
+667|Slot
+668|States with thumbnails…
+669|Change disc
+670|Disc %u
+671|Screenshot
+672|Full game menu
+673|Controller: Guide
+674|Close Satronho Emulation
+675|Alt+F4
+676|View
+677|Status bar
+678|Satronho meter
+679|Window size
+680|Hide this bar
+681|Bar hidden. Bring it back in Settings » Appearance, or with Esc in fullscreen.
+682|Fit (no distortion)
+683|Integer (pixel perfect)
+684|Scanlines
+685|CRT TV
+686|LCD screen
+687|Depending on the console
+688|Own image for %s
+689|Automatic (%s)
+690|It applies when you reopen the game.
+691|Game engine
+692|More graphics settings…
+693|Mute
+694|Assign buttons…
+695|Controller vibration
+696|Arrange the on-screen controller…
+697|No controller connected: you're playing with the keyboard.
+698|Player %d: %s
+699|Open the screenshots folder
+700|Open the data folder
+701|Memory Cards, controller test and more…
+702|Tab
+703|Fast-forward is turned on in Settings » Performance.
+704|Swap screens (Dual)

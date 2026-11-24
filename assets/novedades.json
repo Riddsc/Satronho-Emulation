@@ -3,6 +3,45 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "Satronho en cinco idiomas, Controles y Gráficos como en Satronho NX, y menús nuevos",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Emulation habla español, inglés, francés, portugués e italiano. Elige el idioma en Ajustes » Apariencia » Idioma; en «Automático» usa el de tu sistema. Por ahora el chat con los guías responde en español."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Controles como en Satronho NX: el mando grande al centro y, alrededor, cada grupo en su recuadro (gatillos, cruceta, botones y palancas que se mueven en vivo). Eliges si asignas el mando o el teclado, y abajo están la vibración, la zona muerta y la asignación automática."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Gráficos como en Satronho NX: tarjeta gráfica, motor (OpenGL o Vulkan) y resoluciones exactas con su alto real; la 64 con OpenGL acepta tamaños como 1440×1080 o 2880×2160, y te marco cuál se parece a tu pantalla. Además, las opciones de imagen de cada núcleo: antialiasing, supermuestreo, geometría precisa (PGXP) en PS1, pantalla ancha y filtros de texturas."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Barra del juego como en Satronho NX: menú Vista (pantalla completa, barra de estado, medidor, tamaño de la ventana), menú Gráficos y el módulo Satronho (novedades, configuración sugerida, guías, medidor y logo de fondo)."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Clic derecho en un juego mucho más completo: favorito, jugar o seguir, carpetas del juego, partidas y estados, carátula, tiempo de juego, convertir a .chd, verificar el archivo, copiar nombre o ruta y crear un acceso directo en el escritorio."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El carrusel de «todas las consolas» tiene una fila para saltar a cada consola y una etiqueta en cada carátula."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Los guías tienen su huellita de perrito en el menú de la izquierda."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Al dar la X, la app se cerraba sin preguntar: Windows manda dos avisos de cierre seguidos y se contaban como dos clics. Ya pregunta siempre."
+        }
+      ]
+    },
+    {
+      "version": "Build 15",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "Barra de menús en el juego, Controles rediseñados, vista en lista y página Herramientas",
       "cambios": [
         {

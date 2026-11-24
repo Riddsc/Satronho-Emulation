@@ -3,6 +3,33 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (build 16)
+
+Ridds probó la build 15 y pidió: la X cerraba sin preguntar, Controles y Gráficos como en Satronho NX
+(capturas de NX), más resoluciones, clic derecho completo, carrusel que distinga consolas, módulo
+Satronho como en NX, ícono de perrito para los guías y la app en español, inglés, francés, portugués e
+italiano. Todo de una vez, pulido. Después de esta build: **agregar consolas** (parte C, ver abajo).
+Rama `build-16` (una sesión se cortó a mitad de los idiomas; se retomó y terminó).
+
+- **X sin preguntar**: SDL manda `WINDOW_CLOSE_REQUESTED` y `QUIT` con el mismo clic; la regla de la
+  build 15 («segunda X cierra») los contaba como dos. Arreglado en `RequestQuit`.
+- **Controles NX** (`DrawControllerEditor`): mando grande al centro, recuadros por grupo alrededor,
+  palancas en vivo, «Asignar con» mando/teclado, opciones abajo.
+- **Gráficos NX** (`DrawGpuSettings`): tarjeta, API, resoluciones exactas con su alto real y la más
+  parecida a la pantalla; opciones de imagen de cada núcleo (MSAA, supermuestreo, PGXP, 16:9, filtros).
+- **Barra del juego**: menús Vista y Gráficos, módulo Satronho (novedades, sugerida, guías, medidor, logo).
+- **Clic derecho** (`GameContextMenu`): carátula, tiempo de juego, .chd, verificar (CRC32), copiar,
+  acceso directo (`util/shortcut.cpp`).
+- **Idiomas** (`util/i18n.*`, `assets/idiomas/*.json`, herramientas y fuentes en `scripts/idiomas/`, ver
+  su LEEME). `Tr()` en el kit, `Fmt`, `Toast`, `Muted`; el resto se envolvió con `envolver_tr.py`.
+  Ajuste `interfaz.idioma` (vacío = el del sistema). Modo de revisión: `idioma=en`.
+  **Pendiente**: el chat de los guías responde en español; textos nuevos hay que agregarlos a las traducciones.
+
+### Falta probar (pedírselo a Ridds)
+
+1. Que la X pregunte siempre. 2. Controles y Gráficos nuevos con su mando Xbox y su RX 9070 XT.
+3. Cambiar de idioma y recorrer las pantallas buscando textos en español o cortados.
+
 ## Estado al 24 de noviembre de 2026 (build 15)
 
 Ridds probó la build 14 en su PC (Ryzen 7 5800XT, RX 9070 XT, 1440p/escala 1.25, mando Xbox) y pidió

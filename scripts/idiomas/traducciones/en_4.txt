@@ -1,0 +1,168 @@
+705|Top left
+706|Top right
+707|Bottom left
+708|Bottom right
+709|Background logo
+710|These screens close the game (saving where you left off).
+711|Help
+712|Keyboard shortcuts (change them in Controls » Hotkeys):
+713|Open the log (satronho.log)
+714|About Satronho Emulation
+715|   ·   Tap the game to continue
+716|   ·   Esc to hide
+717|VULKAN
+718|OPENGL
+719|%dp
+720|CLASSIC
+721|EXACT PIXEL
+722|SMOOTH SHARP
+723|SMOOTH
+724|NO EFFECT
+725|LINES
+726|AUTO
+727|PAUSED
+728|FAST ×%d
+729|SLOT %d
+730|VOLUME %d%%
+731|%s   %.0f FPS
+732|KEYBOARD
+733|Useful things for your games, your controllers and your saves
+734|Here's everything that isn't playing: test your controllers, look at the saves on your Memory Cards and open Satronho's folders.
+735|Controller test
+736|No controllers connected. Connect one and it shows up here right away.
+737|Right stick
+738|Left stick
+739|Press buttons to see them here.
+740|Vibrate##v%d
+741|The keyboard counts too: press a key.
+742|PS1 Memory Cards
+743|Each Satronho CD game has its own Memory Card. Here you see which saves it holds and can delete the ones you no longer want.
+744|No Memory Cards yet: they appear when you save in a PS1 game.
+745|  ·  %d of 15 blocks
+746|   Empty.
+747|Delete
+748|Delete «%s»? It can't be undone.
+749|Yes, delete
+750|Save deleted (a .bak copy is kept just in case).
+751|Covers
+752|They download by themselves from libretro-thumbnails when there's internet. Right-click a game to set your own.
+753|Looking for covers…
+754|Open the folder
+755|Satronho folders
+756|Data
+757|Saves
+758|Screenshots
+759|Log
+760|Satronho Night
+761|The usual purple, like Satronho NX.
+762|Midnight
+763|Deep blue, calm for playing at night.
+764|Sunset
+765|Warm, with arcade oranges.
+766|Forest
+767|Soft greens, easy on the eyes.
+768|Light
+769|Light background for playing by day.
+770|Up
+771|Down
+772|Left
+773|Right
+774|Turbo A
+775|Turbo B
+776|Select
+777|Start
+778|Octa
+779|NES games
+780|Mega
+781|Genesis and Mega Drive games
+782|Genesis
+783|MEGA
+784|Mode
+785|MODE AND START
+786|Hexa
+787|SNES and Super Famicom games
+788|SNES
+789|HEXA
+791|Runs perfectly.
+792|Drawn with the graphics card, in HD.
+793|Runs well.
+794|It may be tight: if it's slow, set the internal resolution to 1x.
+795|It may be tight in some games.
+796|It may be tight in the most demanding games.
+797|It may be slow: the Saturn asks a lot of the processor.
+798|Runs well: drawn with the graphics card (GLideN64 with OpenGL or ParaLLEl-RDP with Vulkan).
+799|It may be tight: the processor has few threads, even though it's drawn with the graphics card.
+800|Runs well in most games.
+801|Some games may be slow: everything is drawn with the processor.
+802|It will be slow: without a graphics card the 64 is drawn with the processor.
+803|Processor with %d threads: %s.
+804|plenty for the classics and fine for the heaviest ones
+805|plenty for the classics; the heaviest ones may be tight
+806|tight, better to save resources
+807|%.1f GB of RAM: %s.
+808|enough to rewind with no problem
+809|better not to keep much history
+810|Drawing without a graphics card (software mode), so effects stay off.
+811|Graphics card:
+812| with
+813|the automatic engine
+814|Screen at %.0f Hz%s.
+815|: in fullscreen I switch it to 60 Hz so movement is perfectly smooth
+816|Basic
+817|Your computer runs the classic consoles well, but let's take care of every resource.
+818|Your computer has power to spare! I turned on the best: screen effect by console, one frame of run-ahead on NES and long rewind.
+819|Your computer runs very well. I left a balance between good image and quick response.
+820|CRT screen
+821|Depending on the console (CRT on TV ones, LCD on handhelds and clean on 3D ones)
+822|Screen effect:
+823|Filter:
+824|One frame of run-ahead on Satronho Octa (controls respond faster)
+825|No run-ahead
+826|Rewind:
+827| seconds
+828|Rewind: off
+829|Sound latency:
+830| ms
+831|Ambient background with the game's colors
+832|Black background
+833|Vertical sync: on
+834|Satronho (aqua green)
+835|Samy (amber)
+836|Troya (lilac)
+837|MechaRidds (green)
+838|Juana (pink)
+843|Couldn't reach GitHub (no internet?).
+844|Couldn't download the new build.
+845|The download arrived damaged (the fingerprint doesn't match). Try again.
+903|Less than 1 min
+904| min
+905|Just now
+906| ago
+907|Yesterday
+908| days
+909| month
+910| months
+911|More than a year ago
+912|Fast-forward comes off. If you want it, turn it on in Settings » Performance and hold Tab to skip through slow parts.
+913|F5 saves your game instantly and F9 loads it. In the menu (Esc) you see the 8 slots with their picture.
+914|Missed a jump? Hold Backspace (or the left trigger) and rewind a few seconds. On PS1, DS, Saturn and 64 it's turned on separately in Settings » Performance.
+915|Right-click a game to mark it as a favorite, open its folder, continue where you left off or hide it.
+916|You can drag a game or a folder onto the window: the game opens and the folder is added to the library.
+917|Try the «CRT» effect in Settings » Graphics: scanlines, phosphor mask and vignette, like the old TV.
+918|With «Integer» pixels are perfect, in exchange for some borders. With «Smooth sharp» you fill the screen without losing sharpness.
+919|F12 saves a screenshot of the game at its original size. You'll find it in Settings » Library » Screenshots.
+920|In «Suggested setup» I check your computer and get everything ready to play with one click.
+921|On Satronho Octa, one frame of run-ahead makes jumps respond sooner. If a game does something odd, turn it off in the game menu.
+922|F3 shows the meter while you play. If the speed drops below 100 %, tell me and we'll look into it.
+923|In «What's new» I tell you what each new build of Satronho Emulation brings.
+924|This is just the beginning: there are already nine consoles and more are coming to this same home.
+925|Satronho Emulation doesn't include games. Use copies of the cartridges you own.
+926|In Controls you see your controller drawn: each button lights up when you press it. Click one to change it.
+927|Create a controls profile per console, for example one for playing with a PS4 controller and another with an Xbox one.
+928|With the «Auto» effect, home consoles look like a CRT TV and handhelds show their LCD grid.
+929|If your screen is 144 Hz, play in fullscreen: I switch it to 60 Hz and movement is perfect.
+930|When you leave a game I save where you left off. In the library, «Continue» takes you right back there.
+931|Loaded the wrong slot? In the game menu » States there's «Undo the load».
+932|Each console can have its own image: in the game menu » Quick settings, turn on «Own image».
+933|On Satronho Dual, F2 (or clicking the right stick) changes how the two screens look.
+934|Each player remembers their controller: if one disconnects, the other keeps theirs.

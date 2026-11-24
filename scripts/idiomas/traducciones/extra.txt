@@ -1,0 +1,56 @@
+Nunca|Never|Jamais|Nunca|Mai
+%lld min|%lld min|%lld min|%lld min|%lld min
+Hace %lld min|%lld min ago|Il y a %lld min|Há %lld min|%lld min fa
+Hace %lld h|%lld h ago|Il y a %lld h|Há %lld h|%lld h fa
+Hace %lld días|%lld days ago|Il y a %lld jours|Há %lld dias|%lld giorni fa
+Hace 1 mes|1 month ago|Il y a 1 mois|Há 1 mês|1 mese fa
+Hace %lld meses|%lld months ago|Il y a %lld mois|Há %lld meses|%lld mesi fa
+Hace un momento|Just now|À l'instant|Agora mesmo|Proprio ora
+Ayer|Yesterday|Hier|Ontem|Ieri
+Hace más de un año|More than a year ago|Il y a plus d'un an|Há mais de um ano|Più di un anno fa
+Menos de 1 min|Less than 1 min|Moins d'1 min|Menos de 1 min|Meno di 1 min
+Sin jugar|Not played|Jamais joué|Não jogado|Mai giocato
+En lista|List|Liste|Lista|Elenco
+(1 bloque)|(1 block)|(1 bloc)|(1 bloco)|(1 blocco)
+(%d bloques)|(%d blocks)|(%d blocs)|(%d blocos)|(%d blocchi)
+Cruceta arriba|D-pad up|Croix haut|Direcional cima|Croce su
+Cruceta abajo|D-pad down|Croix bas|Direcional baixo|Croce giù
+Cruceta izq.|D-pad left|Croix gauche|Direcional esq.|Croce sin.
+Cruceta der.|D-pad right|Croix droite|Direcional dir.|Croce des.
+Panel táctil|Touchpad|Pavé tactile|Touchpad|Touchpad
+Genérico|Generic|Générique|Genérico|Generico
+Flecha arriba|Up arrow|Flèche haut|Seta para cima|Freccia su
+Flecha abajo|Down arrow|Flèche bas|Seta para baixo|Freccia giù
+Flecha izquierda|Left arrow|Flèche gauche|Seta para a esquerda|Freccia sinistra
+Flecha derecha|Right arrow|Flèche droite|Seta para a direita|Freccia destra
+Enter numérico|Keypad Enter|Entrée pavé num.|Enter numérico|Invio tastierino
+Shift derecho|Right Shift|Maj droite|Shift direito|Maiusc destro
+Shift izquierdo|Left Shift|Maj gauche|Shift esquerdo|Maiusc sinistro
+Ctrl derecho|Right Ctrl|Ctrl droite|Ctrl direito|Ctrl destro
+Ctrl izquierdo|Left Ctrl|Ctrl gauche|Ctrl esquerdo|Ctrl sinistro
+Espacio|Space|Espace|Espaço|Spazio
+Retroceso|Backspace|Retour arrière|Backspace|Backspace
+Supr|Delete|Suppr|Delete|Canc
+Inicio|Home|Début|Home|Inizio
+Fin|End|Fin|End|Fine
+Re Pág|Page Up|Page préc.|Page Up|Pag Su
+Av Pág|Page Down|Page suiv.|Page Down|Pag Giù
+Palanca der. arriba|Right stick up|Stick droit haut|Analógico dir. cima|Stick destro su
+Palanca der. abajo|Right stick down|Stick droit bas|Analógico dir. baixo|Stick destro giù
+Palanca der. izquierda|Right stick left|Stick droit gauche|Analógico dir. esquerda|Stick destro sinistra
+Palanca der. derecha|Right stick right|Stick droit droite|Analógico dir. direita|Stick destro destra
+Palanca izq. arriba|Left stick up|Stick gauche haut|Analógico esq. cima|Stick sinistro su
+Palanca izq. abajo|Left stick down|Stick gauche bas|Analógico esq. baixo|Stick sinistro giù
+Palanca izq. izquierda|Left stick left|Stick gauche gauche|Analógico esq. esquerda|Stick sinistro sinistra
+Palanca izq. derecha|Left stick right|Stick gauche droite|Analógico esq. direita|Stick sinistro destra
+Cruz|Cross|Croix|Xis|Croce
+Círculo|Circle|Rond|Círculo|Cerchio
+Cuadrado|Square|Carré|Quadrado|Quadrato
+Triángulo|Triangle|Triangle|Triângulo|Triangolo
+Predeterminado|Default|Par défaut|Padrão|Predefinito
+Juegos|Games|Jeux|Jogos|Giochi
+juego|game|jeu|jogo|gioco
+juegos|games|jeux|jogos|giochi
+SELECT Y START|SELECT AND START|SELECT ET START|SELECT E START|SELECT E START
+MODE Y START|MODE AND START|MODE ET START|MODE E START|MODE E START
+Perfil: Predeterminado|Profile: Default|Profil : Par défaut|Perfil: Padrão|Profilo: Predefinito

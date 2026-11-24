@@ -1,0 +1,235 @@
+0|Toujours à tes côtés
+1|Fonctions et commandes
+2|Graphismes et effets
+3|Réglages pour ton ordinateur
+4|Nouveautés
+5|Inconnue
+6|#version 300 es
+7|#version 330 core
+8|%dx%d
+9|automatique
+10|Configuration
+11| appliquée. Prêt à jouer !
+12|cœur
+13|@migrado
+14|La build
+15| est sortie ! Va dans Nouveautés pour mettre à jour.
+16|Confirme l'installation dans la fenêtre d'Android.
+17|Impossible d'ouvrir l'installateur. Télécharge-la depuis GitHub.
+18|Recherche de jeux dans le nouveau dossier…
+19|Nouvelle jaquette pour «
+20|BIOS
+21|bin;rom;bios
+22|Tous les fichiers
+23|Je n'ai pas pu lire ce fichier.
+24|Ce fichier ne ressemble pas à un BIOS de
+25| (sa taille ne correspond à aucun).
+26|Je n'ai pas pu copier le BIOS :
+27|C'est fait ! Il a été enregistré sous
+28|. Il sera utilisé dès le prochain jeu.
+29| Ce n'est pas la version recommandée par le cœur, mais elle marche souvent bien.
+30|;zip;7z
+31|Jeux de toutes les consoles
+32|Emplacement
+33|En pause
+34|On continue !
+35|Jeu redémarré
+36|Écrans échangés
+37|Ce fichier n'appartient à aucune console de Satronho Emulation.
+38| a besoin du BIOS d'origine de la console. Ajoute-le ici avec «Ajouter un BIOS…».
+39|Il manque le cœur de
+40|. Télécharge à nouveau Satronho Emulation.
+41|Impossible d'ouvrir le cœur de
+42|Sans BIOS PlayStation, j'utilise OpenBIOS, qui est libre. Si un jeu plante, ajoute le tien dans Réglages » Cœur » CD.
+43| — Satronho Emulation
+44|À toi de jouer ! Échap ouvre le menu.
+45|On reprend là où tu en étais.
+46|Je n'ai pas pu reprendre là où tu en étais ; on part de ta sauvegarde.
+47|Ce jeu ne prend pas en charge l'avance d'images ; je l'ai désactivée.
+48|Impossible d'enregistrer l'état.
+49|État enregistré dans l'emplacement
+50|Il n'y a pas encore de sauvegarde automatique.
+51|L'emplacement
+52| est vide.
+53|Sauvegarde automatique chargée
+54|État de l'emplacement
+55| chargé
+56|. Pas le bon ? Tu peux l'annuler dans le menu.
+57|C'est fait : tu es revenu à avant le chargement.
+58|Impossible de changer de disque.
+59|Ouverture du capot…
+60|Tu as inséré
+61|Impossible d'insérer ce disque.
+62|Capture enregistrée dans le dossier des captures
+63|Élevé
+64|Équilibré
+65|Automatique
+66|OpenGL ES
+67|Activé
+68|Désactivé
+69|Oui
+70|Non
+71|Aucun
+72|Par défaut
+73|Bibliothèque
+74|Commandes
+75|Configuration conseillée
+76|Réglages
+77|À propos
+78|Guides
+79|Outils
+80|Chargement de
+81|%zu
+82|   JOUER
+83|   CONSOLES
+84|Prête
+85|   BIENTÔT
+86|Ensuite : %s  ·  et %zu de plus
+87|Elles arrivent, dans cet ordre :
+88|Satronho
+89|: pour
+90|C'est la prochaine.
+91|Elle arrive bientôt.
+92|Prochaine
+93|Bientôt
+94|   SATRONHO
+95|Demande aux guides
+96|Nouvelle
+97|par Ridds
+98|Build %d
+99|Version de développement
+100|Il manque le cœur de :
+101|Ces émulateurs ont besoin de leurs fichiers dans le dossier «cores» à côté du programme. Télécharge à nouveau la build complète depuis les Releases.
+102|Pour %s · %zu %s
+103|Toutes tes consoles · %zu %s
+104|Ajouter un dossier
+105|Ouvrir un jeu sans l'ajouter
+106|Rechercher à nouveau les jeux
+107|Rechercher dans la bibliothèque
+108|Recherche de jeux…
+109|Annuler##busqueda
+110|Récents
+111|Les plus joués
+112|Favoris uniquement
+113|Grille
+114|Carrousel
+115|Vue :
+116|VUE
+117|TAILLE DES JAQUETTES
+118|Petites
+119|Moyennes
+120|Grandes
+121|ORDRE
+122|Nom (A-Z)
+123|Joués récemment
+124|Utiliser cette vue sur toutes les consoles
+125|Mise à jour…
+126|Annuler##busqueda2
+127|Tu n'as pas encore de favoris. Utilise l'étoile d'un jeu.
+128|Aucun jeu avec ce nom.
+129|%s  ·  %zu %s
+130|Voir seulement ceux-ci
+131|CONTINUER À JOUER
+132| joué
+133|  ·  tu reprends là où tu en étais
+134|Continuer##hero
+135|Favori
+136|Jouer
+137|Reprendre là où j'en étais
+138|Ouvrir le dossier du jeu
+139|Ouvrir le dossier des sauvegardes
+140|Ouvrir le dossier des états
+141|Jaquette
+142|Choisir une image…
+143|Retirer ma jaquette
+144|La rechercher à nouveau sur Internet
+145|Temps de jeu
+146|Jamais joué
+147|Remettre à zéro
+148|Conversion de «
+149|» en .chd. Ton original est conservé.
+150|Vérifier le fichier
+151|Copier
+152|Le nom
+153|Le chemin du fichier
+154|Créer un raccourci
+155|Sur le bureau
+156|C'est fait : «
+157|» est sur ton bureau.
+158|Masquer de la bibliothèque
+159|» est masqué. Tu peux le réafficher dans Réglages » Bibliothèque.
+160|«%s» : %.1f Mo · CRC32 %08lX. Compare-le avec la liste de ton jeu (No-Intro ou Redump).
+161|Je n'ai pas pu lire «
+162|Ta bibliothèque est prête à se remplir
+163|Ajoute le dossier où tu gardes tes jeux (de n'importe laquelle des neuf consoles) et je cherche aussi dans les sous-dossiers ; chaque jeu va dans sa console. Si tu préfères, glisse un jeu sur la fenêtre et on l'ouvre tout de suite.
+164|Ajouter un dossier##vacia
+165|Ouvrir un jeu##vacia
+166|Satronho Emulation n'inclut pas de jeux. Utilise des copies des cartouches que tu possèdes.
+167|Ñoño vérifie ton ordinateur et prépare tout pour jouer
+168|Ton ordinateur
+169|PROCESSEUR
+170|  ·  %d threads
+171|MÉMOIRE RAM
+172|%.1f Go
+173|CARTE GRAPHIQUE
+174|  ·  %d Go
+175|ÉCRAN
+176|%d × %d à %.0f Hz
+177|MOTEUR GRAPHIQUE
+178|Ce que je te conseille
+179|Applique-le pour moi
+180|Appliquée
+181|Comment tourne chaque console
+182|Selon les threads de ton processeur. C'est indicatif : un vieux processeur peut être plus lent même avec beaucoup de threads.
+183|Nouveautés de Satronho Emulation
+184|Tu es sur la build %d. Voici ce qu'apporte chaque version : ajouts, améliorations et corrections.
+185|C'est une version de développement. Voici ce qu'apporte chaque build.
+186|Aucune nouveauté à afficher.
+187|Nouveau
+188|Amélioration
+189|Correction
+190|La build %d est sortie !
+191|Elle se télécharge, s'installe par-dessus et Satronho Emulation se rouvre tout seul. Tes jeux, sauvegardes et réglages ne sont pas touchés.
+192|Recherche de mises à jour…
+193|Téléchargement de la nouvelle build…
+194|Installation…
+195|Tu as la dernière build
+196|Impossible de vérifier les nouvelles builds
+197|Mises à jour
+198|Les mises à jour automatiques sont pour Windows.
+199|Mettre à jour
+200|Vérifier maintenant
+201|Voir sur GitHub
+202|Vérifier au démarrage
+203|Tout est enregistré immédiatement
+204|Graphismes
+205|Son
+206|Performances
+207|Compteur
+208|Cœur
+209|Apparence
+210|«Net et doux» garde les pixels carrés et sans bords tremblants à toutes les tailles. Pour te croire devant une vieille télé, essaie l'«Écran CRT».
+211|Plein écran
+212|Aussi avec F11 ou Alt+Entrée.
+213|Plein écran à 60 Hz
+214|Si ton écran est à 120 ou 144 Hz, je le passe à 60 Hz quand tu joues en plein écran : les consoles tournent à 60 images, et le mouvement reste parfaitement fluide.
+215|Taille de l'image
+216|Ajuster remplit l'écran sans déformer. Entier n'utilise que des multiples exacts (pixels parfaits, avec bordures).
+217|Ajuster
+218|Entier
+219|Étirer
+220|Filtre
+221|Comment les pixels sont agrandis.
+222|Pixel exact
+223|Net et doux
+224|Doux
+225|Effet d'écran
+226|«Auto» utilise une télé CRT sur les consoles de salon en 2D, un écran LCD sur les portables et une image nette sur les consoles 3D (CD, 64, Anillo et Dual).
+227|Lignes
+228|Auto
+229|Intensité de l'effet
+230|%d %s sa propre image
+231|console a
+232|consoles ont
+233|Ça se choisit dans le menu du jeu » Réglages rapides » «Image propre». Là, ça prime sur cette page.
+234|Utiliser la générale partout

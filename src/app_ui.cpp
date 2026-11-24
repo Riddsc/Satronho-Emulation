@@ -2096,7 +2096,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             ImGui::SameLine(0, S(22));
             ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, p.y - S(4)});
             FontScope f(GetFonts().medium, 13);
-            ImGui::TextDisabled(Tr("Zona muerta"));
+            ImGui::TextDisabled("%s", Tr("Zona muerta"));
             ImGui::SameLine(0, S(8));
             changed |= SliderPercent("##zona_nx", &input_.deadzone, S(200));
             ImGui::SameLine(0, S(22));

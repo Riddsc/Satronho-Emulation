@@ -1,0 +1,235 @@
+470|Benvenuto in Satronho Emulation!
+471|Ciao! Sono MechaRidds. Questa è la casa degli emulatori della famiglia Satronho. Ci sono già:
+472|, e presto arrivano altre console. Ti presento la mia squadra in due passi.
+473|Inizia
+474| (Ho rilevato %s, %.0f GB di RAM e %s.)
+475|Lo guardo dopo
+476|I tuoi giochi
+477|Dimmi in quale cartella hai i tuoi giochi e li sistemo nella libreria, ognuno nella sua console. Mentre giochi: Esc apre il menu, F5 salva, F9 carica e tenere premuto Backspace riavvolge. All'uscita salvo dove eri rimasto.
+478|Più tardi
+479|Scegli il tema che ti piace di più. Il logo di Satronho resta sempre sullo sfondo: alza o abbassa l'opacità, ma mai sotto il 10 %.
+480|Lingua
+481|Automatica (quella del tuo sistema)
+482|Lingua di Satronho
+483|Español, English, Français, Português o Italiano. I nomi dei giochi non cambiano.
+484|Tema
+485|Logo di Satronho sullo sfondo
+486|La sua opacità. Va dal 10 % al 100 %; non si può spegnere.
+487|Libreria e gioco
+488|Vista della libreria
+489|Come si vedono i tuoi giochi. Ogni console può avere la sua dal pulsante «Vista» della libreria; questo la applica a tutte.
+490|Dimensione delle copertine
+491|Barra dei menu nel gioco
+492|Sopra il gioco in finestra: Gioco, Immagine, Audio, Controlli… A schermo intero appare con Esc.
+493|Mostra il controller su schermo
+494|Automatico: con schermo touch e senza controller collegato. Si sistema dal menu del gioco » «Controller su schermo».
+495|Sempre
+496|Mai
+497|Dimensione dei pulsanti
+498|Opacità dei pulsanti
+499|Vibra al tocco
+500|Una breve vibrazione ogni volta che premi un pulsante sullo schermo.
+501|All'uscita
+502|Chiedi prima di chiudere l'app
+503|Così un clic in più sulla X non ti butta fuori.
+504|Chiedi prima di uscire da un gioco
+505|Dal menu del gioco, prima di tornare alla libreria.
+506|OCTA
+507|Immagini
+508|png;jpg;jpeg
+509|Precedente
+510|Successivo
+511|%d di %d
+512|Continua##car
+513|Gioca##car
+514|Da capo##car
+515|Togli dai preferiti
+516|Segna come preferito
+517|Fatto, non lo chiedo più. Puoi cambiarlo in Impostazioni » Aspetto.
+518|Chiudere Satronho Emulation?
+519|Uscire da «
+520|Stai giocando. Prima di chiudere salvo dove eri rimasto.
+521|Stai giocando; quello che non hai salvato andrà perso.
+522|Sicuro? Giochi, salvataggi e impostazioni restano salvati.
+523|Salvo dove eri rimasto e con «Continua» riprendi proprio lì.
+524|Quello che non hai salvato andrà perso.
+525|Non chiedere più
+526|Resto##conf
+527|Continua a giocare##conf
+528|Chiudi##conf
+529|Esci##conf
+530|BUILD %d INSTALLATA
+531|NOVITÀ
+532|Ciao, tesoro. Sono Juana. Guarda cosa porta questa versione:
+533|Vedi tutte le novità
+534|Si gioca!
+535|È uscita la build %d! In Novità la installi con un clic.
+536|Hai l'ultima build.
+537|Sto controllando se c'è una nuova build.
+538|Tocca «Cerca aggiornamenti» e ti dico se c'è qualcosa di nuovo.
+539|Fatto! Ho configurato tutto per il tuo computer.
+540|Cerco copertine per i tuoi giochi…
+541|Scrivi quello che vuoi sapere: rispondono con ciò che sanno del tuo computer, dei tuoi giochi e dei tuoi controller
+542|A chi ne sa di più
+543|Scrivi la tua domanda…
+544|Scrivi la tua domanda: «come va il 64 sul mio PC?»
+545|Invia##chat
+546|Full HD
+547|  (%dp · %s)
+548|  (%dp)
+549|  · come il tuo schermo
+550|Bilineare (morbido)
+551|3 punti (come la console)
+552|internal resolution
+553|Risoluzione interna
+554|Spento (1×)
+555|memory card 1
+556|Memory Card 1
+557|16 bpp (native)
+558|16 bit (originale)
+559|32 bpp
+560|32 bit
+561|1x (native)
+562|Originale (1×)
+563|internal resolution only
+564|Solo alla risoluzione interna
+565|Automatico (OpenGL)
+566|Classico ·
+567|classico (
+568|Motore grafico
+569|OpenGL disegna tutto con la scheda grafica e permette a CD e 64 di usare OpenGL o Vulkan. Il classico è quello di riserva. Si applica riaprendo l'app. Ora: %s.
+570|Il motore grafico cambia la prossima volta che apri Satronho Emulation.
+571|Scheda grafica
+572|Scheda
+573|Quella che CD e 64 usano per disegnare.
+574|Disponibile ·
+575|Questo computer non ha Vulkan: si usa OpenGL.
+576|Controllo…
+577|Con il motore classico, CD e 64 disegnano con il processore. Scegli OpenGL qui sopra per usare la scheda grafica.
+578|Antialiasing (MSAA)
+579|Bordi più morbidi sui poligoni. Chiede di più alla scheda.
+580|Supercampionamento
+581|Disegna in grande e lo riduce alla risoluzione originale: niente scalettature.
+582|Filtraggio delle texture
+583|Come si ammorbidiscono le texture quando si ingrandiscono.
+584|Geometria precisa (PGXP)
+585|Toglie il tremolio dei poligoni tipico della PS1.
+586|Texture senza deformazioni (PGXP)
+587|Corregge la prospettiva delle texture. Richiede PGXP.
+588|Schermo panoramico (16:9)
+589|Allarga la visuale nei giochi 3D. In alcuni si vedono cose in più.
+590|Retinatura
+591|Il motivo a puntini della PS1. Spento si vede più pulito.
+592|Profondità di colore
+593|32 bit toglie le bande di colore.
+594|Proporzioni
+595|4:3 come la console, o 16:9 per schermi larghi.
+596|mupen64plus-MultiSampling
+597|Bordi più morbidi (OpenGL).
+598|mupen64plus-FXAA
+599|FXAA
+600|Ammorbidisce i bordi con pochissimo costo (OpenGL).
+601|mupen64plus-txFilterMode
+602|Filtro texture
+603|Ammorbidisce o affila le texture (OpenGL).
+604|mupen64plus-txEnhancementMode
+605|Miglioramento texture
+606|Ingrandisce le texture con un filtro (OpenGL).
+607|mupen64plus-BilinearMode
+608|Filtro bilineare
+609|«3point» è come la console reale; «standard» è più morbido.
+610|Supercampionamento (Vulkan)
+611|Disegna in grande e lo riduce: immagine più pulita.
+612|il processore
+613|Beetle PSX che disegna con il processore.
+614|Beetle PSX HW con
+615|GLideN64 con OpenGL: accetta dimensioni esatte.
+616|ParaLLEl-RDP con Vulkan: il più fedele alla console.
+617|Angrylion con il processore: fedele, ma pesante.
+618|Automatica
+619|Processore
+620|Questo computer non ha Vulkan; si userà OpenGL.
+621|Si applica la prossima volta che apri il gioco.
+622|Risoluzione
+623|Il tuo schermo è alto %d pixel.
+624|Automatica (ora
+625|Le opzioni grafiche appaiono quando il core di questa console è installato.
+626|Non sono riuscito a decomprimere «
+627|». Il file è completo?
+628|». Controlla che ci sia spazio sul disco.
+629|» contiene diversi giochi. Quale apriamo?
+630|Annulla##zip
+631|FILE
+632|Fatto: %d disco%s in .chd. Hai risparmiato %.0f MB (%.0f %%).
+633|Nessun disco è stato convertito.
+634|Impossibile convertire:
+635|Dischi in .chd (facoltativo)
+636|Il .chd è lo stesso disco compresso: occupa meno e si apre uguale. I tuoi originali restano, a meno che tu non scelga di cancellarli.
+637|Conversione %d di %d: %s
+638|Ferma##chd
+639|Non ci sono dischi .cue da convertire.
+640|%zu disco%s (%.0f MB).
+641|Converti tutti
+642|Cancella gli originali alla fine
+643|Controller su schermo ·
+644|Trascina ogni gruppo dove ti è comodo.
+645|Dimensione %d %%
+646|Opacità %d %%
+647|Come in origine##tactil
+648|Fatto##tactil
+649|Scegli la cartella dei tuoi giochi
+650|Apri un gioco
+651|Per cercare i tuoi giochi in qualsiasi cartella, Android ha bisogno che tu mi dia il permesso di «accesso a tutti i file». Li leggo soltanto; non tocco nient'altro.
+652|Dai il permesso
+653|Memoria interna
+654|Scheda SD
+655|Download
+656|Download
+657|Su
+658|Qui non ci sono cartelle.
+659|Qui non ci sono giochi.
+660|Annulla##exp
+661|Usa questa cartella
+662|Gioco
+663|Continua a giocare
+664|Pausa
+665|Salva stato (slot %d)
+666|Carica stato (slot %d)
+667|Slot
+668|Stati con miniatura…
+669|Cambia disco
+670|Disco %u
+671|Screenshot
+672|Menu completo del gioco
+673|Controller: Guida
+674|Chiudi Satronho Emulation
+675|Alt+F4
+676|Visualizza
+677|Barra di stato
+678|Misuratore Satronho
+679|Dimensione della finestra
+680|Nascondi questa barra
+681|Barra nascosta. Torna in Impostazioni » Aspetto, o con Esc a schermo intero.
+682|Adatta (senza deformare)
+683|Intero (pixel perfetti)
+684|Linee di scansione
+685|TV CRT
+686|Schermo LCD
+687|In base alla console
+688|Immagine propria per %s
+689|Automatica (%s)
+690|Si applica riaprendo il gioco.
+691|Motore del gioco
+692|Altre impostazioni grafiche…
+693|Silenzia
+694|Assegna pulsanti…
+695|Vibrazione del controller
+696|Sistema il controller su schermo…
+697|Nessun controller collegato: giochi con la tastiera.
+698|Giocatore %d: %s
+699|Apri la cartella degli screenshot
+700|Apri la cartella dei dati
+701|Memory Card, prova dei controller e altro…
+702|Tab
+703|L'avanzamento rapido si attiva in Impostazioni » Prestazioni.
+704|Scambia schermi (Dual)

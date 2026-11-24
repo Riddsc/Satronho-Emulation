@@ -1,0 +1,235 @@
+235|Cada console pode ter sua própria imagem: menu do jogo » Ajustes rápidos » «Imagem própria».
+236|Fundo ambiente
+237|Preenche as bordas com as cores do jogo, suaves e desfocadas.
+238|Sincronização vertical
+239|Evita que a imagem se corte. Deixe ativada, a menos que saiba o que está fazendo.
+240|Tamanho da interface
+241|«Auto» aumenta em telas 1440p e 4K para que tudo fique confortável de ler.
+242|Volume
+243|Latência
+244|Menos é mais rápido, mas se o som chiar, aumente um pouco.
+245|%d ms
+246|Silenciar ao avançar rápido
+247|Evita o som acelerado enquanto você segura Tab.
+248|Não há saída de som disponível neste momento.
+249|O avanço de quadros faz os controles responderem mais rápido que no console original. Por enquanto funciona no Satronho Octa (NES); nos outros consoles fica desligado sozinho, porque o som deles não vive dentro do estado e soaria estranho.
+250|Avanço de quadros
+251|Reduz o atraso entre apertar um botão e ver na tela. Só no Satronho Octa.
+252|Desligado
+253|1 quadro
+254|2 quadros
+255|Rebobinar
+256|Segure Backspace (ou o gatilho esquerdo) para voltar no tempo.
+257|Também nos consoles pesados
+258|PS1, DS, Saturn e 64 guardam vários MB por passo e podem engasgar em computadores modestos. Desligado de fábrica.
+259|Quanto dá para rebobinar
+260|Segundos para trás, no máximo.
+261|Memória para o histórico
+262|Só é guardado o que muda de um momento para outro, comprimido. Se encher, o mais antigo é apagado primeiro.
+263|%d MB
+264|Agora mesmo: %.0f s guardados em %.0f MB.
+265|Avanço rápido
+266|Desligado de fábrica: o gatilho conflita com botões de vários consoles. Ao ativar, segure Tab (e o botão do controle que você atribuir em Controles » Atalhos).
+267|Velocidade do avanço rápido
+268|Ao jogar
+269|Salvar onde parei ao sair
+270|Ao voltar à biblioteca é salvo um espaço automático; «Continuar» segue exatamente dali.
+271|Pausar ao trocar de janela
+272|Se você clicar em outro programa, o jogo para até você voltar.
+273|O medidor mostra ao vivo como o jogo está indo: quadros por segundo, velocidade, engasgos e uso do computador. F3 muda enquanto você joga.
+274|Modo
+275|Compacto
+276|Detalhado
+277|Canto
+278|Superior esq.
+279|Superior dir.
+280|Inferior esq.
+281|Inferior dir.
+282|Cor
+283|Prévia
+284|Não foi possível carregar o núcleo de
+285|O coração de %s é %s %s. Estas opções são dele; a maioria vale na hora e outras ao reiniciar o jogo.%s
+286| Bolsillo e Bolsillo Plus compartilham o núcleo, mas cada um guarda suas próprias opções.
+287|Falta.
+288|Não há (é opcional).
+289|Você tem:
+290|BIOS de
+291| Nomes que reconhece:
+292|Adicionar BIOS…
+293|Adicionar outra…
+294|Abrir pasta
+295|Geral
+296|Restaurar opções do núcleo
+297|Pastas de jogos
+298|Busca-se em cada pasta e suas subpastas.
+299|Remover esta pasta
+300|Ainda não há pastas.
+301|Adicionar pasta##aj
+302|Procurar de novo
+303|Cancelar busca
+304|Capas reais
+305|São baixadas sozinhas do libretro-thumbnails (as do RetroArch). Clique com o botão direito em um jogo para pôr a sua.
+306|Procurando capas… faltam %d
+307|Procurar capas agora
+308|Jogos comprimidos (.zip e .7z)
+309|Jogam-se sem descompactar. Os de disco são extraídos uma vez para um cache de até 4 GB que se limpa sozinho.
+310|Esvaziar o cache
+311|Cache de jogos descompactados vazio.
+312|Pasta de dados
+313|Modo portátil: tudo é salvo junto ao programa.
+314|Capturas de tela
+315|Abrir capturas
+316|BIOS e arquivos do sistema
+317|Jogos do Famicom Disk System precisam de «disksys.rom» nesta pasta.
+318|Abrir pasta do sistema
+319|Jogos ocultos (%zu)
+320|Nenhum. Para ocultar um jogo, clique com o botão direito na capa » «Ocultar da biblioteca».
+321|Mostrar
+322|Mostrar os guias
+323|Samy, Troya, Ñoño, Juana e MechaRidds explicam as coisas pelo caminho.
+324|Balão de dicas
+325|Uma dica no canto da biblioteca de vez em quando.
+326|O protagonista. Conhece cada canto do Satronho e te acompanha em tudo.
+327|Pitbull terrier marrom e branca. Explica os jogos, os controles, os atalhos e os estados.
+328|Pitbull malinois de sobrancelhas amarelinhas e oculinhos. Entende de filtros, efeitos e tudo o que se vê.
+329|Labrabull branco e preto, o maior. Confere seu computador e diz qual configuração combina com ele.
+330|A velhinha vira-lata preta de cabelos brancos e lacinho, a menor. Conta as novidades de cada build.
+331|Pressione…
+332|Clique: atribuir (tecla ou botão do controle, o que você apertar) · Botão direito: deixar vazio
+333|Teclado
+334|Sem controle
+335|Controle %d · %s
+336|Controle %d (não conectado)
+337|O controle dele (desconectado)
+338|Perfil:
+339|Novo perfil (cópia do atual)
+340|Meu perfil
+341|Renomear perfil
+342|Apagar perfil
+343|Atribuição automática
+344|Controle atribuído com a disposição do
+345|Põe os botões do controle no lugar natural para este console.
+346|Um por um
+347|Pede cada botão em ordem. Aperte a tecla ou o botão do controle que quiser para cada um.
+348|Restaurar
+349|Apagar tudo
+350|Aperte a tecla ou o botão do controle para «%s»   ·   Esc cancela
+351|Aperte qualquer botão para vê-lo ao vivo.
+352|Último botão:
+353|DIRECIONAL
+354|BOTÕES
+355|GATILHOS E ANALÓGICOS
+356|GATILHOS
+357|Atribuir com
+358|Controle
+359|Gatilhos esquerdos
+360|Direcional
+361|Analógico esquerdo
+362|Gatilhos direitos
+363|Botões (C no analógico direito)
+364|Botões
+365|Analógico direito
+366|Move os botões C
+367|Vibração
+368|Zona morta
+369|%s · clique para atribuir
+370|Inclinação
+371|Para jogos com sensor no cartucho, como Kirby Tilt 'n' Tumble ou WarioWare Twisted. Com o teclado: I, K, J e L.
+372|Analógico direito
+373|Sensor do controle
+374|Seu controle não tem sensor de movimento (os de PS4, PS5 e Switch têm).
+375|Inverter horizontal
+376|Inverter vertical
+377|Nomes dos botões como num controle %s. Botão direito numa casa deixa ela vazia.
+378|PlayStation
+379|Switch
+380|Xbox
+381|Os atalhos servem em qualquer console. Clique numa casa e aperte a tecla ou o botão do controle. Select+Start no controle sempre abre o menu, e Alt+Enter muda para tela cheia. Um botão do controle que o jogo usa não dispara seu atalho. O avanço rápido vem desligado: ligue em Ajustes » Desempenho.
+382|Restaurar atalhos
+383|Novo perfil
+384|É criado como cópia das atribuições atuais.
+385|O perfil Padrão não pode ser renomeado.
+386|Salvar
+387|Esse nome já existe ou não é válido (sem «.», «|», «=», «#» nem «;», e sem espaços no começo ou no fim).
+388|Cancelar
+389|Atribua os botões de cada console e veja ao vivo
+390|Jogador 1
+391|Jogador 2
+392|Atalhos
+393|PORTAS
+394|Jogador %d
+395|AJUSTES
+396|CONTROLES CONECTADOS
+397|Nenhum. Conecte um quando quiser.
+398|Console
+399|Zona morta do analógico
+400|Quanto é preciso mover o analógico para contar.
+401|O analógico esquerdo também move o direcional
+402|Os jogos que usam (Rumble Pak no 64, DualShock no CD) fazem seu controle vibrar.
+403|Registro de botões
+404|Anota em satronho.log cada botão que chega ao jogo. Serve para conferir se algum botão se perde.
+405|Aperte qualquer botão para vê-lo aqui.
+406|Controles conectados
+407|Nenhum por enquanto. Você pode conectar um a qualquer momento.
+408|  ·  Jogador %d
+409|Controle %d · %s (%s)%s
+410|Cada jogador lembra do seu controle: se um desconectar, os outros continuam com o seu.
+411|A casa dos emuladores da família Satronho. Um só lugar para seus consoles, com imagem caprichada, controles que respondem na hora, um medidor ao vivo e configurações sugeridas para o seu computador. Já estão:
+412|; logo chegam mais consoles.
+413|Logo, guias (Samy, Troya, Ñoño, Juana e MechaRidds), interface e design: Ridds. Software livre sob GPL 3.0; as licenças dos componentes estão na pasta «licencias».
+414|NES, Super Nintendo, Game Boy, Nintendo 64 e DS são marcas da Nintendo; Genesis, Mega Drive e Saturn, da Sega; PlayStation, da Sony. São usadas só para descrever com quais jogos cada emulador funciona. Este projeto não é afiliado a nenhuma delas e não inclui jogos.
+415|Código-fonte
+416|https://github.com/Riddsc/Satronho-Emulation
+417|Licenças
+418|Abrir pasta de dados
+419|Ver o registro
+420|Sem mais histórico
+421|Rebobinando
+422|Avanço rápido ×%d
+423|Trocando de disco
+424|Esta sessão: %s
+425|Continuar
+426|Esc
+427|Estados
+428|Ajustes rápidos
+429|%d de %u
+430|Discos
+431|Reiniciar
+432|Captura
+433|Controle na tela
+434|Sair para a biblioteca
+435|Salve a qualquer momento e volte exatamente ali
+436|Salvamento automático
+437|Desligado (Ajustes » Desempenho)
+438|Ao sair ·
+439|É salvo ao sair para a biblioteca
+440|Desfazer o carregamento
+441|Carregar##auto
+442|Espaço %d
+443|Vazio
+444|Carregar
+445|%s salva e %s carrega no espaço marcado. %s e %s trocam de espaço.
+446|Mude a imagem sem sair do jogo
+447|Imagem própria para
+448|O que você mudar aqui vale só para este console.
+449|Desligado: usa-se a imagem geral de Ajustes » Gráficos.
+450|Pixel
+451|Nítido
+452|Tamanho
+453|Escolha o disco como no console: a tampa abre, troca e fecha
+454|Colocado
+455|Colocar este
+456|Trocando de disco…
+457|Toque num botão do desenho e aperte a tecla ou o botão que quiser
+458|%.0f FPS  %3.0f %%  %.2f ms
+459|Engasgos
+460|Motor
+461|%.2f ms por quadro
+462|%d  ·  %d neste minuto
+463|%.0f %% do computador
+464|%.0f MB
+465|%.0f ms  ·  ×%.4f
+466|sem saída
+467|  ·  vsync
+468|Outra dica
+469|Ocultar por agora

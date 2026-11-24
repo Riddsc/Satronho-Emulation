@@ -1,0 +1,159 @@
+705|In alto a sinistra
+706|In alto a destra
+707|In basso a sinistra
+708|In basso a destra
+709|Logo di sfondo
+710|Queste schermate chiudono il gioco (salvando dove eri rimasto).
+711|Aiuto
+712|Scorciatoie da tastiera (si cambiano in Controlli » Scorciatoie):
+713|Apri il registro (satronho.log)
+714|Informazioni su Satronho Emulation
+715|   ·   Tocca il gioco per continuare
+716|   ·   Esc per nascondere
+717|VULKAN
+718|OPENGL
+719|%dp
+720|CLASSICO
+721|PIXEL ESATTO
+722|NITIDO MORBIDO
+723|MORBIDO
+724|NESSUN EFFETTO
+725|LINEE
+726|AUTO
+727|PAUSA
+728|AVANTI ×%d
+729|SLOT %d
+730|VOLUME %d%%
+731|%s   %.0f FPS
+732|TASTIERA
+733|Cose utili per i tuoi giochi, i tuoi controller e i tuoi salvataggi
+734|Ecco tutto ciò che non è giocare: provare i controller, guardare i salvataggi delle tue Memory Card e aprire le cartelle di Satronho.
+735|Prova dei controller
+736|Nessun controller collegato. Collegane uno e appare qui all'istante.
+737|Stick des.
+738|Stick sin.
+739|Premi i pulsanti per vederli qui.
+740|Vibra##v%d
+741|Anche la tastiera conta: premi un tasto.
+742|Memory Card PS1
+743|Ogni gioco di Satronho CD ha la propria Memory Card. Qui vedi quali salvataggi contiene e puoi cancellare quelli che non vuoi più.
+744|Ancora nessuna Memory Card: appaiono quando salvi in un gioco PS1.
+745|  ·  %d blocchi su 15
+746|   Vuota.
+747|Cancella
+748|Cancellare «%s»? Non si può annullare.
+749|Sì, cancella
+750|Salvataggio cancellato (resta una copia .bak per sicurezza).
+751|Copertine
+752|Si scaricano da sole da libretro-thumbnails quando c'è internet. Clic destro su un gioco per mettere la tua.
+753|Cerco copertine…
+754|Apri la cartella
+755|Cartelle di Satronho
+756|Dati
+757|Salvataggi
+758|Screenshot
+759|Registro (log)
+760|Notte Satronho
+761|Il viola di sempre, come Satronho NX.
+762|Mezzanotte
+763|Blu profondo, tranquillo per giocare di notte.
+764|Tramonto
+765|Caldo, con arancioni da sala giochi.
+766|Bosco
+767|Verdi morbidi, riposano la vista.
+768|Chiaro
+769|Sfondo chiaro per giocare di giorno.
+770|Su
+771|Giù
+772|Sinistra
+773|Destra
+774|Turbo A
+775|Turbo B
+776|Select
+777|Start
+778|Octa
+779|giochi NES
+780|Mega
+781|giochi Genesis e Mega Drive
+782|Genesis
+783|MEGA
+784|Mode
+785|MODE E START
+786|Hexa
+787|giochi SNES e Super Famicom
+788|SNES
+789|HEXA
+791|Va alla perfezione.
+792|Disegnato con la scheda grafica, in HD.
+793|Va bene.
+794|Potrebbe essere al limite: se va lento, metti la risoluzione interna a 1x.
+795|Potrebbe essere al limite in alcuni giochi.
+796|Potrebbe essere al limite nei giochi più esigenti.
+797|Potrebbe andare lento: il Saturn chiede molto al processore.
+798|Va bene: disegnato con la scheda grafica (GLideN64 con OpenGL o ParaLLEl-RDP con Vulkan).
+799|Potrebbe essere al limite: il processore ha pochi thread, anche se si disegna con la scheda grafica.
+800|Va bene nella maggior parte dei giochi.
+801|Alcuni giochi possono andare lenti: tutto si disegna con il processore.
+802|Andrà lento: senza scheda grafica il 64 si disegna con il processore.
+803|Processore con %d thread: %s.
+804|più che sufficiente per i classici e bene per i più pesanti
+805|più che sufficiente per i classici; i più pesanti possono essere al limite
+806|al limite, meglio risparmiare
+807|%.1f GB di RAM: %s.
+808|basta per riavvolgere senza problemi
+809|meglio non tenere troppa cronologia
+810|Si disegna senza scheda grafica (modalità software), quindi gli effetti restano spenti.
+811|Scheda grafica:
+812| con
+813|il motore automatico
+814|Schermo a %.0f Hz%s.
+815|: a schermo intero lo porto a 60 Hz perché il movimento sia perfettamente fluido
+816|Base
+817|Il tuo computer va bene con le console classiche, ma risparmiamo ogni risorsa.
+818|Il tuo computer ha potenza da vendere! Ho attivato il meglio: effetto schermo in base alla console, un fotogramma di anticipo sul NES e riavvolgimento lungo.
+819|Il tuo computer va molto bene. Ho lasciato un equilibrio tra bella immagine e risposta rapida.
+820|Schermo CRT
+821|In base alla console (CRT su quelle da TV, LCD sulle portatili e pulita sulle 3D)
+822|Effetto schermo:
+823|Filtro:
+824|Anticipo di 1 fotogramma su Satronho Octa (i controlli rispondono più veloci)
+825|Senza anticipo dei fotogrammi
+826|Riavvolgi:
+827| secondi
+828|Riavvolgi: spento
+829|Latenza audio:
+830| ms
+831|Sfondo ambientale con i colori del gioco
+832|Sfondo nero
+833|Sincronizzazione verticale: attiva
+834|Satronho (verde acqua)
+835|Samy (ambra)
+836|Troya (lilla)
+837|MechaRidds (verde)
+838|Juana (rosa)
+843|Impossibile contattare GitHub (niente internet?).
+844|Impossibile scaricare la nuova build.
+845|Il download è arrivato danneggiato (l'impronta non corrisponde). Riprova.
+912|L'avanzamento rapido è spento. Se lo vuoi, accendilo in Impostazioni » Prestazioni e tieni premuto Tab per superare in fretta le parti lente.
+913|F5 salva la tua partita all'istante e F9 la carica. Nel menu (Esc) vedi gli 8 slot con la loro foto.
+914|Hai sbagliato un salto? Tieni premuto Backspace (o il grilletto sinistro) e riavvolgi qualche secondo. Su PS1, DS, Saturn e 64 si attiva a parte in Impostazioni » Prestazioni.
+915|Clic destro su un gioco per segnarlo come preferito, aprire la sua cartella, continuare da dove eri rimasto o nasconderlo.
+916|Puoi trascinare un gioco o una cartella nella finestra: il gioco si apre e la cartella si aggiunge alla libreria.
+917|Prova l'effetto «CRT» in Impostazioni » Grafica: linee di scansione, maschera di fosfori e vignettatura, come la vecchia TV.
+918|Con «Intero» i pixel sono perfetti, in cambio di qualche bordo. Con «Nitido morbido» riempi lo schermo senza perdere nitidezza.
+919|F12 salva uno screenshot del gioco alla sua dimensione originale. Lo trovi in Impostazioni » Libreria » Screenshot.
+920|In «Configurazione consigliata» controllo il tuo computer e con un clic preparo tutto per giocare.
+921|Su Satronho Octa, l'anticipo di 1 fotogramma fa rispondere prima i salti. Se un gioco fa qualcosa di strano, spegnilo dal menu del gioco.
+922|F3 mostra il misuratore mentre giochi. Se la velocità scende sotto il 100 %, dimmelo e controlliamo.
+923|In «Novità» ti racconto cosa porta ogni nuova build di Satronho Emulation.
+924|È solo l'inizio: ci sono già nove console e ne arrivano altre in questa stessa casa.
+925|Satronho Emulation non include giochi. Usa copie delle cartucce che possiedi.
+926|In Controlli vedi il tuo controller disegnato: ogni pulsante si illumina quando lo premi. Cliccane uno per cambiarlo.
+927|Crea un profilo di controlli per console, per esempio uno per giocare con il controller PS4 e un altro con quello Xbox.
+928|Con l'effetto «Auto», le console da casa sembrano una TV CRT e le portatili mostrano la loro griglia LCD.
+929|Se il tuo schermo è a 144 Hz, gioca a schermo intero: lo porto a 60 Hz e il movimento è perfetto.
+930|Quando esci da un gioco salvo dove eri rimasto. Nella libreria, «Continua» ti riporta proprio lì.
+931|Hai caricato lo slot sbagliato? Nel menu del gioco » Stati c'è «Annulla il caricamento».
+932|Ogni console può avere la propria immagine: nel menu del gioco » Impostazioni rapide, accendi «Immagine propria».
+933|Su Satronho Dual, F2 (o il clic dello stick destro) cambia come si vedono i due schermi.
+934|Ogni giocatore ricorda il suo controller: se uno si scollega, l'altro continua con il suo.
