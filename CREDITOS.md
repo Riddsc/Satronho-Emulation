@@ -12,6 +12,8 @@ Componentes de terceros incluidos (licencias completas en la carpeta `licencias`
 - BlastEm — núcleo de Satronho Mega — GPL 3.0 — https://github.com/libretro/blastem
 - bsnes — núcleo de Satronho Hexa — GPL 3.0 — https://github.com/libretro/bsnes
 - Beetle PSX — núcleo de Satronho CD (incluye OpenBIOS) — GPL 2.0 — https://github.com/libretro/beetle-psx-libretro
+- Mupen64Plus-Next — núcleo de Satronho 64 — GPL 2.0 — https://github.com/libretro/mupen64plus-libretro-nx
+- melonDS DS — núcleo de Satronho Dual (incluye FreeBIOS) — GPL 3.0 — https://github.com/JesseTG/melonds-ds
 - SDL 3 — zlib — https://github.com/libsdl-org/SDL
 - Dear ImGui — MIT — https://github.com/ocornut/imgui
 - libretro API — MIT — https://github.com/libretro/libretro-common

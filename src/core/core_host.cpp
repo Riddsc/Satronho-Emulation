@@ -118,6 +118,13 @@ struct CoreCallbacks {
         case RETRO_DEVICE_ANALOG:
             if (index < 2 && id < 2) return pad.analog[index][id];
             return 0;
+        case RETRO_DEVICE_POINTER:
+            if (index > 0) return 0;
+            if (id == RETRO_DEVICE_ID_POINTER_X) return pad.pointer_x;
+            if (id == RETRO_DEVICE_ID_POINTER_Y) return pad.pointer_y;
+            if (id == RETRO_DEVICE_ID_POINTER_PRESSED) return pad.pointer_down ? 1 : 0;
+            if (id == RETRO_DEVICE_ID_POINTER_COUNT) return pad.pointer_down ? 1 : 0;
+            return 0;
         default:
             return 0;
         }
@@ -139,6 +146,13 @@ static bool Sym(void* lib, const char* name, T& out) {
 
 bool CoreHost::LoadCore(const fs::path& path, std::string* error) {
     UnloadCore();
+    // Cada núcleo empieza con el formato de imagen por defecto de libretro. bsnes nunca lo
+    // pide, así que si quedaba el de otro núcleo (XRGB8888 de Beetle PSX) la imagen salía con
+    // colores rotos y a la mitad (build 8).
+    pixel_format_ = PixelFormat::XRGB1555;
+    frame_.clear();
+    frame_w_ = frame_h_ = 0;
+    geometry_changed_ = true;
     const std::string p = Paths::ToUtf8(path);
     lib_ = SDL_LoadObject(p.c_str());
     if (!lib_) {
@@ -637,9 +651,13 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
     }
     case Cmd(RETRO_ENVIRONMENT_SET_MESSAGE_EXT): {
         const auto* m = static_cast<const retro_message_ext*>(data);
-        if (m && m->msg && on_message && m->target != RETRO_MESSAGE_TARGET_LOG)
-            on_message(m->msg, static_cast<int>(m->duration));
-        if (m && m->msg) Log::Info("[núcleo] %s", m->msg);
+        if (!m || !m->msg) return true;
+        // Los avisos en pantalla de cada cuadro (contadores, estado) se ignoran; solo pasan los
+        // que el núcleo manda una vez.
+        if (m->type == RETRO_MESSAGE_TYPE_STATUS) return true;
+        if (on_message && m->target != RETRO_MESSAGE_TARGET_LOG) on_message(m->msg, static_cast<int>(m->duration));
+        if (last_msg_ != m->msg) Log::Info("[núcleo] %s", m->msg);
+        last_msg_ = m->msg;
         return true;
     }
     case Cmd(RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE): {

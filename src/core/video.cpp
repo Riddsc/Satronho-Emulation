@@ -260,11 +260,15 @@ void VideoOut::Draw(const CoreHost& core, const Settings& s, int win_w, int win_
             if (lcd_) SDL_RenderTexture(r_, lcd_, nullptr, &dest_);
         }
     } else if (effect != static_cast<int>(Effect::None) && s.effect_strength > 0.01f) {
-        EnsureEffects(tex_h_, s.effect_strength, effect);
+        // Líneas del televisor: si el juego sale a alta resolución (PlayStation al doble,
+        // modos entrelazados de SNES) se cuentan las líneas originales (~240), no las de la imagen.
+        const int div = tex_h_ > 300 ? std::max(1, static_cast<int>(std::lround(tex_h_ / 240.0))) : 1;
+        const int lines = std::max(1, tex_h_ / div);
+        EnsureEffects(lines, s.effect_strength, effect);
         // Con menos de 2 píxeles por línea las líneas de barrido hacen moiré: se omiten.
-        if (scan_ && dh / tex_h_ >= 2.0f) SDL_RenderTexture(r_, scan_, nullptr, &dest_);
+        if (scan_ && dh / lines >= 2.0f) SDL_RenderTexture(r_, scan_, nullptr, &dest_);
         if (effect == static_cast<int>(Effect::Crt)) {
-            if (mask_ && dw >= tex_w_ * 3) SDL_RenderTextureTiled(r_, mask_, nullptr, 1.0f, &dest_);
+            if (mask_ && dw >= (tex_w_ / div) * 3) SDL_RenderTextureTiled(r_, mask_, nullptr, 1.0f, &dest_);
             if (vignette_) {
                 SDL_SetTextureAlphaModFloat(vignette_, 0.55f * s.effect_strength + 0.2f);
                 SDL_RenderTexture(r_, vignette_, nullptr, &dest_);

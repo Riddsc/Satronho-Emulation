@@ -37,6 +37,9 @@ struct CoreCategory {
 struct PadState {
     uint16_t buttons = 0; // bits RETRO_DEVICE_ID_JOYPAD_*
     int16_t analog[2][2] = {};
+    // Pantalla táctil (DS): posición en el rango de libretro (-0x7fff..0x7fff) y si se toca.
+    int16_t pointer_x = 0, pointer_y = 0;
+    bool pointer_down = false;
 };
 
 enum class PixelFormat { XRGB1555, XRGB8888, RGB565 };
@@ -129,6 +132,7 @@ private:
     bool game_loaded_ = false;
     retro_disk_control_ext_callback disk_{};
     bool has_disk_ = false;
+    std::string last_msg_;
     fs::path rom_path_;
     std::vector<uint8_t> rom_data_;
     std::string system_dir_, save_dir_;

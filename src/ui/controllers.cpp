@@ -426,6 +426,127 @@ void DrawPlayStation(Ctx& c) {
     }
 }
 
+// ---------------------------------------------------------------- Nintendo 64, mando de tres agarraderas (diseño 640 × 420)
+void DrawN64(Ctx& c) {
+    ImDrawList* dl = c.dl;
+    const ImU32 shell = IM_COL32(150, 152, 162, 255), shell_dark = IM_COL32(120, 122, 134, 255);
+    auto pulse_ring = [&](int id, ImVec2 a, ImVec2 b, float r) {
+        if (c.hovered == id || c.capturing == id)
+            dl->AddRect({a.x - c.L(3), a.y - c.L(3)}, {b.x + c.L(3), b.y + c.L(3)},
+                        U32(Color::Accent, c.capturing == id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(r), c.L(2.5f));
+    };
+    // Gatillos L y R arriba, en las esquinas.
+    auto shoulder = [&](int id, float x0, float x1, const char* t) {
+        c.Hit(id, (x0 + x1) * 0.5f, 26, 36);
+        const ImVec2 a = c.P(x0, 6), b = c.P(x1, 52);
+        dl->AddRectFilled(a, b, c.Down(id) ? U32(Color::Gold) : IM_COL32(118, 120, 132, 255), c.L(16), ImDrawFlags_RoundTop);
+        pulse_ring(id, a, b, 16);
+        c.Text(t, (x0 + x1) * 0.5f, 22, 14, c.Down(id) ? IM_COL32(60, 40, 0, 255) : IM_COL32(60, 62, 74, 255));
+    };
+    shoulder(RETRO_DEVICE_ID_JOYPAD_SELECT, 70, 200, "L");
+    shoulder(RETRO_DEVICE_ID_JOYPAD_R2, 440, 570, "R");
+    auto capsule = [&](float x0, float y0, float x1, float y1, float r0, float r1, float dx, float dy, ImU32 col) {
+        for (int i = 0; i <= 12; ++i) {
+            const float t = i / 12.0f;
+            dl->AddCircleFilled(c.P(x0 + (x1 - x0) * t + dx, y0 + (y1 - y0) * t + dy), c.L(r0 + (r1 - r0) * t), col, 36);
+        }
+    };
+    auto body = [&](float dx, float dy, ImU32 col) {
+        dl->AddRectFilled(c.P(40 + dx, 40 + dy), c.P(600 + dx, 190 + dy), col, c.L(70));
+        capsule(130, 150, 116, 340, 88, 44, dx, dy, col);
+        capsule(320, 170, 320, 380, 62, 40, dx, dy, col);
+        capsule(510, 150, 524, 340, 88, 44, dx, dy, col);
+    };
+    body(5, 10, IM_COL32(0, 0, 0, 80));
+    body(0, 0, shell);
+    // Cruceta a la izquierda.
+    dl->AddCircleFilled(c.P(130, 120), c.L(60), shell_dark, 40);
+    DPad(c, 130, 120, 96, IM_COL32(58, 58, 66, 255), IM_COL32(88, 88, 98, 255));
+    // Start rojo al centro.
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_START, 320, 100, 17, IM_COL32(206, 48, 54, 255), IM_COL32(236, 100, 104, 255));
+    c.Text("START", 320, 136, 11, IM_COL32(70, 72, 84, 255));
+    // Stick al centro y el gatillo Z debajo (se ve como una pestaña en la agarradera).
+    dl->AddCircleFilled(c.P(320, 214), c.L(42), shell_dark, 40);
+    dl->AddCircleFilled(c.P(320, 214), c.L(26), IM_COL32(80, 82, 94, 255), 32);
+    dl->AddCircleFilled(c.P(320, 210), c.L(20), IM_COL32(104, 106, 118, 255), 32);
+    {
+        const int id = RETRO_DEVICE_ID_JOYPAD_L2;
+        c.Hit(id, 320, 330, 34);
+        const ImVec2 a = c.P(296, 304), b = c.P(344, 356);
+        dl->AddRectFilled(a, b, c.Down(id) ? U32(Color::Gold) : IM_COL32(74, 76, 88, 255), c.L(12));
+        pulse_ring(id, a, b, 12);
+        c.Text("Z", 320, 330, 16, c.Down(id) ? IM_COL32(60, 40, 0, 255) : IM_COL32(190, 192, 202, 255));
+    }
+    // A (azul) y B (verde) a la derecha, y los cuatro C amarillos arriba.
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_B, 470, 178, 24, IM_COL32(58, 98, 210, 255), IM_COL32(104, 140, 236, 255));
+    ButtonLetter(c, RETRO_DEVICE_ID_JOYPAD_B, "A", 470, 178, 18, IM_COL32(255, 255, 255, 220));
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_Y, 424, 140, 22, IM_COL32(52, 160, 90, 255), IM_COL32(96, 196, 130, 255));
+    ButtonLetter(c, RETRO_DEVICE_ID_JOYPAD_Y, "B", 424, 140, 17, IM_COL32(255, 255, 255, 220));
+    struct Cb {
+        int id;
+        float x, y;
+        float ax, ay;
+    } cbs[] = {{RETRO_DEVICE_ID_JOYPAD_X, 540, 74, 0, -1}, {RETRO_DEVICE_ID_JOYPAD_A, 540, 140, 0, 1},
+               {RETRO_DEVICE_ID_JOYPAD_L, 507, 107, -1, 0}, {RETRO_DEVICE_ID_JOYPAD_R, 573, 107, 1, 0}};
+    for (const auto& cb : cbs) {
+        RoundButton(c, cb.id, cb.x, cb.y, 15, IM_COL32(236, 190, 40, 255), IM_COL32(250, 220, 110, 255));
+        const ImVec2 m = c.P(cb.x, cb.y);
+        const float r = c.L(6);
+        const ImU32 col = c.Down(cb.id) ? IM_COL32(60, 40, 0, 255) : IM_COL32(120, 84, 0, 255);
+        // Flechita hacia donde apunta.
+        dl->AddTriangleFilled({m.x + cb.ax * r, m.y + cb.ay * r}, {m.x - cb.ax * r * 0.4f + cb.ay * r * 0.8f, m.y - cb.ay * r * 0.4f + cb.ax * r * 0.8f},
+                              {m.x - cb.ax * r * 0.4f - cb.ay * r * 0.8f, m.y - cb.ay * r * 0.4f - cb.ax * r * 0.8f}, col);
+    }
+}
+
+// ---------------------------------------------------------------- Nintendo DS abierta (diseño 460 × 560)
+void DrawDs(Ctx& c) {
+    ImDrawList* dl = c.dl;
+    const ImU32 shell = IM_COL32(64, 70, 86, 255), shell_hi = IM_COL32(82, 90, 108, 255);
+    // Gatillos en las esquinas de la bisagra.
+    auto shoulder = [&](int id, bool right) {
+        const float x0 = right ? 340 : 20, x1 = right ? 440 : 120;
+        c.Hit(id, (x0 + x1) * 0.5f, 276, 34);
+        const ImU32 col = c.Down(id) ? U32(Color::Gold) : IM_COL32(110, 118, 138, 255);
+        dl->AddRectFilled(c.P(x0, 262), c.P(x1, 292), col, c.L(10));
+        if (c.hovered == id || c.capturing == id)
+            dl->AddRect(c.P(x0 - 3, 259), c.P(x1 + 3, 295), U32(Color::Accent, c.capturing == id ? 0.4f + 0.6f * c.pulse : 0.9f), c.L(12), c.L(2.5f));
+        c.Text(right ? "R" : "L", (x0 + x1) * 0.5f, 277, 14, c.Down(id) ? IM_COL32(60, 40, 0, 255) : IM_COL32(220, 224, 236, 255));
+    };
+    // Tapa con la pantalla de arriba.
+    dl->AddRectFilled(c.P(36, 16), c.P(430, 266), IM_COL32(0, 0, 0, 80), c.L(22));
+    dl->AddRectFilled(c.P(30, 6), c.P(424, 256), shell_hi, c.L(22));
+    dl->AddRectFilled(c.P(110, 40), c.P(344, 222), IM_COL32(30, 32, 42, 255), c.L(8));
+    dl->AddRectFilledMultiColor(c.P(124, 52), c.P(330, 208), IM_COL32(60, 78, 100, 255), IM_COL32(50, 66, 88, 255),
+                                IM_COL32(34, 44, 60, 255), IM_COL32(42, 54, 72, 255));
+    shoulder(RETRO_DEVICE_ID_JOYPAD_L, false);
+    shoulder(RETRO_DEVICE_ID_JOYPAD_R, true);
+    // Base con la pantalla táctil.
+    dl->AddRectFilled(c.P(26, 300), c.P(436, 556), IM_COL32(0, 0, 0, 80), c.L(22));
+    dl->AddRectFilled(c.P(20, 290), c.P(430, 546), shell, c.L(22));
+    dl->AddRectFilled(c.P(118, 312), c.P(336, 492), IM_COL32(26, 28, 36, 255), c.L(6));
+    dl->AddRectFilledMultiColor(c.P(128, 322), c.P(326, 482), IM_COL32(70, 92, 116, 255), IM_COL32(58, 78, 102, 255),
+                                IM_COL32(40, 52, 70, 255), IM_COL32(48, 62, 82, 255));
+    c.Text("TÁCTIL", 227, 402, 12, IM_COL32(150, 170, 196, 160));
+    // Cruceta y botones.
+    DPad(c, 68, 390, 78, IM_COL32(32, 34, 42, 255), IM_COL32(62, 66, 78, 255));
+    struct Face {
+        int id;
+        const char* t;
+        float x, y;
+    } faces[] = {{RETRO_DEVICE_ID_JOYPAD_X, "X", 388, 354}, {RETRO_DEVICE_ID_JOYPAD_Y, "Y", 358, 388},
+                 {RETRO_DEVICE_ID_JOYPAD_A, "A", 418, 388}, {RETRO_DEVICE_ID_JOYPAD_B, "B", 388, 422}};
+    for (const auto& f : faces) {
+        RoundButton(c, f.id, f.x, f.y, 15, IM_COL32(34, 36, 44, 255), IM_COL32(70, 74, 88, 255));
+        ButtonLetter(c, f.id, f.t, f.x, f.y, 12, IM_COL32(200, 206, 222, 255));
+    }
+    // Start y Select: botoncitos redondos abajo a la derecha.
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_START, 372, 478, 9, IM_COL32(34, 36, 44, 255), IM_COL32(70, 74, 88, 255));
+    RoundButton(c, RETRO_DEVICE_ID_JOYPAD_SELECT, 372, 512, 9, IM_COL32(34, 36, 44, 255), IM_COL32(70, 74, 88, 255));
+    c.Text("START", 388, 478, 10, IM_COL32(190, 196, 212, 255), false);
+    c.Text("SELECT", 388, 512, 10, IM_COL32(190, 196, 212, 255), false);
+}
+
 struct Design {
     float w, h;
 };
@@ -436,6 +557,8 @@ Design DesignOf(Layout l) {
     case Layout::Genesis: return {650, 350};
     case Layout::Snes: return {650, 336};
     case Layout::PlayStation: return {660, 390};
+    case Layout::N64: return {640, 420};
+    case Layout::DS: return {460, 560};
     default: return {692, 318};
     }
 }
@@ -461,6 +584,8 @@ int DrawController(ImDrawList* dl, Layout layout, ImVec2 pos, ImVec2 size, uint1
     case Layout::Genesis: DrawGenesis(c); break;
     case Layout::Snes: DrawSnes(c); break;
     case Layout::PlayStation: DrawPlayStation(c); break;
+    case Layout::N64: DrawN64(c); break;
+    case Layout::DS: DrawDs(c); break;
     default: DrawNes(c); break;
     }
     return c.hovered;
@@ -481,6 +606,8 @@ void DrawControllerMini(ImDrawList* dl, Layout layout, ImVec2 center, float widt
     case Layout::Genesis: DrawGenesis(c); break;
     case Layout::Snes: DrawSnes(c); break;
     case Layout::PlayStation: DrawPlayStation(c); break;
+    case Layout::N64: DrawN64(c); break;
+    case Layout::DS: DrawDs(c); break;
     default: DrawNes(c); break;
     }
     if (alpha < 1.0f) {

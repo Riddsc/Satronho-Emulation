@@ -118,8 +118,58 @@ std::vector<SystemDef> Build() {
     cd.disc = true;
     cd.runahead_ok = false; // por probar con juegos reales; el estado pesa varios MB
     // Imagen al doble de resolución (polígonos más finos) y sin el tramado de la época.
-    cd.core_defaults = {{"beetle_psx_internal_resolution", "2x"}, {"beetle_psx_dither_mode", "disabled"}};
+    // El desentrelazado adaptativo evita las rayas en los modos de alta resolución (las peleas
+    // de Bloody Roar, por ejemplo).
+    cd.core_defaults = {{"beetle_psx_internal_resolution", "2x"},
+                        {"beetle_psx_dither_mode", "disabled"},
+                        {"beetle_psx_deinterlacer", "fastmad"}};
     v.push_back(cd);
+
+    // Nintendo 64 con los botones C independientes (opción alt-map del núcleo).
+    SystemDef n64 = Make("n64", "64", "juegos de Nintendo 64", "N64", "mupen64plus_next", {"n64", "z64", "v64"}, "64", 0x3DBE6B,
+                         Layout::N64, false);
+    n64.buttons = With({{RETRO_DEVICE_ID_JOYPAD_B, "A"},
+                        {RETRO_DEVICE_ID_JOYPAD_Y, "B"},
+                        {RETRO_DEVICE_ID_JOYPAD_L2, "Z"},
+                        {RETRO_DEVICE_ID_JOYPAD_SELECT, "L"},
+                        {RETRO_DEVICE_ID_JOYPAD_R2, "R"},
+                        {RETRO_DEVICE_ID_JOYPAD_X, "C arriba"},
+                        {RETRO_DEVICE_ID_JOYPAD_A, "C abajo"},
+                        {RETRO_DEVICE_ID_JOYPAD_L, "C izquierda"},
+                        {RETRO_DEVICE_ID_JOYPAD_R, "C derecha"},
+                        {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    n64.face = {{RETRO_DEVICE_ID_JOYPAD_X},
+                {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R},
+                {RETRO_DEVICE_ID_JOYPAD_A},
+                {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_B}};
+    n64.center = {RETRO_DEVICE_ID_JOYPAD_START};
+    n64.center_title = "START";
+    n64.shoulders = {RETRO_DEVICE_ID_JOYPAD_SELECT, RETRO_DEVICE_ID_JOYPAD_R2, RETRO_DEVICE_ID_JOYPAD_L2};
+    n64.analog = true;
+    n64.runahead_ok = false;
+    // Angrylion (dibuja como la consola, sin necesitar OpenGL) con el RSP ParaLLEl.
+    n64.core_defaults = {{"mupen64plus-rdp-plugin", "angrylion"},
+                         {"mupen64plus-rsp-plugin", "parallel"},
+                         {"mupen64plus-alt-map", "True"}};
+    v.push_back(n64);
+
+    // Nintendo DS: las dos pantallas una arriba de la otra; la de abajo se toca con el mouse.
+    SystemDef ds = Make("dual", "Dual", "juegos de Nintendo DS", "DS", "melondsds", {"nds", "dsi"}, "DUAL", 0x48C6E8,
+                        Layout::DS, true);
+    ds.buttons = With({{RETRO_DEVICE_ID_JOYPAD_A, "A"},
+                       {RETRO_DEVICE_ID_JOYPAD_B, "B"},
+                       {RETRO_DEVICE_ID_JOYPAD_X, "X"},
+                       {RETRO_DEVICE_ID_JOYPAD_Y, "Y"},
+                       {RETRO_DEVICE_ID_JOYPAD_L, "L"},
+                       {RETRO_DEVICE_ID_JOYPAD_R, "R"},
+                       {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"},
+                       {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    ds.face = {{RETRO_DEVICE_ID_JOYPAD_X}, {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_A}, {RETRO_DEVICE_ID_JOYPAD_B}};
+    ds.shoulders = {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R};
+    ds.touch = true;
+    ds.core_defaults = {{"melonds_show_current_layout", "disabled"}};
+    ds.runahead_ok = false;
+    v.push_back(ds);
 
     SystemDef gb = Make("bolsillo", "Bolsillo", "juegos de Game Boy y Game Boy Color", "GB · GBC", "mgba", {"gb", "gbc", "sgb"},
                         "BOLSILLO", 0x9BBC0F, Layout::GameBoy, true);
@@ -200,13 +250,12 @@ std::string SystemsSentence() {
 const std::vector<SoonSystem>& SoonSystems() {
     // En el orden en que van llegando.
     static const std::vector<SoonSystem> soon{
-        {"64", "N64", "juegos de Nintendo 64"},
-        {"Dual", "DS · 3DS", "juegos de Nintendo DS y 3DS"},
         {"Cubo", "GC · Wii", "juegos de GameCube y Wii"},
         {"Anillo", "Saturn", "juegos de Sega Saturn"},
         {"Sueño", "Dreamcast", "juegos de Dreamcast"},
         {"CD2", "PS2", "juegos de PlayStation 2"},
         {"Portátil", "PSP", "juegos de PSP"},
+        {"Dual", "3DS", "juegos de Nintendo 3DS, que se suman a Satronho Dual"},
     };
     return soon;
 }

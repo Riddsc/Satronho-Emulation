@@ -9,7 +9,7 @@
 namespace Satronho {
 
 // Forma del control que se dibuja en Controles.
-enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes, PlayStation };
+enum class Layout { Nes, GameBoy, GameBoyAdvance, Genesis, Snes, PlayStation, N64, DS };
 
 // Un emulador de la familia Satronho dentro del hub.
 struct SystemDef {
@@ -33,6 +33,8 @@ struct SystemDef {
     std::vector<std::vector<int>> face;
     std::vector<int> shoulders;
     const char* center_title = "SELECT Y START";
+    std::vector<int> center = {2, 3}; // RETRO_DEVICE_ID_JOYPAD_SELECT y START
+    bool touch = false;               // pantalla táctil (el mouse toca)
     unsigned port_device = 1;  // RETRO_DEVICE_JOYPAD; en CD, el DualShock
     bool analog = false;       // los sticks van al juego
     bool disc = false;         // juegos en disco (cue, chd…)

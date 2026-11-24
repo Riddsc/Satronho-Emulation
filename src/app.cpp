@@ -155,7 +155,14 @@ bool App::Init() {
 
     core_.on_audio = [this](const int16_t* data, size_t frames) { audio_.Push(data, frames); };
     core_.on_sensor = [this](unsigned id) { return input_.Sensor(id); };
-    core_.on_message = [this](const std::string& text, int ms) { Toast(text, GuideId::MechaRidds, std::clamp(ms / 1000.0, 1.5, 6.0)); };
+    core_.on_message = [this](const std::string& text, int ms) {
+        // El mismo aviso repetido seguido (algunos núcleos lo mandan en cada cuadro) sale una vez.
+        const double now = SDL_GetTicks() / 1000.0;
+        if (text == last_core_msg_ && now - last_core_msg_t_ < 8.0) return;
+        last_core_msg_ = text;
+        last_core_msg_t_ = now;
+        Toast(text, GuideId::MechaRidds, std::clamp(ms / 1000.0, 1.5, 6.0));
+    };
     for (const auto& sys : Systems()) {
         std::error_code ec;
         if (!fs::exists(Paths::Cores() / CoreFile(sys), ec)) {
@@ -845,6 +852,22 @@ void App::EmulateTick(double dt) {
 
 void App::Step(bool rewinding, bool fast_forward) {
     input_.Update(core_, *sys_, !ImGui::GetIO().WantTextInput);
+    if (sys_->touch && !menu_open_) {
+        // Pantalla táctil con el mouse: la posición dentro de la imagen del juego, en el rango
+        // de libretro. El núcleo decide qué parte de la imagen es la pantalla de abajo.
+        float mx, my;
+        const SDL_MouseButtonFlags mb = SDL_GetMouseState(&mx, &my);
+        float dx = mx, dy = my;
+        SDL_RenderCoordinatesFromWindow(renderer_, mx, my, &dx, &dy);
+        const SDL_FRect r = video_.LastRect();
+        if (r.w > 1 && r.h > 1) {
+            const float u = (dx - r.x) / r.w, v = (dy - r.y) / r.h;
+            const bool inside = u >= 0 && u <= 1 && v >= 0 && v <= 1;
+            core_.pads[0].pointer_x = static_cast<int16_t>(std::clamp(u * 2 - 1, -1.0f, 1.0f) * 0x7fff);
+            core_.pads[0].pointer_y = static_cast<int16_t>(std::clamp(v * 2 - 1, -1.0f, 1.0f) * 0x7fff);
+            core_.pads[0].pointer_down = inside && (mb & SDL_BUTTON_LMASK) && !ImGui::GetIO().WantCaptureMouse;
+        }
+    }
     perf_.emu_times.push_back(SDL_GetTicks() / 1000.0);
     if (rewinding) {
         if (!rewind_.empty()) {

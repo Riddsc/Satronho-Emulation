@@ -1424,12 +1424,11 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     };
     auto center_group = [&](ImVec2 p) {
         group_title(sys.center_title, p);
-        cell(RETRO_DEVICE_ID_JOYPAD_SELECT, {p.x, p.y + title_h});
-        cell(RETRO_DEVICE_ID_JOYPAD_START, {p.x + cell_w + gap, p.y + title_h});
+        for (size_t i = 0; i < sys.center.size(); ++i) cell(sys.center[i], {p.x + i * (cell_w + gap), p.y + title_h});
         float h = title_h + cell_h;
         if (shoulders) {
             const float y = p.y + h + gap * 1.5f;
-            group_title(sys.shoulders.size() > 2 ? "GATILLOS Y STICKS" : "GATILLOS", {p.x, y});
+            group_title(sys.shoulders.size() > 4 ? "GATILLOS Y STICKS" : "GATILLOS", {p.x, y});
             // De a dos por fila: L1 R1, L2 R2, L3 R3.
             float ry = y + title_h;
             for (size_t i = 0; i < sys.shoulders.size(); i += 2) {
@@ -1640,10 +1639,14 @@ void App::DrawControls() {
         names.push_back(Systems()[i].name.c_str());
         if (Systems()[i].id == ctrl_system_) cur = static_cast<int>(i);
     }
-    if (Segmented("##ctrl_sis", &cur, names, S(420))) ctrl_system_ = Systems()[cur].id;
+    // Pestañas arriba y, debajo, la consola (con ocho consolas no caben en la misma fila).
+    Segmented("##ctrl_tab", &ctrl_tab_, {"General", "Jugador 1", "Jugador 2", "Atajos"}, S(520));
+    ImGui::Dummy({0, S(4)});
+    if (ctrl_tab_ == 1 || ctrl_tab_ == 2) {
+        const float sw = std::min(ImGui::GetContentRegionAvail().x, S(112) * static_cast<float>(names.size()));
+        if (Segmented("##ctrl_sis", &cur, names, sw)) ctrl_system_ = Systems()[cur].id;
+    }
     const SystemDef& sys = Systems()[cur];
-    ImGui::SameLine(0, S(16));
-    Segmented("##ctrl_tab", &ctrl_tab_, {"General", "Jugador 1", "Jugador 2", "Atajos"}, S(480));
     ImGui::Dummy({0, S(10)});
     const auto pads = input_.Gamepads();
 

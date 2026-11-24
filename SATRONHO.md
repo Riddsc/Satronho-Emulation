@@ -101,3 +101,10 @@ juego anota en el registro: cortes, descartes, búfer y tirones.
   .cue y los discos que nombra un .m3u; un .bin de más de 16 MB no se toma como juego de Mega.
   El rebobinado se limita a ~600 MB de estados.
 - Hexa también va sin adelanto: el remuestreo de bsnes queda fuera del estado.
+- **64 (Mupen64Plus-Next)**: `platform=win MSYSTEM=MINGW64` (dynarec x86_64, necesita nasm) y
+  `LDFLAGS` propio. Por defecto Angrylion + ParaLLEl-RSP: no necesitan OpenGL ni Vulkan (el host
+  todavía no ofrece contexto de hardware; GLideN64 y ParaLLEl-RDP quedan para cuando lo tenga).
+  Botones C independientes (`alt-map`); las flechas del teclado mueven el stick si no están asignadas.
+- **Dual (melonDS DS)**: CMake con el toolchain de llvm-mingw, sin OpenGL, con JIT. FreeBIOS
+  incluida. La pantalla de abajo se toca con el mouse (`RETRO_DEVICE_POINTER`, `SystemDef::touch`).
+- `CoreHost::LoadCore` reinicia el formato de imagen: bsnes no lo pide y heredaba el de otro núcleo.

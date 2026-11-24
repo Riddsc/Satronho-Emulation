@@ -166,6 +166,38 @@ Mapping Input::DefaultMapping(const SystemDef& sys, bool keyboard_keys) {
         if (keyboard_keys) m.keys[RETRO_DEVICE_ID_JOYPAD_R3] = SDL_SCANCODE_G;
         m.pad[RETRO_DEVICE_ID_JOYPAD_R3] = SDL_GAMEPAD_BUTTON_RIGHT_STICK;
     }
+    if (sys.layout == Layout::N64) {
+        // 64 (botones independientes): A = B del RetroPad, B = Y, Z = L2, L = Select, R = R2,
+        // C = X/A/L/R. Las flechas quedan para el stick; la cruceta va en el teclado numérico.
+        if (keyboard_keys) {
+            m.keys[RETRO_DEVICE_ID_JOYPAD_UP] = SDL_SCANCODE_KP_8;
+            m.keys[RETRO_DEVICE_ID_JOYPAD_DOWN] = SDL_SCANCODE_KP_2;
+            m.keys[RETRO_DEVICE_ID_JOYPAD_LEFT] = SDL_SCANCODE_KP_4;
+            m.keys[RETRO_DEVICE_ID_JOYPAD_RIGHT] = SDL_SCANCODE_KP_6;
+            m.keys[RETRO_DEVICE_ID_JOYPAD_B] = SDL_SCANCODE_X;       // A
+            m.keys[RETRO_DEVICE_ID_JOYPAD_Y] = SDL_SCANCODE_Z;       // B
+            m.keys[RETRO_DEVICE_ID_JOYPAD_L2] = SDL_SCANCODE_A;      // Z
+            m.keys[RETRO_DEVICE_ID_JOYPAD_SELECT] = SDL_SCANCODE_Q;  // L
+            m.keys[RETRO_DEVICE_ID_JOYPAD_R2] = SDL_SCANCODE_W;      // R
+            m.keys[RETRO_DEVICE_ID_JOYPAD_X] = SDL_SCANCODE_I;       // C arriba
+            m.keys[RETRO_DEVICE_ID_JOYPAD_A] = SDL_SCANCODE_K;       // C abajo
+            m.keys[RETRO_DEVICE_ID_JOYPAD_L] = SDL_SCANCODE_J;       // C izquierda
+            m.keys[RETRO_DEVICE_ID_JOYPAD_R] = SDL_SCANCODE_L;       // C derecha
+            m.keys[RETRO_DEVICE_ID_JOYPAD_START] = SDL_SCANCODE_RETURN;
+        }
+        // Mando: A abajo, B a la izquierda, Z en el gatillo izquierdo, L y R en los hombros;
+        // los C van en el stick derecho (y también en Y para C arriba y B para C abajo).
+        m.pad[RETRO_DEVICE_ID_JOYPAD_B] = SDL_GAMEPAD_BUTTON_SOUTH;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_Y] = SDL_GAMEPAD_BUTTON_WEST;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_L2] = kPadLT;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_SELECT] = SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_R2] = SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_X] = SDL_GAMEPAD_BUTTON_NORTH;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_A] = SDL_GAMEPAD_BUTTON_EAST;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_L] = kPadNone;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_R] = kPadNone;
+        m.pad[RETRO_DEVICE_ID_JOYPAD_START] = SDL_GAMEPAD_BUTTON_START;
+    }
     if (sys.layout == Layout::Genesis) {
         // Mando de 6 botones: A B C abajo y X Y Z arriba, como quedan en un mando moderno.
         // (BlastEm: A = B del RetroPad, B = A, C = R, X = Y, Y = X, Z = L.)
@@ -643,6 +675,25 @@ void Input::Update(CoreHost& core, const SystemDef& sys, bool keyboard_enabled) 
                 core.pads[pl].analog[1][0] = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTX);
                 core.pads[pl].analog[1][1] = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTY);
             }
+        }
+        // Consolas con stick (64 y CD): con el teclado, las flechas mueven el stick izquierdo
+        // si no están asignadas a otro botón (en la 64 casi todo se juega con el stick).
+        if (sys.analog && players[pl].keyboard && keyboard_enabled && core.pads[pl].analog[0][0] == 0 &&
+            core.pads[pl].analog[0][1] == 0) {
+            const Mapping& m = Edit(pl, sys);
+            auto bound = [&](SDL_Scancode sc) {
+                for (const auto& [id, label] : sys.buttons) {
+                    (void)label;
+                    if (m.keys[id] == sc) return true;
+                }
+                return false;
+            };
+            const bool* ks = SDL_GetKeyboardState(nullptr);
+            auto key = [&](SDL_Scancode sc) { return !bound(sc) && ks[sc]; };
+            const int x = (key(SDL_SCANCODE_RIGHT) ? 1 : 0) - (key(SDL_SCANCODE_LEFT) ? 1 : 0);
+            const int y = (key(SDL_SCANCODE_DOWN) ? 1 : 0) - (key(SDL_SCANCODE_UP) ? 1 : 0);
+            core.pads[pl].analog[0][0] = static_cast<int16_t>(x * 0x7fff);
+            core.pads[pl].analog[0][1] = static_cast<int16_t>(y * 0x7fff);
         }
     }
 }
