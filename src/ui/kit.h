@@ -88,7 +88,7 @@ struct TextureBackend {
     void (*destroy)(ImTextureID tex) = nullptr;
 };
 void SetTextureBackend(const TextureBackend& b);
-Image LoadImage(const std::string& file);
+Image LoadImageFile(const std::string& file);
 Image ImageFromRGBA(const unsigned char* rgba, int w, int h, bool smooth = true);
 // Decodifica un PNG o JPG a RGBA (se puede llamar desde otro hilo).
 bool DecodeImage(const std::string& file, std::vector<unsigned char>& rgba, int* w, int* h);

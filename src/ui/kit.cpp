@@ -221,7 +221,7 @@ bool DecodeImage(const std::string& file, std::vector<unsigned char>& rgba, int*
     return true;
 }
 
-Image LoadImage(const std::string& file) {
+Image LoadImageFile(const std::string& file) {
     std::vector<unsigned char> px;
     int w = 0, h = 0;
     if (!DecodeImage(file, px, &w, &h)) return {};
