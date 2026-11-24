@@ -61,49 +61,49 @@ jobs:
           mv ~/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-22.04-x86_64 ~/llvm-mingw
 
       - name: Núcleo de NES (Nestopia UE)
-        if: steps.cache-cores.outputs.cache-hit != \'true\'
+        if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-nestopia.sh build/cores
 
       - name: Núcleo de Game Boy y Game Boy Advance (mGBA)
-        if: steps.cache-cores.outputs.cache-hit != \'true\'
+        if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-mgba.sh build/cores
 
       - name: Núcleo de Genesis / Mega Drive (BlastEm)
-        if: steps.cache-cores.outputs.cache-hit != \'true\'
+        if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-blastem.sh build/cores
 
       - name: Núcleo de SNES (bsnes)
-        if: steps.cache-cores.outputs.cache-hit != \'true\'
+        if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-bsnes.sh build/cores
 
       - name: Núcleo de PlayStation (Beetle PSX)
-        if: steps.cache-cores.outputs.cache-hit != \'true\'
+        if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-beetle-psx.sh build/cores
 
       - name: Núcleo de Nintendo 64 (Mupen64Plus-Next)
-        if: steps.cache-cores.outputs.cache-hit != \'true\'
+        if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-mupen64plus.sh build/cores
 
       - name: Núcleo de Nintendo DS (melonDS DS)
-        if: steps.cache-cores.outputs.cache-hit != \'true\'
+        if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-melonds.sh build/cores
 
       - name: Núcleo de Sega Saturn (Beetle Saturn)
-        if: steps.cache-cores.outputs.cache-hit != \'true\'
+        if: steps.cache-cores.outputs.cache-hit != 'true'
         env:
           LLVM_MINGW: /home/runner/llvm-mingw
         run: scripts/build-core-beetle-saturn.sh build/cores
