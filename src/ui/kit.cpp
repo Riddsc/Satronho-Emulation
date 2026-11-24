@@ -1222,6 +1222,7 @@ void BackToTop() {
     if (hov) ImGui::SetTooltip("%s", Tr("Volver arriba"));
     if (click) ImGui::SetScrollY(0);
     ImGui::SetCursorPos(keep);
+    ImGui::Dummy({0, 0}); // ImGui pide un elemento después de mover el cursor
 }
 
 } // namespace Satronho::Ui

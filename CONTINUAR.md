@@ -3,6 +3,17 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (build 19)
+
+- Arreglo: aviso de ImGui «SetCursorPos… submit an item» lo causaba `Ui::BackToTop()` (movía el cursor y lo
+  devolvía sin elemento después); ahora pone un `Dummy` al final.
+- Carrusel: se arrastra con mouse o dedo (`car_drag_`…), inercia al soltar; `carousel_rect_` evita que
+  `TouchScroll` mueva la página al deslizar de lado sobre él (se borra cada cuadro y lo pone el carrusel).
+- Ridds ya puso los secretos `ANDROID_KEYSTORE_B64` y `ANDROID_KEYSTORE_PASS`: desde la build 19 el APK sale
+  con la llave de Satronho (la llave está en /home/claude/llave en la sesión que la creó; Ridds tiene copia).
+  Esta vez tuvo que desinstalar la anterior (firma provisional).
+- WhatsApp «Abrir con» funciona (probado por Ridds). Si solo Satronho abre .zip, Android lo abre directo.
+
 ## Estado al 24 de noviembre de 2026 (build 18)
 
 Ridds quiso pasar juegos al celular por WhatsApp y no había app que abriera el .zip («no quiero nada
