@@ -15,6 +15,7 @@
 #include <cstdio>
 
 #include "app.h"
+#include "util/i18n.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "util/paths.h"
@@ -34,7 +35,7 @@ std::string Fmt(const char* fmt, ...) {
     char buf[512];
     va_list args;
     va_start(args, fmt);
-    std::vsnprintf(buf, sizeof buf, fmt, args);
+    std::vsnprintf(buf, sizeof buf, Tr(fmt), args);
     va_end(args);
     return buf;
 }
@@ -121,23 +122,23 @@ void App::DrawGameBar() {
         auto menu = [&](const char* label) {
             FontScope f(GetFonts().semibold, touch ? 16.0f : 14.0f);
             if (qa_.count("barra_menu") && qa_["barra_menu"] == label && qa_frames_ > 20) ImGui::OpenPopup(label); // modo de revisión
-            const bool open = ImGui::BeginMenu(label);
+            const bool open = ImGui::BeginMenu(Tr(label));
             any |= open;
             return open;
         };
         auto item = [&](const char* label, const char* shortcut = nullptr, bool selected = false, bool enabled = true) {
             FontScope f(GetFonts().medium, touch ? 16.0f : 14.0f);
-            return ImGui::MenuItem(label, touch ? nullptr : shortcut, selected, enabled);
+            return ImGui::MenuItem(Tr(label), touch ? nullptr : shortcut, selected, enabled);
         };
         auto sub = [&](const char* label, bool enabled = true) {
             FontScope f(GetFonts().medium, touch ? 16.0f : 14.0f);
-            return ImGui::BeginMenu(label, enabled);
+            return ImGui::BeginMenu(Tr(label), enabled);
         };
         auto note = [&](const char* text) {
             FontScope f(GetFonts().regular, touch ? 14.0f : 12.5f);
             ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Dim));
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + S(300));
-            ImGui::TextWrapped("%s", text);
+            ImGui::TextWrapped("%s", Tr(text));
             ImGui::PopTextWrapPos();
             ImGui::PopStyleColor();
         };
@@ -410,10 +411,10 @@ void App::DrawGameBar() {
                 const SDL_Scancode k = input_.hk_keys[i];
                 if (k == SDL_SCANCODE_UNKNOWN) continue;
                 FontScope f(GetFonts().medium, touch ? 15.0f : 13.5f);
-                ImGui::TextUnformatted(HotkeyInfo(h).name);
+                ImGui::TextUnformatted(Tr(HotkeyInfo(h).name));
                 ImGui::SameLine(S(240));
                 ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Gold));
-                ImGui::TextUnformatted(SDL_GetScancodeName(k));
+                ImGui::TextUnformatted(Tr(SDL_GetScancodeName(k)));
                 ImGui::PopStyleColor();
             }
             ImGui::Separator();
@@ -431,10 +432,10 @@ void App::DrawGameBar() {
             FontScope f(GetFonts().semibold, touch ? 15.0f : 13.5f);
             std::string right = current_.title;
             if (bar_open_) right += touch ? "   ·   Toca el juego para seguir" : "   ·   Esc para esconder";
-            const float tw = ImGui::CalcTextSize(right.c_str()).x;
+            const float tw = ImGui::CalcTextSize(Tr(right.c_str())).x;
             const float x = b1.x - tw - S(18);
             if (x > ImGui::GetCursorScreenPos().x + S(20)) {
-                dl->AddText({x, b0.y + (top_h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Muted), right.c_str());
+                dl->AddText({x, b0.y + (top_h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Muted), Tr(right.c_str()));
             }
         }
         bar_menu_active_ = any;
@@ -455,8 +456,8 @@ void App::DrawGameBar() {
         FontScope f(GetFonts().mono, 12.0f);
         float x = s0.x + S(14);
         auto chip = [&](const std::string& t, unsigned col) {
-            fg->AddText({x, s0.y + (bh - ImGui::GetFontSize()) * 0.5f}, U32(col), t.c_str());
-            x += ImGui::CalcTextSize(t.c_str()).x + S(18);
+            fg->AddText({x, s0.y + (bh - ImGui::GetFontSize()) * 0.5f}, U32(col), Tr(t.c_str()));
+            x += ImGui::CalcTextSize(Tr(t.c_str())).x + S(18);
         };
         const bool gpu_sys = sys_->id == "cd" || sys_->id == "n64";
         if (gpu_sys && hw_render_.Active()) {
@@ -479,8 +480,8 @@ void App::DrawGameBar() {
         // A la derecha: mando y cuadros por segundo.
         const auto pads = input_.Gamepads();
         const std::string rt = Fmt("%s   %.0f FPS", pads.empty() ? "TECLADO" : pads.front().family_name.c_str(), perf_.fps);
-        const float tw = ImGui::CalcTextSize(rt.c_str()).x;
-        fg->AddText({s1.x - tw - S(14), s0.y + (bh - ImGui::GetFontSize()) * 0.5f}, U32(Color::Green), rt.c_str());
+        const float tw = ImGui::CalcTextSize(Tr(rt.c_str())).x;
+        fg->AddText({s1.x - tw - S(14), s0.y + (bh - ImGui::GetFontSize()) * 0.5f}, U32(Color::Green), Tr(rt.c_str()));
     }
 
     ImGui::PopStyleColor(7);

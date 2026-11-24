@@ -76,6 +76,7 @@ void Settings::Load(const Ini& ini) {
     confirm_exit_app = ini.GetBool("avisos.salir_app", confirm_exit_app);
     confirm_exit_game = ini.GetBool("avisos.salir_juego", confirm_exit_game);
     game_bar = ini.GetBool("interfaz.barra_juego", game_bar);
+    language = ini.Get("interfaz.idioma", language);
     status_bar = ini.GetBool("interfaz.barra_estado", status_bar);
     touch_show = std::clamp(ini.GetInt("tactil.mostrar", touch_show), 0, 2);
     touch_scale = std::clamp(ini.GetFloat("tactil.tamano", touch_scale), 0.6f, 1.6f);
@@ -161,6 +162,7 @@ void Settings::Save(Ini& ini) const {
     ini.SetBool("avisos.salir_app", confirm_exit_app);
     ini.SetBool("avisos.salir_juego", confirm_exit_game);
     ini.SetBool("interfaz.barra_juego", game_bar);
+    ini.Set("interfaz.idioma", language);
     ini.SetBool("interfaz.barra_estado", status_bar);
     ini.SetInt("tactil.mostrar", touch_show);
     ini.SetFloat("tactil.tamano", touch_scale);

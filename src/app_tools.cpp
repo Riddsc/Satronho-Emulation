@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "app.h"
+#include "util/i18n.h"
 #include "imgui.h"
 #include "ui/kit.h"
 #include "util/log.h"
@@ -24,15 +25,16 @@ std::string Fmt(const char* fmt, ...) {
     char buf[512];
     va_list args;
     va_start(args, fmt);
-    std::vsnprintf(buf, sizeof buf, fmt, args);
+    std::vsnprintf(buf, sizeof buf, Tr(fmt), args);
     va_end(args);
     return buf;
 }
 
 void Muted(const char* text, float size) {
+    text = Tr(text);
     FontScope f(GetFonts().regular, size);
     ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
-    ImGui::TextWrapped("%s", text);
+    ImGui::TextWrapped("%s", Tr(text));
     ImGui::PopStyleColor();
 }
 
@@ -149,7 +151,7 @@ void App::DrawTools() {
         ImGui::SetCursorScreenPos({p.x + S(48), p.y + S(6)});
         {
             FontScope f(GetFonts().bold, 18);
-            ImGui::TextUnformatted(title);
+            ImGui::TextUnformatted(Tr(title));
         }
         ImGui::SetCursorScreenPos({p.x, p.y + S(46)});
         body();
@@ -165,7 +167,7 @@ void App::DrawTools() {
         }
         for (const auto& pd : pads) {
             FontScope f(GetFonts().semibold, 14.5f);
-            ImGui::TextUnformatted(Fmt("Mando %d · %s", pd.slot + 1, pd.name.c_str()).c_str());
+            ImGui::TextUnformatted(Tr(Fmt("Mando %d · %s", pd.slot + 1, pd.name.c_str()).c_str()));
             SDL_Gamepad* gp = SDL_GetGamepadFromID(pd.id);
             if (!gp) continue;
             // Palancas (círculos con su punto) y gatillos (barras).
@@ -184,7 +186,7 @@ void App::DrawTools() {
                 dl->AddCircleFilled({c.x + x * r, c.y + y * r}, S(6), U32(Color::Accent));
                 FontScope fl(GetFonts().medium, 11.5f);
                 const char* lbl = side ? "Palanca der." : "Palanca izq.";
-                dl->AddText({c.x - ImGui::CalcTextSize(lbl).x * 0.5f, c.y + r + S(4)}, U32(Color::Dim), lbl);
+                dl->AddText({c.x - ImGui::CalcTextSize(lbl).x * 0.5f, c.y + r + S(4)}, U32(Color::Dim), Tr(lbl));
             }
             const float bx = p.x + r * 4 + S(52);
             for (int t = 0; t < 2; ++t) {
@@ -194,7 +196,7 @@ void App::DrawTools() {
                 dl->AddRectFilled({a.x, b.y - (b.y - a.y) * std::clamp(v, 0.0f, 1.0f)}, b, U32(Color::Gold), S(5));
                 FontScope fl(GetFonts().medium, 11.5f);
                 const char* lbl = t ? "RT" : "LT";
-                dl->AddText({a.x + S(8) - ImGui::CalcTextSize(lbl).x * 0.5f, b.y + S(4)}, U32(Color::Dim), lbl);
+                dl->AddText({a.x + S(8) - ImGui::CalcTextSize(lbl).x * 0.5f, b.y + S(4)}, U32(Color::Dim), Tr(lbl));
             }
             // Botones presionados ahora.
             std::string down;
@@ -205,7 +207,7 @@ void App::DrawTools() {
             {
                 FontScope fb(GetFonts().semibold, 14);
                 ImGui::PushStyleColor(ImGuiCol_Text, V4(down.empty() ? Color::Dim : Color::Gold));
-                ImGui::TextWrapped("%s", down.empty() ? "Presiona botones para verlos aquí." : down.c_str());
+                ImGui::TextWrapped("%s", Tr(down.empty() ? "Presiona botones para verlos aquí." : down.c_str()));
                 ImGui::PopStyleColor();
             }
             ImGui::PopTextWrapPos();
@@ -245,7 +247,7 @@ void App::DrawTools() {
             for (const auto& s : saves) used += s.blocks;
             {
                 FontScope f(GetFonts().semibold, 14);
-                ImGui::TextUnformatted(Paths::ToUtf8(c.stem()).c_str());
+                ImGui::TextUnformatted(Tr(Paths::ToUtf8(c.stem()).c_str()));
             }
             ImGui::SameLine();
             Muted(Fmt("  ·  %d de 15 bloques", used).c_str(), 12.5f);
@@ -255,16 +257,16 @@ void App::DrawTools() {
                 ImGui::Bullet();
                 {
                     FontScope f(GetFonts().medium, 13.5f);
-                    ImGui::TextUnformatted(Fmt("%s  (%d %s)", s.title.c_str(), s.blocks, s.blocks == 1 ? "bloque" : "bloques").c_str());
+                    ImGui::TextUnformatted((s.title + "  " + (s.blocks == 1 ? std::string(Tr("(1 bloque)")) : Fmt("(%d bloques)", s.blocks))).c_str());
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Borrar")) {
+                if (ImGui::SmallButton(Tr("Borrar"))) {
                     ImGui::OpenPopup("##borrar_mc");
                 }
                 if (ImGui::BeginPopup("##borrar_mc")) {
                     FontScope f(GetFonts().medium, 14);
-                    ImGui::TextUnformatted(Fmt("¿Borrar «%s»? No se puede deshacer.", s.title.c_str()).c_str());
-                    if (ImGui::Button("Sí, borrar")) {
+                    ImGui::TextUnformatted(Tr(Fmt("¿Borrar «%s»? No se puede deshacer.", s.title.c_str()).c_str()));
+                    if (ImGui::Button(Tr("Sí, borrar"))) {
                         // Copia de seguridad antes de tocar nada.
                         fs::copy_file(c, fs::path(c).concat(".bak"), fs::copy_options::overwrite_existing, ec);
                         std::vector<uint8_t> e = d;
@@ -276,7 +278,7 @@ void App::DrawTools() {
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::SameLine();
-                    if (ImGui::Button("No")) ImGui::CloseCurrentPopup();
+                    if (ImGui::Button(Tr("No"))) ImGui::CloseCurrentPopup();
                     ImGui::EndPopup();
                 }
                 ImGui::PopID();

@@ -79,6 +79,7 @@ struct Settings {
     bool confirm_exit_app = true;    // preguntar antes de cerrar la app
     bool confirm_exit_game = true;   // preguntar antes de salir de un juego
     bool game_bar = true;
+    std::string language;            // idioma de la interfaz: "" = el del sistema; es, en, fr, pt, it
     bool status_bar = true;          // barra de estado abajo del juego            // barra de menús arriba del juego (en ventana)
 
     // Control en pantalla (pantallas táctiles).

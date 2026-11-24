@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "app.h"
+#include "util/i18n.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "libretro.h"
@@ -24,9 +25,10 @@ using namespace Ui;
 
 namespace {
 void Muted(const char* text, float size) {
+    text = Tr(text);
     FontScope f(GetFonts().regular, size);
     ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
-    ImGui::TextWrapped("%s", text);
+    ImGui::TextWrapped("%s", Tr(text));
     ImGui::PopStyleColor();
 }
 std::string Lower(std::string s) {
@@ -352,13 +354,13 @@ void App::DrawTouchPad() {
         if (*b.label) {
             ImFont* f = GetFonts().bold;
             float fs = std::min(r * (pill ? 0.62f : 0.72f), S(22));
-            ImVec2 ts = f->CalcTextSizeA(fs, FLT_MAX, 0, b.label);
+            ImVec2 ts = f->CalcTextSizeA(fs, FLT_MAX, 0, Tr(b.label));
             const float maxw = r * (pill ? 2.5f : 1.6f);
             if (ts.x > maxw) {
                 fs *= maxw / ts.x;
-                ts = f->CalcTextSizeA(fs, FLT_MAX, 0, b.label);
+                ts = f->CalcTextSizeA(fs, FLT_MAX, 0, Tr(b.label));
             }
-            dl->AddText(f, fs, {c.x - ts.x * 0.5f, c.y - ts.y * 0.5f}, U32(0xFFFFFF, (on ? 1.0f : 0.8f) * std::max(a, 0.55f)), b.label);
+            dl->AddText(f, fs, {c.x - ts.x * 0.5f, c.y - ts.y * 0.5f}, U32(0xFFFFFF, (on ? 1.0f : 0.8f) * std::max(a, 0.55f)), Tr(b.label));
         }
     }
     if (touch_edit_) DrawTouchEditor(layout, sx, sy);
@@ -410,12 +412,12 @@ void App::DrawTouchEditor(const std::vector<TouchButton>& layout, float sx, floa
     ImGui::Begin("##editar_tactil", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings);
     {
         FontScope f(GetFonts().semibold, 14);
-        ImGui::TextUnformatted(("Control en pantalla · " + sys_->full).c_str());
+        ImGui::TextUnformatted(Tr(("Control en pantalla · " + sys_->full).c_str()));
     }
     {
         FontScope f(GetFonts().regular, 12.5f);
         ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
-        ImGui::TextUnformatted("Arrastra cada grupo a donde te quede cómodo.");
+        ImGui::TextUnformatted(Tr("Arrastra cada grupo a donde te quede cómodo."));
         ImGui::PopStyleColor();
     }
     int size = static_cast<int>(std::lround(settings_.touch_scale * 100));
@@ -496,7 +498,7 @@ void App::DrawBrowser() {
         const float inner = ImGui::GetContentRegionAvail().x;
         {
             FontScope f(GetFonts().bold, 19);
-            ImGui::TextUnformatted(browser_folders_ ? "Elige la carpeta de tus juegos" : "Abrir un juego");
+            ImGui::TextUnformatted(Tr(browser_folders_ ? "Elige la carpeta de tus juegos" : "Abrir un juego"));
         }
         if (!browser_perm_) {
             ImGui::Dummy({0, S(4)});
@@ -625,10 +627,10 @@ void App::DrawSidebarRail(float width) {
         icon({p.x + w * 0.5f, p.y + h * 0.5f}, sel || hov ? 1.0f : 0.75f);
         if (badge && *badge) {
             FontScope f(GetFonts().semibold, 10);
-            const ImVec2 ts = ImGui::CalcTextSize(badge);
+            const ImVec2 ts = ImGui::CalcTextSize(Tr(badge));
             const ImVec2 b1(p.x + w - S(2), p.y + S(4) + ts.y + S(4));
             dl->AddRectFilled({b1.x - ts.x - S(8), p.y + S(4)}, b1, U32(color, 0.9f), S(8));
-            dl->AddText({b1.x - ts.x - S(4), p.y + S(6)}, U32(0x14101F), badge);
+            dl->AddText({b1.x - ts.x - S(4), p.y + S(6)}, U32(0x14101F), Tr(badge));
         }
         return click;
     };

@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "app.h"
+#include "util/i18n.h"
 #include "imgui.h"
 #include "miniz.h"
 #include "util/shortcut.h"
@@ -29,7 +30,7 @@ std::string Fmt(const char* fmt, ...) {
     char buf[512];
     va_list args;
     va_start(args, fmt);
-    std::vsnprintf(buf, sizeof buf, fmt, args);
+    std::vsnprintf(buf, sizeof buf, Tr(fmt), args);
     va_end(args);
     return buf;
 }
@@ -47,15 +48,17 @@ void OpenFolder(const fs::path& p) {
 }
 
 void Muted(const char* text, float size = 13.5f) {
+    text = Tr(text);
     FontScope f(GetFonts().regular, size);
     ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
-    ImGui::TextWrapped("%s", text);
+    ImGui::TextWrapped("%s", Tr(text));
     ImGui::PopStyleColor();
 }
 
 void Heading(const char* text, float size = 18) {
+    text = Tr(text);
     FontScope f(GetFonts().semibold, size);
-    ImGui::TextUnformatted(text);
+    ImGui::TextUnformatted(Tr(text));
 }
 
 unsigned TierColor(const std::string& tier) {
@@ -177,13 +180,13 @@ void App::DrawLoading() {
     {
         FontScope f(GetFonts().semibold, 18);
         const std::string t = "Cargando " + g.title + "…";
-        const ImVec2 ts = ImGui::CalcTextSize(t.c_str());
-        dl->AddText({c.x - ts.x * 0.5f, c.y + chh * 0.5f - S(20)}, U32(Color::Text), t.c_str());
+        const ImVec2 ts = ImGui::CalcTextSize(Tr(t.c_str()));
+        dl->AddText({c.x - ts.x * 0.5f, c.y + chh * 0.5f - S(20)}, U32(Color::Text), Tr(t.c_str()));
     }
     if (gs) {
         FontScope f(GetFonts().medium, 14);
-        const ImVec2 ts = ImGui::CalcTextSize(gs->full.c_str());
-        dl->AddText({c.x - ts.x * 0.5f, c.y + chh * 0.5f + S(10)}, U32(gs->color), gs->full.c_str());
+        const ImVec2 ts = ImGui::CalcTextSize(Tr(gs->full.c_str()));
+        dl->AddText({c.x - ts.x * 0.5f, c.y + chh * 0.5f + S(10)}, U32(gs->color), Tr(gs->full.c_str()));
     }
     // Puntitos que avanzan (cada cuadro dibujado mueve uno).
     const int dot = static_cast<int>(ImGui::GetTime() * 6) % 3;
@@ -214,11 +217,11 @@ void App::DrawSidebar(float width) {
         if (logo_) dl->AddImageRounded(logo_.Ref(), {p.x + S(4), p.y}, {p.x + S(4) + ls, p.y + ls}, {0, 0}, {1, 1}, IM_COL32_WHITE, S(12));
         {
             FontScope f(GetFonts().bold, 19);
-            dl->AddText({p.x + ls + S(16), p.y + S(2)}, U32(Color::Text), "Satronho");
+            dl->AddText({p.x + ls + S(16), p.y + S(2)}, U32(Color::Text), Tr("Satronho"));
         }
         {
             FontScope f(GetFonts().semibold, 13);
-            dl->AddText({p.x + ls + S(16), p.y + S(26)}, U32(Color::Accent), "Emulation");
+            dl->AddText({p.x + ls + S(16), p.y + S(26)}, U32(Color::Accent), Tr("Emulation"));
         }
         ImGui::Dummy({width, ls + S(22)});
     }
@@ -266,7 +269,7 @@ void App::DrawSidebar(float width) {
             dl->AddCircleFilled({p.x + S(24), p.y + h * 0.5f}, S(4), U32(Color::Accent));
             FontScope f(GetFonts().medium, 14);
             const std::string t = Fmt("Sigue %s  ·  y %zu más", SoonSystems().front().name, SoonSystems().size() - 1);
-            dl->AddText({p.x + S(44), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Muted), t.c_str());
+            dl->AddText({p.x + S(44), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Muted), Tr(t.c_str()));
             if (hov) {
                 std::string names;
                 for (const auto& c : SoonSystems()) names += std::string(names.empty() ? "" : ", ") + c.name + " (" + c.hint + ")";
@@ -289,20 +292,20 @@ void App::DrawSidebar(float width) {
             {
                 FontScope f(GetFonts().medium, 14);
                 const std::string name = std::string("Satronho ") + c.name;
-                dl->AddText({p.x + S(44), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(next ? Color::Muted : Color::Dim), c.name);
-                const float lw = ImGui::CalcTextSize(c.name).x;
+                dl->AddText({p.x + S(44), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(next ? Color::Muted : Color::Dim), Tr(c.name));
+                const float lw = ImGui::CalcTextSize(Tr(c.name)).x;
                 FontScope f2(GetFonts().regular, 12);
-                dl->AddText({p.x + S(44) + lw + S(6), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Dim), c.hint);
+                dl->AddText({p.x + S(44) + lw + S(6), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Dim), Tr(c.hint));
                 if (hov) HelpTooltip((name + ": para " + c.games + ". " + (next ? "Es la que sigue." : "Viene en camino.")).c_str());
             }
             {
                 FontScope f(GetFonts().semibold, 11);
                 const char* badge = next ? "Próxima" : "Pronto";
-                const ImVec2 bs = ImGui::CalcTextSize(badge);
+                const ImVec2 bs = ImGui::CalcTextSize(Tr(badge));
                 const ImVec2 b1(p.x + w - S(12), p.y + h * 0.5f + bs.y * 0.5f + S(3));
                 const ImVec2 b0(b1.x - bs.x - S(14), b1.y - bs.y - S(6));
                 dl->AddRectFilled(b0, b1, next ? U32(Color::Accent, 0.2f) : U32(Color::Surface2), S(20));
-                dl->AddText({b0.x + S(7), b0.y + S(2.5f)}, U32(next ? Color::Accent : Color::Dim), badge);
+                dl->AddText({b0.x + S(7), b0.y + S(2.5f)}, U32(next ? Color::Accent : Color::Dim), Tr(badge));
             }
             ++i;
         }
@@ -335,12 +338,12 @@ void App::DrawSidebar(float width) {
     if (guides_[0]) dl->AddImageRounded(guides_[0].Ref(), {p.x + S(10), p.y + S(10)}, {p.x + S(48), p.y + S(48)}, {0, 0}, {1, 1}, IM_COL32_WHITE, S(19));
     {
         FontScope f(GetFonts().semibold, 13.5f);
-        dl->AddText({p.x + S(58), p.y + S(10)}, U32(Color::Text), "por Ridds");
+        dl->AddText({p.x + S(58), p.y + S(10)}, U32(Color::Text), Tr("por Ridds"));
     }
     {
         FontScope f(GetFonts().regular, 12);
         const std::string b = build_ > 0 ? Fmt("Build %d", build_) : std::string("Versión de desarrollo");
-        dl->AddText({p.x + S(58), p.y + S(30)}, U32(Color::Dim), b.c_str());
+        dl->AddText({p.x + S(58), p.y + S(30)}, U32(Color::Dim), Tr(b.c_str()));
     }
     ImGui::Dummy({w, foot_h});
     ImGui::EndChild();
@@ -384,7 +387,7 @@ void App::DrawLibrary() {
     {
         const float search_w = std::min(S(280), avail * 0.32f);
         FontScope f(GetFonts().medium, 14);
-        const float add_w = compact_ ? S(42) : ImGui::CalcTextSize("Agregar carpeta").x + ImGui::GetFontSize() + S(44);
+        const float add_w = compact_ ? S(42) : ImGui::CalcTextSize(Tr("Agregar carpeta")).x + ImGui::GetFontSize() + S(44);
         const float open_w = S(42);
         float x = top.x + avail - add_w;
         ImGui::SetCursorScreenPos({x, top.y + S(6)});
@@ -403,7 +406,7 @@ void App::DrawLibrary() {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {S(40), S(11)});
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(12));
         ImGui::SetNextItemWidth(search_w);
-        ImGui::InputTextWithHint("##buscar", "Buscar en la biblioteca", search_, sizeof search_);
+        ImGui::InputTextWithHint("##buscar", Tr("Buscar en la biblioteca"), search_, sizeof search_);
         ImGui::PopStyleVar(2);
         DrawIcon(ImGui::GetWindowDrawList(), Icon::Search, {sp.x + S(20), sp.y + S(21)}, S(15), U32(Color::Dim));
     }
@@ -450,20 +453,20 @@ void App::DrawLibrary() {
         {
             const std::string vk = lib_system_.empty() ? "todas" : lib_system_;
             int& view = settings_.lib_view[vk];
-            static const char* kViews[] = {"Cuadrícula", "Carrusel", "Lista"};
+            static const char* kViews[] = {"Cuadrícula", "Carrusel", "En lista"};
             const Icon kIcons[] = {Icon::Grid, Icon::Carousel, Icon::List};
             view = std::clamp(view, 0, 2);
             ImGui::SameLine(0, S(10));
             const ImVec2 bp = ImGui::GetCursorScreenPos();
-            const std::string lbl = std::string("Vista: ") + kViews[view];
+            const std::string lbl = std::string(Tr("Vista: ")) + Tr(kViews[view]);
             FontScope f(GetFonts().medium, 13.5f);
-            const float bw = ImGui::CalcTextSize(lbl.c_str()).x + S(62);
+            const float bw = ImGui::CalcTextSize(Tr(lbl.c_str())).x + S(62);
             if (ImGui::InvisibleButton("##vista", {bw, S(36)})) ImGui::OpenPopup("##vista_menu");
             const bool vh = ImGui::IsItemHovered();
             ImDrawList* dl = ImGui::GetWindowDrawList();
             dl->AddRectFilled(bp, {bp.x + bw, bp.y + S(36)}, U32(vh ? Color::Surface3 : Color::Surface2), S(10));
             DrawIcon(dl, kIcons[view], {bp.x + S(18), bp.y + S(18)}, S(15), U32(Color::Accent));
-            dl->AddText({bp.x + S(32), bp.y + (S(36) - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), lbl.c_str());
+            dl->AddText({bp.x + S(32), bp.y + (S(36) - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), Tr(lbl.c_str()));
             DrawIcon(dl, Icon::ChevronDown, {bp.x + bw - S(16), bp.y + S(18)}, S(11), U32(Color::Muted));
             ImGui::SetNextWindowPos({bp.x, bp.y + S(42)});
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(14), S(12)});
@@ -471,7 +474,7 @@ void App::DrawLibrary() {
             if (ImGui::BeginPopup("##vista_menu")) {
                 SectionLabel("VISTA");
                 for (int i = 0; i < 3; ++i)
-                    if (ImGui::MenuItem(kViews[i], nullptr, view == i)) {
+                    if (ImGui::MenuItem(Tr(kViews[i]), nullptr, view == i)) {
                         view = i;
                         SaveConfig();
                     }
@@ -479,7 +482,7 @@ void App::DrawLibrary() {
                 SectionLabel("TAMAÑO DE LAS CARÁTULAS");
                 const char* sizes[] = {"Pequeñas", "Medianas", "Grandes"};
                 for (int i = 0; i < 3; ++i)
-                    if (ImGui::MenuItem(sizes[i], nullptr, settings_.cover_size == i)) {
+                    if (ImGui::MenuItem(Tr(sizes[i]), nullptr, settings_.cover_size == i)) {
                         settings_.cover_size = i;
                         SaveConfig();
                     }
@@ -487,16 +490,16 @@ void App::DrawLibrary() {
                 SectionLabel("ORDEN");
                 const char* sorts[] = {"Nombre (A-Z)", "Jugados hace poco", "Más jugados"};
                 for (int i = 0; i < 3; ++i)
-                    if (ImGui::MenuItem(sorts[i], nullptr, settings_.sort == i)) {
+                    if (ImGui::MenuItem(Tr(sorts[i]), nullptr, settings_.sort == i)) {
                         settings_.sort = i;
                         SaveConfig();
                     }
                 ImGui::Separator();
-                if (ImGui::MenuItem("Solo favoritos", nullptr, settings_.favorites_only)) {
+                if (ImGui::MenuItem(Tr("Solo favoritos"), nullptr, settings_.favorites_only)) {
                     settings_.favorites_only = !settings_.favorites_only;
                     SaveConfig();
                 }
-                if (ImGui::MenuItem("Usar esta vista en todas las consolas")) {
+                if (ImGui::MenuItem(Tr("Usar esta vista en todas las consolas"))) {
                     const int v = view;
                     settings_.lib_view.clear();
                     settings_.lib_view["todas"] = v;
@@ -610,11 +613,11 @@ void App::DrawLibrary() {
         DrawControllerMini(dl, sys.layout, {hp.x + S(22), hp.y + hh * 0.5f}, sys.handheld ? S(28) : S(40), 1.0f);
         {
             FontScope f(GetFonts().bold, 19);
-            dl->AddText({hp.x + S(54), hp.y + (hh - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), sys.full.c_str());
-            const float nw = ImGui::CalcTextSize(sys.full.c_str()).x;
+            dl->AddText({hp.x + S(54), hp.y + (hh - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), Tr(sys.full.c_str()));
+            const float nw = ImGui::CalcTextSize(Tr(sys.full.c_str())).x;
             FontScope f2(GetFonts().medium, 13);
             const std::string sub = Fmt("%s  ·  %zu %s", sys.hint.c_str(), part.size(), part.size() == 1 ? "juego" : "juegos");
-            dl->AddText({hp.x + S(54) + nw + S(12), hp.y + (hh - ImGui::GetFontSize()) * 0.5f + S(1)}, U32(sys.color), sub.c_str());
+            dl->AddText({hp.x + S(54) + nw + S(12), hp.y + (hh - ImGui::GetFontSize()) * 0.5f + S(1)}, U32(sys.color), Tr(sub.c_str()));
         }
         // Línea fina con el color de la consola.
         dl->AddRectFilled({hp.x, hp.y + hh + S(6)}, {hp.x + width, hp.y + hh + S(7.5f)}, U32(Color::Border));
@@ -622,13 +625,13 @@ void App::DrawLibrary() {
         {
             FontScope f(GetFonts().medium, 13.5f);
             const char* more = "Ver solo estos";
-            const ImVec2 ms = ImGui::CalcTextSize(more);
+            const ImVec2 ms = ImGui::CalcTextSize(Tr(more));
             ImGui::SetCursorScreenPos({hp.x + width - ms.x - S(26), hp.y + (hh - ms.y) * 0.5f});
             ImGui::PushID(sys.id.c_str());
             if (ImGui::InvisibleButton("##ver", {ms.x + S(24), ms.y})) lib_system_ = sys.id;
             const bool mh = ImGui::IsItemHovered();
             ImGui::PopID();
-            dl->AddText({hp.x + width - ms.x - S(26), hp.y + (hh - ms.y) * 0.5f}, U32(mh ? Color::Text : Color::Muted), more);
+            dl->AddText({hp.x + width - ms.x - S(26), hp.y + (hh - ms.y) * 0.5f}, U32(mh ? Color::Text : Color::Muted), Tr(more));
             DrawIcon(dl, Icon::ChevronRight, {hp.x + width - S(10), hp.y + hh * 0.5f}, S(12), U32(mh ? Color::Text : Color::Muted));
         }
         ImGui::SetCursorScreenPos({hp.x, hp.y + hh + S(22)});
@@ -653,14 +656,14 @@ void App::DrawContinueHero(const Game& g, float width) {
     const float tx = p.x + S(170);
     {
         FontScope f(GetFonts().semibold, 12);
-        dl->AddText({tx, p.y + S(24)}, U32(Color::Gold), "SEGUIR JUGANDO");
+        dl->AddText({tx, p.y + S(24)}, U32(Color::Gold), Tr("SEGUIR JUGANDO"));
     }
     Ellipsize(dl, GetFonts().bold, S(26), {tx, p.y + S(44)}, U32(Color::Text), g.title, width - S(420), 1);
     {
         FontScope f(GetFonts().regular, 14);
         std::string meta = FormatLastPlayed(g.last_played) + "  ·  " + FormatPlaytime(g.playtime_s) + " jugado";
         if (HasAutoState(g)) meta += "  ·  sigues donde quedaste";
-        dl->AddText({tx, p.y + S(86)}, U32(Color::Muted), meta.c_str());
+        dl->AddText({tx, p.y + S(86)}, U32(Color::Muted), Tr(meta.c_str()));
     }
 
     // Botones.
@@ -684,49 +687,49 @@ bool App::GameContextMenu(const Game& g) {
         ImGui::PopStyleVar(2);
         {
             FontScope f(GetFonts().bold, 14);
-            ImGui::TextUnformatted(g.title.c_str());
+            ImGui::TextUnformatted(Tr(g.title.c_str()));
         }
         ImGui::Separator();
-        if (ImGui::MenuItem("Favorito", nullptr, g.favorite)) {
+        if (ImGui::MenuItem(Tr("Favorito"), nullptr, g.favorite)) {
             library_.ToggleFavorite(g.key);
             games_dirty_ = true;
         }
         ImGui::Separator();
-        if (ImGui::MenuItem("Jugar")) play = true;
-        if (HasAutoState(g) && ImGui::MenuItem("Continuar donde quedé")) RequestStart(g.path, true);
+        if (ImGui::MenuItem(Tr("Jugar"))) play = true;
+        if (HasAutoState(g) && ImGui::MenuItem(Tr("Continuar donde quedé"))) RequestStart(g.path, true);
         ImGui::Separator();
-        if (ImGui::MenuItem("Abrir la carpeta del juego")) OpenFolder(g.path.parent_path());
-        if (ImGui::MenuItem("Abrir la carpeta de partidas")) OpenFolder(Paths::Saves() / g.system);
-        if (ImGui::MenuItem("Abrir la carpeta de estados")) OpenFolder(StatePathFor(g, 1).parent_path());
+        if (ImGui::MenuItem(Tr("Abrir la carpeta del juego"))) OpenFolder(g.path.parent_path());
+        if (ImGui::MenuItem(Tr("Abrir la carpeta de partidas"))) OpenFolder(Paths::Saves() / g.system);
+        if (ImGui::MenuItem(Tr("Abrir la carpeta de estados"))) OpenFolder(StatePathFor(g, 1).parent_path());
         ImGui::Separator();
-        if (ImGui::BeginMenu("Carátula")) {
-            if (ImGui::MenuItem("Elegir una imagen…")) PickCoverDialog(g);
-            if (ImGui::MenuItem("Quitar mi carátula", nullptr, false, covers_.HasCustom(g))) covers_.RemoveCustom(g);
-            if (ImGui::MenuItem("Buscarla de nuevo en internet")) covers_.QueueDownloads({g});
+        if (ImGui::BeginMenu(Tr("Carátula"))) {
+            if (ImGui::MenuItem(Tr("Elegir una imagen…"))) PickCoverDialog(g);
+            if (ImGui::MenuItem(Tr("Quitar mi carátula"), nullptr, false, covers_.HasCustom(g))) covers_.RemoveCustom(g);
+            if (ImGui::MenuItem(Tr("Buscarla de nuevo en internet"))) covers_.QueueDownloads({g});
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Tiempo de juego")) {
+        if (ImGui::BeginMenu(Tr("Tiempo de juego"))) {
             ImGui::TextDisabled("%s", g.playtime_s > 0 ? FormatPlaytime(g.playtime_s).c_str() : "Sin jugar");
-            if (ImGui::MenuItem("Volver a cero", nullptr, false, g.playtime_s > 0)) {
+            if (ImGui::MenuItem(Tr("Volver a cero"), nullptr, false, g.playtime_s > 0)) {
                 library_.ResetPlaytime(g.key);
                 games_dirty_ = true;
             }
             ImGui::EndMenu();
         }
         const std::string ext = Lower(Paths::ToUtf8(g.path.extension()));
-        if (ext == ".cue" && ImGui::MenuItem("Convertir a .chd")) {
+        if (ext == ".cue" && ImGui::MenuItem(Tr("Convertir a .chd"))) {
             StartChdJob({g.path}, false);
             Toast("Convirtiendo «" + g.title + "» a .chd. Tu original se queda.", GuideId::Nono, 4);
         }
-        if (ImGui::MenuItem("Verificar el archivo")) VerifyGame(g);
-        if (ImGui::BeginMenu("Copiar")) {
-            if (ImGui::MenuItem("El nombre")) SDL_SetClipboardText(g.title.c_str());
-            if (ImGui::MenuItem("La ruta del archivo")) SDL_SetClipboardText(Paths::ToUtf8(g.path).c_str());
+        if (ImGui::MenuItem(Tr("Verificar el archivo"))) VerifyGame(g);
+        if (ImGui::BeginMenu(Tr("Copiar"))) {
+            if (ImGui::MenuItem(Tr("El nombre"))) SDL_SetClipboardText(g.title.c_str());
+            if (ImGui::MenuItem(Tr("La ruta del archivo"))) SDL_SetClipboardText(Paths::ToUtf8(g.path).c_str());
             ImGui::EndMenu();
         }
 #ifdef _WIN32
-        if (ImGui::BeginMenu("Crear acceso directo")) {
-            if (ImGui::MenuItem("En el escritorio")) {
+        if (ImGui::BeginMenu(Tr("Crear acceso directo"))) {
+            if (ImGui::MenuItem(Tr("En el escritorio"))) {
                 std::string err;
                 if (Shortcut::CreateOnDesktop(g.title, g.path, {}, &err)) Toast("Listo: «" + g.title + "» está en tu escritorio.", GuideId::Samy, 4);
                 else Toast(err, GuideId::MechaRidds, 4);
@@ -735,7 +738,7 @@ bool App::GameContextMenu(const Game& g) {
         }
 #endif
         ImGui::Separator();
-        if (ImGui::MenuItem("Ocultar de la biblioteca")) {
+        if (ImGui::MenuItem(Tr("Ocultar de la biblioteca"))) {
             library_.SetHidden(g.key, true);
             games_dirty_ = true;
             Toast("«" + g.title + "» quedó oculto. Lo vuelves a mostrar en Ajustes » Biblioteca.", GuideId::Samy, 4.5);
@@ -808,8 +811,8 @@ bool App::DrawGameRow(const Game& g, float w, float h, bool selected) {
     {
         FontScope f(GetFonts().regular, 13);
         const std::string t = g.playtime_s > 0 ? FormatPlaytime(g.playtime_s) : std::string("Sin jugar");
-        const float tw = ImGui::CalcTextSize(t.c_str()).x;
-        dl->AddText({right - S(150) - tw, p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Muted), t.c_str());
+        const float tw = ImGui::CalcTextSize(Tr(t.c_str())).x;
+        dl->AddText({right - S(150) - tw, p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Muted), Tr(t.c_str()));
     }
     if (g.favorite) DrawIcon(dl, Icon::StarFill, {right - S(120), p.y + h * 0.5f}, S(16), U32(Color::Gold));
     {
@@ -821,7 +824,7 @@ bool App::DrawGameRow(const Game& g, float w, float h, bool selected) {
         dl->AddRectFilled(b0, b1, U32(Color::Accent, bhov ? 1.0f : hovered ? 0.85f : 0.25f), S(17));
         DrawIcon(dl, Icon::Play, {b0.x + S(22), (b0.y + b1.y) * 0.5f}, S(12), U32(bhov || hovered ? Color::Bg : Color::Accent));
         FontScope f(GetFonts().semibold, 13);
-        dl->AddText({b0.x + S(36), (b0.y + b1.y - ImGui::GetFontSize()) * 0.5f}, U32(bhov || hovered ? Color::Bg : Color::Accent), "Jugar");
+        dl->AddText({b0.x + S(36), (b0.y + b1.y - ImGui::GetFontSize()) * 0.5f}, U32(bhov || hovered ? Color::Bg : Color::Accent), Tr("Jugar"));
     }
     ImGui::PopID();
     ImGui::SetCursorScreenPos({p.x, p.y + h});
@@ -861,13 +864,13 @@ bool App::DrawGameCard(const Game& g, float w, float h, bool selected) {
     // Distintivo de la consola arriba a la izquierda: su control en miniatura y su nombre.
     if (gs) {
         FontScope f(GetFonts().semibold, 11.5f);
-        const ImVec2 ts = ImGui::CalcTextSize(gs->name.c_str());
+        const ImVec2 ts = ImGui::CalcTextSize(Tr(gs->name.c_str()));
         const float ph = S(26), icon_w = gs->handheld ? S(16) : S(24);
         const ImVec2 b0(a.x + S(10), a.y + S(10)), b1(b0.x + S(10) + icon_w + S(6) + ts.x + S(10), b0.y + ph);
         dl->AddRectFilled(b0, b1, IM_COL32(15, 13, 23, 190), ph * 0.5f);
         dl->AddRect(b0, b1, U32(gs->color, 0.45f), ph * 0.5f, 1.0f);
         DrawControllerMini(dl, gs->layout, {b0.x + S(10) + icon_w * 0.5f, b0.y + ph * 0.5f}, icon_w, 1.0f);
-        dl->AddText({b0.x + S(10) + icon_w + S(6), b0.y + (ph - ts.y) * 0.5f}, U32(gs->color), gs->name.c_str());
+        dl->AddText({b0.x + S(10) + icon_w + S(6), b0.y + (ph - ts.y) * 0.5f}, U32(gs->color), Tr(gs->name.c_str()));
     }
 
     // Botón de jugar al pasar el mouse.
@@ -921,8 +924,8 @@ void App::DrawEmptyLibrary() {
     {
         FontScope f(GetFonts().bold, 26);
         const char* t = "Tu biblioteca está lista para llenarse";
-        ImGui::SetCursorPosX(x0 + (w - ImGui::CalcTextSize(t).x) * 0.5f);
-        ImGui::TextUnformatted(t);
+        ImGui::SetCursorPosX(x0 + (w - ImGui::CalcTextSize(Tr(t)).x) * 0.5f);
+        ImGui::TextUnformatted(Tr(t));
     }
     ImGui::Dummy({0, S(6)});
     ImGui::SetCursorPosX(x0);
@@ -944,9 +947,9 @@ void App::DrawEmptyLibrary() {
     {
         FontScope f(GetFonts().regular, 12.5f);
         const char* t = "Satronho Emulation no incluye juegos. Usa copias de los cartuchos que tienes.";
-        ImGui::SetCursorPosX(x0 + (w - ImGui::CalcTextSize(t).x) * 0.5f);
+        ImGui::SetCursorPosX(x0 + (w - ImGui::CalcTextSize(Tr(t)).x) * 0.5f);
         ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Dim));
-        ImGui::TextUnformatted(t);
+        ImGui::TextUnformatted(Tr(t));
         ImGui::PopStyleColor();
     }
 }
@@ -977,14 +980,14 @@ void App::DrawSuggested() {
         {
             FontScope f(GetFonts().medium, 12.5f);
             ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Dim));
-            ImGui::TextUnformatted(label);
+            ImGui::TextUnformatted(Tr(label));
             ImGui::PopStyleColor();
         }
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(10));
         {
             FontScope f(GetFonts().semibold, 14.5f);
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + col_w - S(110));
-            ImGui::TextWrapped("%s", value.c_str());
+            ImGui::TextWrapped("%s", Tr(value.c_str()));
             ImGui::PopTextWrapPos();
         }
         ImGui::EndGroup();
@@ -1009,7 +1012,7 @@ void App::DrawSuggested() {
         DrawIcon(ImGui::GetWindowDrawList(), Icon::Check, {p.x + S(9), p.y + S(11)}, S(14), U32(Color::Teal));
         ImGui::SetCursorScreenPos({p.x + S(26), p.y});
         FontScope f(GetFonts().medium, 14.5f);
-        ImGui::TextUnformatted(c.c_str());
+        ImGui::TextUnformatted(Tr(c.c_str()));
     }
     ImGui::Dummy({0, S(6)});
     for (const auto& r : s.reasons) Muted(r.c_str(), 13);
@@ -1049,7 +1052,7 @@ void App::DrawSuggested() {
         DrawControllerMini(dl, sd->layout, {p.x + S(32), p.y + h * 0.5f}, sd->handheld ? S(22) : S(30), 1.0f);
         {
             FontScope f(GetFonts().semibold, 14.5f);
-            dl->AddText({p.x + S(58), p.y + S(10)}, U32(Color::Text), sd->full.c_str());
+            dl->AddText({p.x + S(58), p.y + S(10)}, U32(Color::Text), Tr(sd->full.c_str()));
         }
         Ellipsize(dl, GetFonts().regular, S(12.5f), {p.x + S(58), p.y + S(33)}, U32(lc), v.text, cell_w - S(66), 1);
         ImGui::Dummy({cell_w, h});
@@ -1084,7 +1087,7 @@ void App::DrawNews() {
         {
             FontScope f(GetFonts().semibold, 12);
             ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Pink));
-            ImGui::TextUnformatted((b["version"].String() + "  ·  " + b["fecha"].String()).c_str());
+            ImGui::TextUnformatted(Tr((b["version"].String() + "  ·  " + b["fecha"].String()).c_str()));
             ImGui::PopStyleColor();
         }
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(6));
@@ -1099,7 +1102,7 @@ void App::DrawNews() {
             ImGui::SetCursorScreenPos({p.x + S(78), p.y - S(1)});
             FontScope f(GetFonts().regular, 14.5f);
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - S(4));
-            ImGui::TextWrapped("%s", c["texto"].String().c_str());
+            ImGui::TextWrapped("%s", Tr(c["texto"].String().c_str()));
             ImGui::PopTextWrapPos();
             ImGui::Dummy({0, S(2)});
         }
@@ -1155,7 +1158,7 @@ void App::DrawUpdatePanel() {
     {
         FontScope f(GetFonts().medium, 13.5f);
         ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Muted));
-        ImGui::TextUnformatted("Buscar al abrir");
+        ImGui::TextUnformatted(Tr("Buscar al abrir"));
         ImGui::PopStyleColor();
     }
     ImGui::EndGroup();
@@ -1705,7 +1708,8 @@ int App::BindingChip(const char* id, bool keyboard, const std::string& text, boo
     if (pressed) dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(Color::Gold, 0.22f), S(9));
     if (capturing) dl->AddRect(p, {p.x + width, p.y + h}, U32(Color::Accent, 0.4f + 0.6f * pulse), S(9), S(2));
     DrawIcon(dl, keyboard ? Icon::Keyboard : Icon::Gamepad, {p.x + S(14), p.y + h * 0.5f}, S(13), U32(capturing ? Color::Accent : Color::Dim));
-    const std::string t = capturing ? std::string("Presiona…") : text;
+    // Los nombres de teclas y botones («Cruceta arriba», «Flecha izquierda»…) también se traducen.
+    const std::string t = capturing ? std::string(Tr("Presiona…")) : Tr(text);
     Ellipsize(dl, GetFonts().medium, S(13), {p.x + S(28), p.y + (h - S(13)) * 0.5f - S(1)},
               U32(capturing ? Color::Accent : (t == "—" ? Color::Dim : Color::Text)), t, width - S(34), 1);
     if (hovered && !capturing) HelpTooltip("Clic: asignar (tecla o botón del mando, lo que presiones) · Clic derecho: dejar vacío");
@@ -1728,7 +1732,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         if (Toggle("##teclado", &pc.keyboard)) changed = true;
         ImGui::SameLine(0, S(8));
         ImGui::SetCursorPosY(y0 + S(8));
-        ImGui::TextUnformatted("Teclado");
+        ImGui::TextUnformatted(Tr("Teclado"));
         ImGui::SameLine(0, S(18));
         ImGui::SetCursorPosY(y0);
         std::vector<std::string> pad_names{"Sin mando"};
@@ -1824,12 +1828,12 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         if (cap_here) {
             const float pulse = 0.6f + 0.4f * static_cast<float>(std::sin(ImGui::GetTime() * 7));
             ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Accent, pulse));
-            ImGui::TextUnformatted(Fmt("Presiona la tecla o el botón del mando para «%s»   ·   Esc cancela", label_of(input_.capture.button)).c_str());
+            ImGui::TextUnformatted(Tr(Fmt("Presiona la tecla o el botón del mando para «%s»   ·   Esc cancela", label_of(input_.capture.button)).c_str()));
             ImGui::PopStyleColor();
         } else {
             const double age = SDL_GetTicks() / 1000.0 - input_.last_input_time;
             ImGui::PushStyleColor(ImGuiCol_Text, V4(age < 1.5 ? Color::Gold : Color::Dim));
-            ImGui::TextUnformatted(input_.last_input.empty() ? "Presiona cualquier botón para verlo en vivo." : ("Último botón: " + input_.last_input).c_str());
+            ImGui::TextUnformatted(Tr(input_.last_input.empty() ? "Presiona cualquier botón para verlo en vivo." : ("Último botón: " + input_.last_input).c_str()));
             ImGui::PopStyleColor();
         }
     }
@@ -1859,7 +1863,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         dl->AddRect(pos, {pos.x + cell_w, pos.y + cell_h}, U32(down ? Color::Gold : cap ? Color::Accent : Color::Border), S(12), down || cap ? S(2) : 1.0f);
         {
             FontScope f(GetFonts().semibold, 13.5f);
-            dl->AddText({pos.x + S(10), pos.y + S(6)}, U32(down ? Color::Gold : Color::Text), label_of(id));
+            dl->AddText({pos.x + S(10), pos.y + S(6)}, U32(down ? Color::Gold : Color::Text), Tr(label_of(id)));
         }
         const float cw = cell_w - S(16);
         ImGui::SetCursorScreenPos({pos.x + S(8), pos.y + S(27)});
@@ -1873,7 +1877,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
     };
     auto group_title = [&](const char* t, ImVec2 pos) {
         FontScope f(GetFonts().semibold, 13);
-        ImGui::GetWindowDrawList()->AddText(pos, U32(Color::Dim), t);
+        ImGui::GetWindowDrawList()->AddText(pos, U32(Color::Dim), Tr(t));
     };
     const float title_h = S(22);
     const bool shoulders = !sys.shoulders.empty();
@@ -1955,8 +1959,8 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(Color::Surface, 0.75f), S(12));
             dl->AddRect(p, {p.x + w, p.y + h}, U32(Color::Border), S(12));
             FontScope f(GetFonts().semibold, 12.5f);
-            const float tw = ImGui::CalcTextSize(title).x;
-            dl->AddText({p.x + (w - tw) * 0.5f, p.y + S(8)}, U32(Color::Muted), title);
+            const float tw = ImGui::CalcTextSize(Tr(title)).x;
+            dl->AddText({p.x + (w - tw) * 0.5f, p.y + S(8)}, U32(Color::Muted), Tr(title));
         };
         auto nx_cell = [&](int id, ImVec2 pos, float w) {
             ImGui::PushID(id);
@@ -1965,8 +1969,8 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             {
                 FontScope f(GetFonts().medium, 12.5f);
                 const char* l = label_of(id);
-                const float tw = ImGui::CalcTextSize(l).x;
-                dl->AddText({pos.x + (w - tw) * 0.5f, pos.y}, U32(down ? Color::Gold : Color::Text), l);
+                const float tw = ImGui::CalcTextSize(Tr(l)).x;
+                dl->AddText({pos.x + (w - tw) * 0.5f, pos.y}, U32(down ? Color::Gold : Color::Text), Tr(l));
             }
             ImGui::SetCursorScreenPos({pos.x, pos.y + S(18)});
             const int r = BindingChip("##b", dev_key, dev_key ? Input::KeyLabel(m.keys[id]) : Input::PadCodeLabel(m.pad[id], family), cap, down, w);
@@ -2020,8 +2024,8 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             float yy = p.y + title_box + r * 2 + S(14);
             if (note) {
                 FontScope f(GetFonts().regular, 12);
-                const float tw = ImGui::CalcTextSize(note).x;
-                dl->AddText({p.x + (w - tw) * 0.5f, yy}, U32(Color::Dim), note);
+                const float tw = ImGui::CalcTextSize(Tr(note)).x;
+                dl->AddText({p.x + (w - tw) * 0.5f, yy}, U32(Color::Dim), Tr(note));
                 yy += S(20);
             }
             if (click_id >= 0) nx_cell(click_id, {p.x + pad + (w - pad * 2) * 0.2f, yy}, (w - pad * 2) * 0.6f);
@@ -2046,7 +2050,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
         {
             FontScope f(GetFonts().semibold, 13.5f);
             ImGui::SetCursorScreenPos(o);
-            ImGui::TextUnformatted("Asignar con");
+            ImGui::TextUnformatted(Tr("Asignar con"));
             ImGui::SameLine(0, S(10));
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(8));
             int dev = ctrl_device_;
@@ -2092,7 +2096,7 @@ void App::DrawControllerEditor(const SystemDef& sys, int player, bool compact) {
             ImGui::SameLine(0, S(22));
             ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, p.y - S(4)});
             FontScope f(GetFonts().medium, 13);
-            ImGui::TextDisabled("Zona muerta");
+            ImGui::TextDisabled(Tr("Zona muerta"));
             ImGui::SameLine(0, S(8));
             changed |= SliderPercent("##zona_nx", &input_.deadzone, S(200));
             ImGui::SameLine(0, S(22));
@@ -2222,7 +2226,7 @@ void App::DrawHotkeys() {
         {
             FontScope f(GetFonts().semibold, 14.5f);
             ImGui::SetCursorScreenPos({p.x, p.y + S(4)});
-            ImGui::TextUnformatted(HotkeyInfo(static_cast<Hotkey>(i)).name);
+            ImGui::TextUnformatted(Tr(HotkeyInfo(static_cast<Hotkey>(i)).name));
         }
         const bool cap = input_.Capturing() && input_.capture.hotkey && input_.capture.button == i;
         const float avail_w = ImGui::GetContentRegionAvail().x;
@@ -2356,7 +2360,7 @@ void App::DrawControls() {
         ImGui::SetCursorScreenPos({p.x + S(52), p.y + S(9)});
         {
             FontScope f(GetFonts().semibold, 14);
-            ImGui::TextUnformatted("Consola");
+            ImGui::TextUnformatted(Tr("Consola"));
         }
         ImGui::SameLine(0, S(12));
         ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, p.y});
@@ -2392,7 +2396,7 @@ void App::DrawControls() {
             std::string owner;
             for (int pl = 0; pl < Input::kPlayers; ++pl)
                 if (input_.players[pl].pad == pd.slot) owner = Fmt("  ·  Jugador %d", pl + 1);
-            ImGui::TextUnformatted(Fmt("Mando %d · %s (%s)%s", pd.slot + 1, pd.name.c_str(), pd.family_name.c_str(), owner.c_str()).c_str());
+            ImGui::TextUnformatted(Tr(Fmt("Mando %d · %s (%s)%s", pd.slot + 1, pd.name.c_str(), pd.family_name.c_str(), owner.c_str()).c_str()));
         }
         Muted("Cada jugador recuerda su mando: si uno se desconecta, los demás siguen con el suyo.", 13);
         if (changed) SaveConfig();
@@ -2415,13 +2419,13 @@ void App::DrawAbout() {
     ImGui::BeginGroup();
     {
         FontScope f(GetFonts().bold, 34);
-        ImGui::TextUnformatted("Satronho Emulation");
+        ImGui::TextUnformatted(Tr("Satronho Emulation"));
     }
     {
         FontScope f(GetFonts().semibold, 16);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - S(10));
         ImGui::PushStyleColor(ImGuiCol_Text, V4(Color::Accent));
-        ImGui::TextUnformatted("por Ridds");
+        ImGui::TextUnformatted(Tr("por Ridds"));
         ImGui::PopStyleColor();
     }
     Muted(build_ > 0 ? Fmt("Build %d", build_).c_str() : "Versión de desarrollo", 14);
@@ -2431,9 +2435,9 @@ void App::DrawAbout() {
     {
         FontScope f(GetFonts().regular, 15);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + std::min(ImGui::GetContentRegionAvail().x, S(820)));
-        ImGui::TextWrapped("%s", ("La casa de los emuladores de la familia Satronho. Un solo lugar para tus consolas, con una imagen cuidada, "
+        ImGui::TextWrapped("%s", Tr(("La casa de los emuladores de la familia Satronho. Un solo lugar para tus consolas, con una imagen cuidada, "
                                   "controles que responden al instante, un medidor en vivo y configuraciones sugeridas para tu equipo. Ya están " +
-                                  SystemsSentence() + "; pronto llegan más consolas.").c_str());
+                                  SystemsSentence() + "; pronto llegan más consolas.").c_str()));
         ImGui::PopTextWrapPos();
     }
     ImGui::Dummy({0, S(14)});
@@ -2483,13 +2487,13 @@ void App::DrawGameLayer() {
     if (!chip.empty()) {
         ImDrawList* dl = ImGui::GetForegroundDrawList();
         FontScope f(GetFonts().semibold, 14);
-        const ImVec2 ts = ImGui::CalcTextSize(chip.c_str());
+        const ImVec2 ts = ImGui::CalcTextSize(Tr(chip.c_str()));
         const float w = ts.x + S(52), h = S(38);
         const ImVec2 p(vp->Pos.x + (vp->Size.x - w) * 0.5f, vp->Pos.y + GameBarTop() + S(20));
         dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(Color::Surface, 0.92f), h * 0.5f);
         dl->AddRect(p, {p.x + w, p.y + h}, U32(col, 0.6f), h * 0.5f);
         DrawIcon(dl, icon, {p.x + S(22), p.y + h * 0.5f}, S(15), U32(col));
-        dl->AddText({p.x + S(38), p.y + (h - ts.y) * 0.5f}, U32(Color::Text), chip.c_str());
+        dl->AddText({p.x + S(38), p.y + (h - ts.y) * 0.5f}, U32(Color::Text), Tr(chip.c_str()));
     }
 }
 
@@ -2525,7 +2529,7 @@ void App::DrawPauseMenu() {
         DrawCover(ImGui::GetWindowDrawList(), current_, p, {p.x + w, p.y + S(150)}, S(14), false);
         ImGui::Dummy({w, S(156)});
         Ellipsize(ImGui::GetWindowDrawList(), GetFonts().bold, S(18), ImGui::GetCursorScreenPos(), U32(Color::Text), current_.title, w, 2);
-        ImGui::Dummy({w, S(24) * (ImGui::CalcTextSize(current_.title.c_str()).x > w ? 2 : 1)});
+        ImGui::Dummy({w, S(24) * (ImGui::CalcTextSize(Tr(current_.title.c_str())).x > w ? 2 : 1)});
         Muted(Fmt("Esta sesión: %s", FormatPlaytime(static_cast<long long>(session_s_)).c_str()).c_str(), 13);
         ImGui::Dummy({0, S(8)});
     }
@@ -2577,14 +2581,14 @@ void App::DrawPauseMenu() {
                 dl->AddRectFilled({p.x + S(8), p.y + S(8)}, {p.x + S(8) + tw, p.y + h - S(8)}, U32(Color::Surface2), S(8));
             {
                 FontScope f(GetFonts().semibold, 14);
-                dl->AddText({p.x + tw + S(22), p.y + S(12)}, U32(Color::Text), "Guardado automático");
+                dl->AddText({p.x + tw + S(22), p.y + S(12)}, U32(Color::Text), Tr("Guardado automático"));
             }
             {
                 FontScope f(GetFonts().regular, 12.5f);
                 const std::string sub = !settings_.autosave_exit ? std::string("Apagado (Ajustes » Rendimiento)")
                                         : has_auto && d != slot_dates_.end() ? "Al salir · " + d->second
                                                                               : std::string("Se guarda al salir a la biblioteca");
-                dl->AddText({p.x + tw + S(22), p.y + S(34)}, U32(Color::Dim), sub.c_str());
+                dl->AddText({p.x + tw + S(22), p.y + S(34)}, U32(Color::Dim), Tr(sub.c_str()));
             }
             FontScope f(GetFonts().semibold, 12.5f);
             float x = p.x + w - S(12);
@@ -2635,12 +2639,12 @@ void App::DrawPauseMenu() {
             }
             {
                 FontScope f(GetFonts().semibold, 13.5f);
-                dl->AddText({p.x + S(12), t1.y + S(8)}, U32(current ? Color::Accent : Color::Text), Fmt("Ranura %d", s).c_str());
+                dl->AddText({p.x + S(12), t1.y + S(8)}, U32(current ? Color::Accent : Color::Text), Tr(Fmt("Ranura %d", s).c_str()));
             }
             {
                 FontScope f(GetFonts().regular, 11.5f);
                 const auto d = slot_dates_.find(s);
-                dl->AddText({p.x + S(12), t1.y + S(28)}, U32(Color::Dim), d != slot_dates_.end() ? d->second.c_str() : "Vacía");
+                dl->AddText({p.x + S(12), t1.y + S(28)}, U32(Color::Dim), Tr(d != slot_dates_.end() ? d->second.c_str() : "Vacía"));
             }
             const float bw = (cw - S(24) - S(6)) * 0.5f;
             ImGui::SetCursorScreenPos({p.x + S(12), p.y + ch - S(36)});
@@ -2742,7 +2746,7 @@ void App::DrawPauseMenu() {
             dl->AddCircleFilled({p.x + S(28), p.y + h * 0.5f}, S(4), U32(in ? Color::Teal : Color::Dim));
             {
                 FontScope f(GetFonts().semibold, 14.5f);
-                dl->AddText({p.x + S(54), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), core_.DiskLabel(i).c_str());
+                dl->AddText({p.x + S(54), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), Tr(core_.DiskLabel(i).c_str()));
             }
             ImGui::SetCursorScreenPos({p.x + w - S(130), p.y + (h - S(34)) * 0.5f});
             if (in) {
@@ -2796,7 +2800,7 @@ void App::DrawMeter(bool preview, ImVec2 preview_pos) {
     if (!detailed) {
         FontScope f(GetFonts().mono, 13.5f);
         const std::string s = Fmt("%.0f FPS  %3.0f %%  %.2f ms", fps, speed, core_avg);
-        const ImVec2 ts = ImGui::CalcTextSize(s.c_str());
+        const ImVec2 ts = ImGui::CalcTextSize(Tr(s.c_str()));
         const ImVec2 size(ts.x + S(34), ts.y + S(16));
         ImVec2 p = preview_pos;
         if (!preview) {
@@ -2806,7 +2810,7 @@ void App::DrawMeter(bool preview, ImVec2 preview_pos) {
         }
         dl->AddRectFilled(p, {p.x + size.x, p.y + size.y}, U32(0x1B1829, 0.88f), S(10));
         dl->AddCircleFilled({p.x + S(14), p.y + size.y * 0.5f}, S(4), U32(accent));
-        dl->AddText({p.x + S(26), p.y + S(8)}, U32(speed_col), s.c_str());
+        dl->AddText({p.x + S(26), p.y + S(8)}, U32(speed_col), Tr(s.c_str()));
         return;
     }
 
@@ -2827,19 +2831,19 @@ void App::DrawMeter(bool preview, ImVec2 preview_pos) {
     {
         FontScope f(GetFonts().bold, 30);
         const std::string s = Fmt("%.0f", fps);
-        dl->AddText({p.x + pad + S(4), p.y + pad - S(4)}, U32(Color::Text), s.c_str());
-        const float sw = ImGui::CalcTextSize(s.c_str()).x;
+        dl->AddText({p.x + pad + S(4), p.y + pad - S(4)}, U32(Color::Text), Tr(s.c_str()));
+        const float sw = ImGui::CalcTextSize(Tr(s.c_str())).x;
         FontScope f2(GetFonts().semibold, 12);
-        dl->AddText({p.x + pad + S(10) + sw, p.y + pad + S(14)}, U32(Color::Muted), "FPS");
+        dl->AddText({p.x + pad + S(10) + sw, p.y + pad + S(14)}, U32(Color::Muted), Tr("FPS"));
     }
     {
         FontScope f(GetFonts().semibold, 15);
         const std::string s = Fmt("%.0f %%", speed);
-        const float sw = ImGui::CalcTextSize(s.c_str()).x;
-        dl->AddText({p.x + w - pad - sw, p.y + pad + S(2)}, U32(speed_col), s.c_str());
+        const float sw = ImGui::CalcTextSize(Tr(s.c_str())).x;
+        dl->AddText({p.x + w - pad - sw, p.y + pad + S(2)}, U32(speed_col), Tr(s.c_str()));
         FontScope f2(GetFonts().regular, 11);
         const char* lbl = "velocidad";
-        dl->AddText({p.x + w - pad - ImGui::CalcTextSize(lbl).x, p.y + pad + S(22)}, U32(Color::Dim), lbl);
+        dl->AddText({p.x + w - pad - ImGui::CalcTextSize(lbl).x, p.y + pad + S(22)}, U32(Color::Dim), Tr(lbl));
     }
 
     // Gráfica del tiempo entre cuadros.
@@ -2874,10 +2878,10 @@ void App::DrawMeter(bool preview, ImVec2 preview_pos) {
     float y = g1.y + S(10);
     for (int i = 0; i < rows; ++i) {
         FontScope f(GetFonts().medium, 12.5f);
-        dl->AddText({p.x + pad + S(4), y}, U32(Color::Muted), labels[i]);
+        dl->AddText({p.x + pad + S(4), y}, U32(Color::Muted), Tr(labels[i]));
         FontScope f2(GetFonts().mono, 12.5f);
         const unsigned col = i == 1 && perf_.stutters_minute > 0 ? Color::Orange : Color::Text;
-        dl->AddText({p.x + pad + S(76), y}, U32(col), values[i].c_str());
+        dl->AddText({p.x + pad + S(76), y}, U32(col), Tr(values[i].c_str()));
         y += row_h;
     }
 }
@@ -2897,7 +2901,7 @@ void App::DrawToasts() {
         const float a = std::min(in, out);
         const GuideInfo& g = Guide(t.guide);
         FontScope f(GetFonts().medium, 14.5f);
-        const ImVec2 ts = ImGui::CalcTextSize(t.text.c_str(), nullptr, false, S(520));
+        const ImVec2 ts = ImGui::CalcTextSize(Tr(t.text.c_str()), nullptr, false, S(520));
         const float h = std::max(S(46), ts.y + S(22));
         const float w = ts.x + S(70);
         const ImVec2 p(vp->Pos.x + (vp->Size.x - w) * 0.5f, y - (1 - a) * S(10));
@@ -2910,7 +2914,7 @@ void App::DrawToasts() {
             dl->AddImageRounded(av.Ref(), {ac.x - S(16), ac.y - S(16)}, {ac.x + S(16), ac.y + S(16)}, {0, 0}, {1, 1}, IM_COL32(255, 255, 255, static_cast<int>(255 * a)), S(16));
         else
             dl->AddCircleFilled(ac, S(6), U32(g.color, a));
-        dl->AddText(nullptr, 0.0f, {p.x + S(52), p.y + (h - ts.y) * 0.5f}, U32(Color::Text, a), t.text.c_str(), nullptr, S(520));
+        dl->AddText(nullptr, 0.0f, {p.x + S(52), p.y + (h - ts.y) * 0.5f}, U32(Color::Text, a), Tr(t.text.c_str()), nullptr, S(520));
         y += h + S(10);
     }
 }
@@ -2929,7 +2933,7 @@ void App::DrawGuideBubble() {
     float text_h;
     {
         FontScope f(GetFonts().regular, 13.5f);
-        text_h = ImGui::CalcTextSize(tip.text.c_str(), nullptr, false, w - S(36)).y;
+        text_h = ImGui::CalcTextSize(Tr(tip.text.c_str()), nullptr, false, w - S(36)).y;
     }
     const float h = text_h + S(74);
     const float av = S(60);
@@ -2946,11 +2950,11 @@ void App::DrawGuideBubble() {
     dl->AddTriangleFilled({b1.x - 1, b1.y - S(34)}, {b1.x + S(12), b1.y - S(24)}, {b1.x - 1, b1.y - S(16)}, U32(Color::Surface, 0.98f));
     {
         FontScope f(GetFonts().bold, 14);
-        dl->AddText({b0.x + S(18), b0.y + S(14)}, U32(g.color), g.name);
+        dl->AddText({b0.x + S(18), b0.y + S(14)}, U32(g.color), Tr(g.name));
     }
     {
         FontScope f(GetFonts().regular, 13.5f);
-        dl->AddText(nullptr, 0.0f, {b0.x + S(18), b0.y + S(38)}, U32(Color::Text), tip.text.c_str(), nullptr, w - S(36));
+        dl->AddText(nullptr, 0.0f, {b0.x + S(18), b0.y + S(38)}, U32(Color::Text), Tr(tip.text.c_str()), nullptr, w - S(36));
     }
     const ImVec2 ac(b1.x + S(14) + av * 0.5f, b1.y - av * 0.5f + GuideBob(g.name));
     const Image& img = guides_[static_cast<int>(tip.guide)];
@@ -2995,8 +2999,8 @@ void App::DrawWelcome() {
             {
                 FontScope f(GetFonts().bold, 26);
                 const char* t = "¡Bienvenido a Satronho Emulation!";
-                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (inner - ImGui::CalcTextSize(t).x) * 0.5f);
-                ImGui::TextUnformatted(t);
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (inner - ImGui::CalcTextSize(Tr(t)).x) * 0.5f);
+                ImGui::TextUnformatted(Tr(t));
             }
             ImGui::Dummy({0, S(6)});
             GuideSays(GuideId::MechaRidds,
@@ -3017,7 +3021,7 @@ void App::DrawWelcome() {
                 DrawIcon(ImGui::GetWindowDrawList(), Icon::Check, {p.x + S(9), p.y + S(11)}, S(14), U32(Color::Teal));
                 ImGui::SetCursorScreenPos({p.x + S(26), p.y});
                 FontScope f(GetFonts().medium, 14);
-                ImGui::TextUnformatted(c.c_str());
+                ImGui::TextUnformatted(Tr(c.c_str()));
             }
             ImGui::Dummy({0, S(14)});
             const float bw = (inner - S(12)) * 0.5f;
