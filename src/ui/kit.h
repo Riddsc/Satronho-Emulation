@@ -116,6 +116,8 @@ bool NavItem(const char* label, Icon icon, bool selected, const char* badge = nu
 bool Toggle(const char* id, bool* value);
 bool Segmented(const char* id, int* value, const std::vector<const char*>& items, float width = 0);
 bool SliderPercent(const char* id, float* value, float width);
+// Botón redondo «volver arriba» abajo a la derecha de la ventana actual, si bajaste bastante.
+void BackToTop();
 bool SliderIntStyled(const char* id, int* value, int min, int max, const char* fmt, float width);
 bool ComboStyled(const char* id, int* current, const std::vector<std::string>& items, float width);
 

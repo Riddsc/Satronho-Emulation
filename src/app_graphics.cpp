@@ -60,6 +60,27 @@ void ChoiceNote(const char* text) {
     ImGui::PopStyleColor();
 }
 
+// Título de sección que se pliega al tocarlo (flecha a la izquierda).
+bool Section(const char* label, bool* open) {
+    const char* text = Tr(label);
+    FontScope f(GetFonts().semibold, 15);
+    const float h = ImGui::GetFontSize() + S(14);
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    const float w = ImGui::GetContentRegionAvail().x;
+    ImGui::PushID(label);
+    if (ImGui::InvisibleButton("##sec", {w, h})) *open = !*open;
+    const bool hov = ImGui::IsItemHovered();
+    ImGui::PopID();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    if (hov) dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(Color::Surface2, 0.6f), S(8));
+    const float cy = p.y + h * 0.5f, a = S(5);
+    const float cx = p.x + S(10);
+    if (*open) dl->AddTriangleFilled({cx - a, cy - a * 0.5f}, {cx + a, cy - a * 0.5f}, {cx, cy + a * 0.7f}, U32(Color::Accent2));
+    else dl->AddTriangleFilled({cx - a * 0.5f, cy - a}, {cx - a * 0.5f, cy + a}, {cx + a * 0.7f, cy}, U32(Color::Accent2));
+    dl->AddText({p.x + S(24), cy - ImGui::GetFontSize() * 0.5f}, U32(Color::Text), text);
+    return *open;
+}
+
 // ---------------------------------------------------------------- opciones conocidas de cada emulador
 struct ValueInfo {
     const char* value;
@@ -349,59 +370,75 @@ const std::vector<CoreOption>* App::CoreDefsFor(const SystemDef& sys) {
 // ---------------------------------------------------------------- la página
 
 void App::DrawSettingsVideo() {
-    GuideSays(GuideId::Troya, "Aquí ajustas cómo se ve cada consola. Elige una en la barra y cambia su imagen, su resolución y las opciones de "
-                              "su emulador; debajo de cada opción te digo qué hace lo que elegiste.");
-    ImGui::Dummy({0, S(14)});
     bool changed = false;
+    if (!compact_) {
+        Muted("Elige la consola que quieres ajustar. Lo que cambies vale solo para ella.", 13);
+        ImGui::Dummy({0, S(4)});
+    }
 
-    // ---------------- Barra de consolas
-    Heading("Cada consola", 16);
-    Muted("Elige la consola que quieres ajustar. Lo que cambies vale solo para ella.", 13);
-    ImGui::Dummy({0, S(8)});
+    // ---------------- Barra de consolas (fija arriba; en pantallas angostas, en dos o más filas)
     if (gfx_sys_.empty()) gfx_sys_ = in_game_ ? sys_->id : "cd";
     {
-        const float h = S(64);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(6), S(6)});
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Bg, 0.6f));
-        ImGui::BeginChild("##gfx_consolas", {0, h + S(18)}, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_HorizontalScrollbar);
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        for (const auto& sd : Systems()) {
+        const auto& systems = Systems();
+        const float gap = S(8);
+        const float avail = ImGui::GetContentRegionAvail().x;
+        const float min_w = compact_ ? S(96) : S(104);
+        const int per_row = std::max(1, std::min(static_cast<int>(systems.size()), static_cast<int>((avail + gap) / (min_w + gap))));
+        const float w = (avail - gap * (per_row - 1)) / per_row;
+        const float h = compact_ ? S(36) : S(64);
+        for (size_t i = 0; i < systems.size(); ++i) {
+            const auto& sd = systems[i];
             ImGui::PushID(sd.id.c_str());
-            FontScope f(GetFonts().semibold, 13);
-            const float w = std::max(S(112), ImGui::CalcTextSize(sd.name.c_str()).x + S(36));
+            FontScope f(GetFonts().semibold, compact_ ? 12.0f : 13.0f);
+            if (i % per_row != 0) ImGui::SameLine(0, gap);
             const ImVec2 p = ImGui::GetCursorScreenPos();
             const bool sel = gfx_sys_ == sd.id;
             if (ImGui::InvisibleButton("##c", {w, h})) gfx_sys_ = sd.id;
             const bool hov = ImGui::IsItemHovered();
             dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(sel ? sd.color : Color::Surface2, sel ? 0.22f : hov ? 1.0f : 0.7f), S(12));
             if (sel) dl->AddRect(p, {p.x + w, p.y + h}, U32(sd.color, 0.9f), S(12), S(2));
-            DrawControllerMini(dl, sd.layout, {p.x + w * 0.5f, p.y + S(22)}, sd.handheld ? S(20) : S(32), sel || hov ? 1.0f : 0.7f);
             const float tw = ImGui::CalcTextSize(sd.name.c_str()).x;
-            dl->AddText({p.x + (w - tw) * 0.5f, p.y + h - S(22)}, U32(sel ? Color::Text : Color::Muted), sd.name.c_str());
-            ImGui::SameLine(0, S(8));
+            ImGui::PushClipRect(p, {p.x + w, p.y + h}, true);
+            if (compact_) {
+                // Celular: botón bajito con el mando chiquito a la izquierda y el nombre.
+                const float icon = sd.handheld ? S(13) : S(22);
+                DrawControllerMini(dl, sd.layout, {p.x + S(18), p.y + h * 0.5f}, icon, sel || hov ? 1.0f : 0.7f);
+                dl->AddText({p.x + S(34), p.y + (h - ImGui::GetFontSize()) * 0.5f}, U32(sel ? Color::Text : Color::Muted), sd.name.c_str());
+            } else {
+                const float icon = sd.handheld ? S(20) : S(32);
+                DrawControllerMini(dl, sd.layout, {p.x + w * 0.5f, p.y + S(22)}, icon, sel || hov ? 1.0f : 0.7f);
+                dl->AddText({p.x + std::max(S(4), (w - tw) * 0.5f), p.y + h - S(22)}, U32(sel ? Color::Text : Color::Muted), sd.name.c_str());
+            }
+            ImGui::PopClipRect();
             ImGui::PopID();
         }
-        ImGui::EndChild();
     }
     const SystemDef* sys = SystemById(gfx_sys_);
     if (!sys) sys = &Systems().front();
-    ImGui::Dummy({0, S(10)});
+    ImGui::Dummy({0, S(8)});
+    // Desde aquí, lo que se desplaza: la barra de consolas queda siempre a la vista.
+    ImGui::BeginChild("##gfx_opciones", {0, 0}, 0, ImGuiWindowFlags_NoBackground);
+    if (!compact_) {
+        GuideSays(GuideId::Troya, "Aquí ajustas cómo se ve cada consola. Elige una en la barra y cambia su imagen, su resolución y las opciones de "
+                                  "su emulador; debajo de cada opción te digo qué hace lo que elegiste. Toca un título para plegarlo.");
+        ImGui::Dummy({0, S(10)});
+    }
 
     // Encabezado de la consola elegida.
     {
         const ImVec2 p = ImGui::GetCursorScreenPos();
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        dl->AddRectFilled(p, {p.x + ImGui::GetContentRegionAvail().x, p.y + S(50)}, U32(sys->color, 0.12f), S(12));
-        DrawControllerMini(dl, sys->layout, {p.x + S(30), p.y + S(25)}, sys->handheld ? S(24) : S(38), 1.0f);
-        FontScope f(GetFonts().bold, 18);
-        dl->AddText({p.x + S(62), p.y + (S(50) - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), (sys->full + "  ·  " + sys->hint).c_str());
-        ImGui::Dummy({0, S(58)});
+        const float hh = compact_ ? S(38) : S(50);
+        dl->AddRectFilled(p, {p.x + ImGui::GetContentRegionAvail().x, p.y + hh}, U32(sys->color, 0.12f), S(12));
+        DrawControllerMini(dl, sys->layout, {p.x + S(28), p.y + hh * 0.5f}, (sys->handheld ? S(24) : S(38)) * (compact_ ? 0.75f : 1.0f), 1.0f);
+        FontScope f(GetFonts().bold, compact_ ? 15.0f : 18.0f);
+        dl->AddText({p.x + S(56), p.y + (hh - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), (sys->full + "  ·  " + sys->hint).c_str());
+        ImGui::Dummy({0, hh + S(8)});
     }
 
     // ---------------- Imagen
-    Heading("Imagen", 15);
+    if (Section("Imagen", &gfx_open_[0])) {
     VideoOverride& v = settings_.video_for[sys->id];
     RowBegin(Fmt("Imagen propia para %s", sys->name.c_str()).c_str(),
              "Apagado: usa la imagen general (la misma para todas las consolas que no tengan la suya).");
@@ -440,12 +477,13 @@ void App::DrawSettingsVideo() {
         changed |= SliderPercent("##intensidad", &strength, S(340));
         RowEnd();
     }
+    }
 
     // ---------------- Motor y resolución (CD y 64)
     const bool gpu_sys = sys->id == "cd" || sys->id == "n64";
     if (gpu_sys) {
-        ImGui::Dummy({0, S(10)});
-        Heading("Motor y resolución", 15);
+        ImGui::Dummy({0, S(6)});
+        if (Section("Motor y resolución", &gfx_open_[1])) {
         if (!gl_) {
             Muted("Con el motor clásico, CD y 64 dibujan con el procesador. Elige OpenGL arriba para usar la tarjeta gráfica.", 13.5f);
         } else {
@@ -496,13 +534,14 @@ void App::DrawSettingsVideo() {
             }
             RowEnd();
         }
+        }
     }
 
     // ---------------- Opciones de su emulador
-    ImGui::Dummy({0, S(10)});
-    Heading("Opciones de su emulador", 15);
-    const std::vector<CoreOption>* defs = CoreDefsFor(*sys);
-    if (!defs) {
+    ImGui::Dummy({0, S(6)});
+    const std::vector<CoreOption>* defs = Section("Opciones de su emulador", &gfx_open_[2]) ? CoreDefsFor(*sys) : nullptr;
+    if (!gfx_open_[2]) {
+    } else if (!defs) {
         Muted("Estas opciones aparecen cuando el emulador de esta consola está instalado.", 13);
     } else {
         int shown = 0;
@@ -587,11 +626,10 @@ void App::DrawSettingsVideo() {
         else Muted("Las opciones del emulador se aplican al momento o al volver a abrir el juego. También están en Ajustes » Núcleo.", 12.5f);
     }
 
-    ImGui::Dummy({0, S(20)});
+    ImGui::Dummy({0, S(14)});
     // ---------------- Para toda la app
-    Heading("Para toda la app", 16);
-    Muted("Esto vale para todas las consolas.", 13);
-    ImGui::Dummy({0, S(4)});
+    if (Section("Para toda la app (todas las consolas)", &gfx_open_[3])) {
+#ifndef __ANDROID__
     RowBegin("Pantalla completa", "También con F11 o Alt+Enter.");
     bool fs = settings_.fullscreen;
     if (Toggle("##fs", &fs)) {
@@ -606,6 +644,7 @@ void App::DrawSettingsVideo() {
         changed = true;
     }
     RowEnd();
+#endif
     RowBegin("Fondo ambiente", "Llena los bordes con los colores del juego, suaves y desenfocados.");
     changed |= Toggle("##amb", &settings_.ambient);
     RowEnd();
@@ -657,6 +696,9 @@ void App::DrawSettingsVideo() {
         changed = true;
     }
     RowEnd();
+    }
+    BackToTop();
+    ImGui::EndChild();
     if (changed) SaveConfig();
 }
 

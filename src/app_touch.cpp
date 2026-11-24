@@ -83,35 +83,53 @@ void App::TouchScroll() {
     if (!touch_mode_) return;
     ImGuiContext& g = *GImGui;
     ImGuiIO& io = ImGui::GetIO();
-    auto scrollable = [](ImGuiWindow* w) {
-        while (w && w->ScrollMax.y <= 0.0f && w->ScrollMax.x <= 0.0f && !(w->Flags & ImGuiWindowFlags_Popup)) w = w->ParentWindow;
-        return w && (w->ScrollMax.y > 0.0f || w->ScrollMax.x > 0.0f) ? w : nullptr;
+    // La ventana que se puede desplazar en ese sentido (la del dedo o la que la contiene).
+    auto scrollable = [](ImGuiWindow* w, int axis) {
+        while (w && !(w->Flags & ImGuiWindowFlags_Popup) && (axis == 0 ? w->ScrollMax.x : w->ScrollMax.y) <= 0.0f) w = w->ParentWindow;
+        return w && (axis == 0 ? w->ScrollMax.x : w->ScrollMax.y) > 0.0f ? w : nullptr;
     };
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        drag_win_ = scrollable(g.HoveredWindow);
-        drag_total_ = 0;
+        drag_start_win_ = g.HoveredWindow;
+        drag_win_ = nullptr;
+        drag_dx_ = drag_dy_ = 0;
         dragging_ = false;
         drag_vel_ = 0;
     }
-    auto* win = static_cast<ImGuiWindow*>(drag_win_);
-    if (win && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+    if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && drag_start_win_) {
         const ImVec2 d = io.MouseDelta;
-        drag_total_ += std::fabs(d.y) + std::fabs(d.x) * 0.5f;
-        if (!dragging_ && drag_total_ > S(12)) {
-            dragging_ = true;
-            ImGui::ClearActiveID(); // ya no es un toque: es desplazar
+        if (!dragging_) {
+            drag_dx_ += d.x;
+            drag_dy_ += d.y;
+            if (std::fabs(drag_dx_) + std::fabs(drag_dy_) > S(12)) {
+                // El sentido lo decide el primer movimiento: de lado o de arriba a abajo.
+                drag_axis_ = std::fabs(drag_dx_) > std::fabs(drag_dy_) * 1.2f ? 0 : 1;
+                ImGuiWindow* w = scrollable(static_cast<ImGuiWindow*>(drag_start_win_), drag_axis_);
+                if (!w && drag_axis_ == 0) { // nada que mover de lado: se mueve la página
+                    drag_axis_ = 1;
+                    w = scrollable(static_cast<ImGuiWindow*>(drag_start_win_), 1);
+                }
+                drag_win_ = w;
+                dragging_ = true;
+                ImGui::ClearActiveID(); // ya no es un toque: es desplazar
+            }
         }
-        if (dragging_) {
-            ImGui::SetScrollY(win, std::clamp(win->Scroll.y - d.y, 0.0f, win->ScrollMax.y));
-            if (io.DeltaTime > 0) drag_vel_ = drag_vel_ * 0.6f + (-d.y / io.DeltaTime) * 0.4f;
+        auto* win = static_cast<ImGuiWindow*>(drag_win_);
+        if (dragging_ && win) {
+            const float delta = drag_axis_ == 0 ? d.x : d.y;
+            if (drag_axis_ == 0) ImGui::SetScrollX(win, std::clamp(win->Scroll.x - delta, 0.0f, win->ScrollMax.x));
+            else ImGui::SetScrollY(win, std::clamp(win->Scroll.y - delta, 0.0f, win->ScrollMax.y));
+            if (io.DeltaTime > 0) drag_vel_ = drag_vel_ * 0.6f + (-delta / io.DeltaTime) * 0.4f;
         }
-    } else if (win && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+    } else if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+        auto* win = static_cast<ImGuiWindow*>(drag_win_);
         // Inercia al soltar.
-        if (std::fabs(drag_vel_) > 20.0f && dragging_) {
-            ImGui::SetScrollY(win, std::clamp(win->Scroll.y + drag_vel_ * io.DeltaTime, 0.0f, win->ScrollMax.y));
+        if (win && dragging_ && std::fabs(drag_vel_) > 20.0f) {
+            if (drag_axis_ == 0) ImGui::SetScrollX(win, std::clamp(win->Scroll.x + drag_vel_ * io.DeltaTime, 0.0f, win->ScrollMax.x));
+            else ImGui::SetScrollY(win, std::clamp(win->Scroll.y + drag_vel_ * io.DeltaTime, 0.0f, win->ScrollMax.y));
             drag_vel_ *= std::pow(0.05f, io.DeltaTime);
         } else {
             drag_win_ = nullptr;
+            drag_start_win_ = nullptr;
             dragging_ = false;
         }
     }
@@ -670,6 +688,78 @@ void App::DrawSidebarRail(float width) {
             page_ = n.page;
     ImGui::EndChild();
     ImGui::PopStyleVar(2);
+}
+
+// Celular en vertical: barra de secciones abajo, como en las apps del celular.
+void App::DrawBottomNav(float height) {
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, V4(Color::Side));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(6), S(6)});
+    ImGui::BeginChild("##barra_abajo", {0, height}, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const ImVec2 w0 = ImGui::GetWindowPos();
+    dl->AddLine(w0, {w0.x + ImGui::GetWindowWidth(), w0.y}, U32(Color::Border));
+    struct Nav {
+        const char* id;
+        const char* label;
+        Page page;
+        Icon icon;
+        unsigned color;
+    } navs[] = {{"##b_bib", "Biblioteca", Page::Library, Icon::Library, Color::Accent}, {"##b_ctrl", "Controles", Page::Controls, Icon::Gamepad, Color::Amber},
+                {"##b_guias", "Guías", Page::Guides, Icon::Paw, Color::Green},          {"##b_aj", "Ajustes", Page::Settings, Icon::Gear, Color::Accent},
+                {"##b_mas", "Más", Page::Tools, Icon::Grid, Color::Teal}};
+    const int n = static_cast<int>(std::size(navs));
+    const float w = ImGui::GetContentRegionAvail().x / n, h = ImGui::GetContentRegionAvail().y;
+    const bool more_sel = page_ == Page::Tools || page_ == Page::Suggested || page_ == Page::News || page_ == Page::About;
+    for (int i = 0; i < n; ++i) {
+        const auto& nv = navs[i];
+        if (i) ImGui::SameLine(0, 0);
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        const bool is_more = i == n - 1;
+        const bool sel = is_more ? more_sel : page_ == nv.page;
+        if (ImGui::InvisibleButton(nv.id, {w, h})) {
+            if (is_more) ImGui::OpenPopup("##mas_abajo");
+            else {
+                page_ = nv.page;
+                if (nv.page == Page::Library) lib_system_.clear();
+            }
+        }
+        if (sel) dl->AddRectFilled({p.x + S(8), p.y + S(2)}, {p.x + w - S(8), p.y + h - S(2)}, U32(nv.color, 0.18f), S(12));
+        const unsigned col = sel ? Color::Text : Color::Muted;
+        DrawIcon(dl, nv.icon, {p.x + w * 0.5f, p.y + h * 0.36f}, S(18), U32(col));
+        FontScope f(GetFonts().semibold, 11.0f);
+        const char* t = Tr(nv.label);
+        const float tw = ImGui::CalcTextSize(t).x;
+        dl->AddText({p.x + (w - tw) * 0.5f, p.y + h * 0.66f}, U32(col), t);
+    }
+    // «Más»: lo que no cabe abajo.
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(14), S(12)});
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {S(10), S(10)});
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, S(16));
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, V4(Color::Surface, 0.98f));
+    ImGui::SetNextWindowPos({w0.x + ImGui::GetWindowWidth() - S(8), w0.y - S(6)}, ImGuiCond_Always, {1.0f, 1.0f});
+    if (ImGui::BeginPopup("##mas_abajo")) {
+        const struct {
+            const char* label;
+            Page page;
+            Icon icon;
+        } more[] = {{"Configuración sugerida", Page::Suggested, Icon::Sparkle},
+                    {"Novedades", Page::News, Icon::Bell},
+                    {"Herramientas", Page::Tools, Icon::Tools},
+                    {"Acerca de", Page::About, Icon::Info}};
+        ImDrawList* pdl = ImGui::GetWindowDrawList();
+        for (const auto& m : more) {
+            FontScope f(GetFonts().medium, 15);
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            if (ImGui::Selectable((std::string("      ") + Tr(m.label)).c_str(), page_ == m.page, 0, {S(240), S(40)})) page_ = m.page;
+            DrawIcon(pdl, m.icon, {p.x + S(12), p.y + S(20)}, S(16), U32(Color::Muted));
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(3);
+    ImGui::EndChild();
 }
 
 } // namespace Satronho

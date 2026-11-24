@@ -3,6 +3,41 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "Juegos directo desde WhatsApp, el celular en horizontal y el modo vertical rehecho",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho aparece en «Abrir con» y en «Compartir» de WhatsApp, Telegram, Drive o Archivos. Tocas un .zip, .7z o un juego suelto, eliges Satronho y él solo lo copia, lo descomprime y acomoda cada juego en su consola. Ñoño revisa antes que haya espacio, no repite juegos que ya tienes y, si llega una BIOS (como la de PS1), la pone donde va."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "En el celular, la app abre en horizontal y en pantalla completa de verdad: sin la barra de arriba ni los botones de abajo, y nada queda debajo de la cámara. En Ajustes » Apariencia eliges Horizontal, Girar sola o Vertical."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Modo vertical rehecho: las secciones van en una barra abajo, en Ajustes las pestañas van arriba y cada opción se apila (el nombre arriba y el control a lo ancho), la búsqueda va debajo del título y en Controles ya no se corta nada."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Deslizar con el dedo funciona en cualquier dirección: de lado mueve las filas (como las pestañas) y de arriba a abajo la página, con inercia. En Gráficos, las consolas caben en filas sin tener que desplazarse, se quedan fijas arriba y cada sección se pliega tocando su título. En las páginas largas aparece un botón para volver arriba."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El menú de arriba del juego sale cuando hace falta en el celular: con el botón Atrás, deslizando desde el borde de arriba, al pausar o si se desconecta el mando. Mientras está abierto, el juego espera."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Al escribir (por ejemplo, en el chat de los guías o en la búsqueda), la pantalla sube para que el teclado no tape lo que escribes."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Los guías te responden en tu idioma (español, inglés, francés, portugués o italiano) y entienden lo esencial de las preguntas en los cinco."
+        }
+      ]
+    },
+    {
+      "version": "Build 17",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "Gráficos por consola, todo explicado, y el módulo Satronho encima del juego",
       "cambios": [
         {

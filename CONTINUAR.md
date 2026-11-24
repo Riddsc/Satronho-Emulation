@@ -3,6 +3,45 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (build 18)
+
+Ridds quiso pasar juegos al celular por WhatsApp y no había app que abriera el .zip («no quiero nada
+externo»). Mandó un video del celular: había que forzar horizontal, esconder barras y cámara, arreglar el
+modo vertical (texto de una letra por línea, búsqueda encima del título, Controles cortado), el menú de
+arriba del juego en Android y el desplazamiento con el dedo (la barra de consolas casi no se movía).
+Rama `build-18`. Lo siguiente sigue siendo **agregar consolas** (parte C).
+
+- **Abrir con / Compartir** (Android): filtros VIEW/SEND/SEND_MULTIPLE en el manifiesto. `SatronhoActivity`
+  copia el `content://` a `<datos>/recibidos` (revisa espacio con StatFs) y C++ lo lee con
+  `Android::Received()`/`ReceiveStatus()`. `app_import.cpp`: un .zip/.7z con un solo juego de cartucho queda
+  comprimido; con varios (o de disco) se descomprime y cada juego va a `<datos>/Juegos/<Consola>/` (los .cue con
+  sus pistas en una carpeta); BIOS a `system`; no repite (nombre + tamaño, también dentro de .zip). Al terminar
+  agrega la carpeta Juegos y busca. QA: `recibir=/ruta/archivo.zip`. Ojo: `<datos>` es la carpeta de la app
+  (se borra si se desinstala la app).
+- **Pantalla Android**: `setOrientationBis` anulado (SDL ponía FULL_USER por ser ventana redimensionable);
+  `Android::SetOrientation` con `interfaz.orientacion` (0 horizontal, 1 girar, 2 vertical). Siempre pantalla
+  completa (`SetFullscreen`). `ApplySafeArea` achica la pantalla de ImGui durante el cuadro por la cámara
+  (insets de SDL: solo barras + recorte, se quitaron los de gestos en `SDLSurface`) y por el teclado
+  (`SDLActivity.sImeBottom`). QA: `recorte=l,t,r,b`, `teclado=1`, `ventana=720x1560` (quita el mínimo).
+- **Desplazar con el dedo** (`TouchScroll`): el primer movimiento decide el sentido; busca la ventana que se
+  puede mover en ese sentido. **Gráficos**: consolas en cuadrícula sin desplazamiento, fijas arriba
+  (`##gfx_opciones` es lo que se desplaza), secciones plegables (`gfx_open_`), `Ui::BackToTop()`.
+- **Vertical**: `RowBegin` se apila si la fila mide menos de 560; `DrawBottomNav` (vertical y compacto);
+  pestañas de Ajustes en fila arriba en compacto; búsqueda bajo el título y héroe «Seguir jugando» angosto;
+  Controles con `next()` que baja de línea lo que no cabe.
+- **Menú del juego en Android**: Atrás lo despliega; deslizar desde el borde de arriba (`edge_swipe_`); al pausar;
+  al desconectarse un mando. Con el dedo y la barra abierta el juego espera.
+- **Guías en tu idioma**: `guide_chat.cpp` traduce con `I18n::Tr` (Fmt y textos) y `ToSpanishKeywords` pasa
+  palabras clave de en/fr/pt/it al español para entender la pregunta.
+- En el video, lo diminuto en horizontal era por la grabación (vertical), no por la escala: la escala ya usa
+  la densidad de Android. Revisar con el log («Escala de la interfaz») si Ridds lo ve chico.
+
+### Falta probar (pedírselo a Ridds)
+
+1. WhatsApp » tocar un .zip » Satronho (y por Compartir). 2. Que abra en horizontal sin barras y la cámara
+no tape nada. 3. Vertical: Ajustes, Controles, biblioteca, chat con teclado. 4. Atrás y deslizar desde
+arriba dentro del juego.
+
 ## Estado al 24 de noviembre de 2026 (build 17)
 
 Ridds probó la build 16: la resolución automática de CD no coincidía con su pantalla (1440p → 4×), pidió

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Ridds (Satronho Emulation)
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app.h"
+#include "sys/android.h"
 #include "util/i18n.h"
 
 #include <algorithm>
@@ -310,7 +311,12 @@ bool App::Init() {
     Rescan();
 
     if (!settings_.first_run_done || qa_.count("welcome")) show_welcome_ = true;
+#ifdef __ANDROID__
+    SetFullscreen(true);
+    Android::SetOrientation(settings_.orientation);
+#else
     if (settings_.fullscreen) SetFullscreen(true);
+#endif
 
     // Juana muestra lo nuevo si hay una build nueva desde la última vez.
     if ((build_ > 0 && settings_.last_seen_build > 0 && build_ > settings_.last_seen_build) || qa_.count("novedades_ventana"))
@@ -333,8 +339,10 @@ bool App::Init() {
     }
     if (qa_.count("salir")) confirm_ = std::atoi(qa_["salir"].c_str());
     if (qa_.count("barra")) bar_open_ = true;
+    if (qa_.count("recibir")) QueueImport(Paths::FromUtf8(qa_["recibir"]));
     if (qa_.count("encima")) { overlay_page_ = std::atoi(qa_["encima"].c_str()); overlay_focus_ = true; }
     if (qa_.count("ventana")) {
+        SDL_SetWindowMinimumSize(window_, 200, 200); // modo de revisión: tamaños de celular
         int w = 0, h = 0;
         if (std::sscanf(qa_["ventana"].c_str(), "%dx%d", &w, &h) == 2) SDL_SetWindowSize(window_, w, h);
     }
@@ -435,6 +443,7 @@ void App::Shutdown() {
     for (auto& g : guides_) Ui::FreeImage(g);
     chd_cancel_ = true;
     if (chd_thread_.joinable()) chd_thread_.join();
+    if (import_thread_.joinable()) import_thread_.join();
     covers_.Shutdown();
     hw_render_.Shutdown();
     if (gl_) video_gl_.Shutdown();
@@ -554,6 +563,14 @@ void App::UpdateRefresh() {
 }
 
 void App::SetFullscreen(bool on) {
+#ifdef __ANDROID__
+    // En el celular siempre es pantalla completa: sin barra de arriba ni botones de abajo (vuelven
+    // un momento deslizando desde el borde).
+    (void)on;
+    settings_.fullscreen = true;
+    SDL_SetWindowFullscreen(window_, true);
+    return;
+#endif
     settings_.fullscreen = on;
     const SDL_DisplayID display = SDL_GetDisplayForWindow(window_);
     if (on && settings_.fullscreen_60hz) {
@@ -572,6 +589,41 @@ void App::SetFullscreen(bool on) {
         SDL_SetWindowFullscreenMode(window_, nullptr);
     }
     SDL_SetWindowFullscreen(window_, on);
+}
+
+// En el celular: nada debajo de la cámara ni del teclado en pantalla. Se achica la zona donde se
+// dibuja la interfaz (la pantalla de ImGui) solo durante este cuadro.
+void App::ApplySafeArea() {
+    ImGuiViewport* vp = ImGui::GetMainViewport();
+    full_vp_pos_ = vp->Pos;
+    full_vp_size_ = vp->Size;
+    float l = 0, t = 0, r = 0, b = 0;
+    int ww = 0, wh = 0;
+    SDL_GetWindowSize(window_, &ww, &wh);
+    const float k = ww > 0 ? vp->Size.x / static_cast<float>(ww) : 1.0f;
+#ifdef __ANDROID__
+    SDL_Rect sa{};
+    if (SDL_GetWindowSafeArea(window_, &sa) && sa.w > 0 && sa.h > 0) {
+        l = sa.x * k;
+        t = sa.y * k;
+        r = (ww - sa.x - sa.w) * k;
+        b = (wh - sa.y - sa.h) * k;
+    }
+    // El teclado: Android 11+ dice su alto; antes, se supone casi media pantalla.
+    if (ImGui::GetIO().WantTextInput && SDL_ScreenKeyboardShown(window_)) {
+        int pw = 0, ph = 0;
+        SDL_GetWindowSizeInPixels(window_, &pw, &ph);
+        const int kb = Android::KeyboardHeight();
+        const float kbh = kb > 0 && ph > 0 ? kb * (vp->Size.y / ph) : vp->Size.y * 0.45f;
+        b = std::max(b, kbh);
+    }
+#endif
+    if (qa_.count("recorte")) std::sscanf(qa_["recorte"].c_str(), "%f,%f,%f,%f", &l, &t, &r, &b);
+    if (qa_.count("teclado") && ImGui::GetIO().WantTextInput) b = std::max(b, vp->Size.y * 0.45f);
+    vp->Pos.x += l;
+    vp->Pos.y += t;
+    vp->Size.x = std::max(100.0f, vp->Size.x - l - r);
+    vp->Size.y = std::max(100.0f, vp->Size.y - t - b);
 }
 
 void App::Toast(const std::string& text_es, GuideId guide, double seconds) {
@@ -630,7 +682,7 @@ void App::Frame() {
     if ((in_game_ && !menu_open_ && confirm_ == 0) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0) EmulateTick(dt);
+    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0 && !(touch_mode_ && bar_open_)) EmulateTick(dt);
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) {
         if (gl_) video_gl_.Upload(core_);
@@ -647,10 +699,15 @@ void App::Frame() {
     if (gl_) ImGui_ImplOpenGL3_NewFrame();
     else ImGui_ImplSDLRenderer3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
+    PollImports();
     ImGui::NewFrame();
+    ApplySafeArea();
     UpdateTouchMode();
     TouchScroll();
     DrawUi();
+    // La pantalla real vuelve a ser la entera para dibujar.
+    ImGui::GetMainViewport()->Pos = full_vp_pos_;
+    ImGui::GetMainViewport()->Size = full_vp_size_;
     ImGui::Render();
 
     int pw, ph;
@@ -953,6 +1010,11 @@ void App::HandleEvent(const SDL_Event& e) {
     // Si se está asignando un botón, esa tecla no cuenta como atajo.
     const bool was_capturing = input_.Capturing();
     ImGui_ImplSDL3_ProcessEvent(&e);
+    // Se desconectó el mando mientras se juega con él: el juego espera con el menú de arriba a la vista.
+    if (e.type == SDL_EVENT_GAMEPAD_REMOVED && in_game_ && !bar_open_ && !menu_open_) {
+        bar_open_ = true;
+        Toast("Se desconectó el mando. El juego espera: conéctalo o sigue con el control en pantalla.", GuideId::Samy, 5);
+    }
     input_.HandleEvent(e);
     TouchEvent(e);
     switch (e.type) {
@@ -1008,8 +1070,10 @@ void App::HandleEvent(const SDL_Event& e) {
             if (browser_open_) browser_open_ = false;
             else if (touch_edit_) { touch_edit_ = false; SaveConfig(); }
             else if (confirm_) confirm_ = 0;
+            else if (in_game_ && overlay_page_ >= 0) overlay_page_ = -1;
             else if (in_game_ && bar_open_) bar_open_ = false;
-            else if (in_game_) SetMenuOpen(!menu_open_);
+            else if (in_game_ && menu_open_) SetMenuOpen(false);
+            else if (in_game_) ToggleGameBar(); // en el celular, «atrás» despliega el menú de arriba
             else if (page_ != Page::Library || !lib_system_.empty()) { page_ = Page::Library; lib_system_.clear(); }
             else RequestQuit();
             break;
@@ -1068,6 +1132,7 @@ void App::DoHotkey(Hotkey h) {
         if (!menu_open_) {
             paused_ = !paused_;
             audio_.SetPaused(paused_);
+            if (touch_mode_ && paused_) bar_open_ = true; // en pausa, con el dedo: el menú de arriba a mano
             Toast(paused_ ? "En pausa" : "¡Seguimos!", GuideId::Samy, 1.5);
         }
         break;

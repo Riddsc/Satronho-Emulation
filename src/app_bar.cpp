@@ -72,6 +72,17 @@ void App::ToggleGameBar() {
 
 void App::DrawGameBar() {
     bar_menu_active_ = false;
+    // Con el dedo: deslizar hacia abajo desde el borde de arriba despliega el menú.
+    if (touch_mode_ && !bar_open_ && !menu_open_ && overlay_page_ < 0) {
+        const ImGuiViewport* v = ImGui::GetMainViewport();
+        ImGuiIO& io = ImGui::GetIO();
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) edge_swipe_ = io.MousePos.y < v->Pos.y + S(28);
+        if (edge_swipe_ && ImGui::IsMouseDown(ImGuiMouseButton_Left) && io.MousePos.y - io.MouseClickedPos[0].y > S(48)) {
+            edge_swipe_ = false;
+            ToggleGameBar();
+        }
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) edge_swipe_ = false;
+    }
     if (!GameBarVisible()) return;
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     const bool touch = touch_mode_;
