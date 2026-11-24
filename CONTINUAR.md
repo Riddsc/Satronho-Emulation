@@ -3,6 +3,65 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (etapa 1 completa)
+
+Etapa 1 hecha en una sola tanda (pedido de Ridds): acabados, guías con las que se habla, temas, carrusel,
+confirmación al salir, novedades de Juana, carátulas y motor gráfico OpenGL + Vulkan. Se trabajó en la
+rama `etapa-1` (con push frecuente para no perder nada si se corta la sesión) y se unió a `main`.
+
+**Etapa 2 (no empezar sin que Ridds lo pida):** Android y los emuladores nuevos (Cubo, Sueño, CD2,
+Portátil, 3DS).
+
+### Qué trae
+
+- **Motor gráfico OpenGL** (`src/gfx/`): ventana con contexto OpenGL 3.3 core, ImGui con
+  `imgui_impl_opengl3`, imagen del juego con sombreadores (`video_gl.cpp`: nítido suave, líneas, CRT con
+  máscara, LCD, viñeta y fondo ambiente). Funciones de GL cargadas a mano (`gl.h`, sin enlazar
+  opengl32). Si OpenGL 3.3 no arranca, cae solo al motor clásico (`core/video.cpp`, SDL_Renderer).
+  Ajustes » Imagen » Motor gráfico: «auto»/«opengl» = OpenGL; otro valor = clásico con ese driver.
+  `SATRONHO_GFX=opengl|software|direct3d11…` lo fuerza (pruebas).
+- **Dibujo por tarjeta gráfica para los núcleos** (`hw_render.cpp`): `SET_HW_RENDER` con OpenGL (contexto
+  propio del núcleo, compartido con el de la ventana; framebuffer + textura compartida; valla al
+  volver) y Vulkan (`vulkan_bridge.cpp`: carga vulkan-1.dll al vuelo, negociación v1 con
+  `create_device`, interfaz v5; cada cuadro se copia a memoria y se sube a una textura de OpenGL).
+  `CoreHost` llama `Enter/Leave` alrededor de run, serialize, reset y unload.
+- **CD** ahora es Beetle PSX **HW** (`mednafen_psx_hw`, opciones `beetle_psx_hw_*`; las viejas
+  `beetle_psx_*` se migran solas en `App::Init`). **64** usa GLideN64 (OpenGL) o ParaLLEl-RDP (Vulkan);
+  Angrylion queda para equipos sin tarjeta. `App::ApplyGpuChoice` pone motor y resolución antes de
+  cargar el juego (`gpu.<consola>.motor` 0 auto/1 GL/2 VK/3 CPU y `gpu.<consola>.resolucion`).
+  Automático: Vulkan en NVIDIA/AMD con Vulkan, OpenGL en el resto; resolución según el alto de la
+  pantalla, máx. 2× en integradas.
+- **Temas** (`Ui::Themes`, 5) y **logo de fondo** con opacidad 10–100 % (`interfaz.tema`,
+  `interfaz.marca_agua`); los colores de `Ui::Color` ahora son variables.
+- **Carrusel** por consola (`biblioteca.vista.<consola|todas>`), **carátulas** (`sys/covers.cpp`:
+  libretro-thumbnails por nombre exacto o por índice con la región más parecida; `caratulas/`,
+  `caratulas/propias/`, `.nada` = no se encontró, se reintenta al mes).
+- **Preguntar al salir** (app y juego, con «No volver a preguntar»: `avisos.salir_app/juego`).
+- **Novedades de Juana** en ventana al detectar build nueva.
+- **Conversación con los guías** (`sys/guide_chat.cpp`, página Guías): reglas por palabras clave, sin
+  internet, con datos reales (equipo, veredictos de Ñoño, juegos, mandos, atajos, BIOS, actualizador)
+  y botones que llevan a la pantalla. Reparto de apariciones (`PickGuide`): MechaRidds 40 %, el resto
+  Samy/Troya 65 %, Ñoño 25 %, Juana 10 %.
+
+### Probado (Linux, Mesa llvmpipe/lavapipe)
+
+- CD con OpenGL y con Vulkan (demo PSX hecha con un .exe de PeterLemon/PSX en un .cue), estados con
+  miniatura, menú, salir. 64 con GLideN64, ParaLLEl-RDP (Vulkan) y Angrylion (pruebas RDP de
+  PeterLemon/N64). Motor clásico y OpenGL en todas las páginas nuevas. Compila para Windows con
+  llvm-mingw sin avisos, y Beetle PSX HW también.
+
+### Falta probar en Windows (pedírselo a Ridds)
+
+1. CD y 64 en una tarjeta NVIDIA/AMD real con Vulkan y con OpenGL; en una Intel con OpenGL.
+2. Cambiar de consola varias veces seguidas (CD con Vulkan → 64 con OpenGL → CD) en una sesión.
+3. Carátulas con internet (índice de thumbnails.libretro.com y GitHub).
+4. Lo de la lista de la build 12 sigue pendiente (vibración, cambio de disco, F2 en Dual…).
+
+### Ideas que quedan
+
+- Vulkan sin copia a memoria (interop `GL_EXT_memory_object_win32`) para resoluciones muy altas.
+- Adelanto de cuadros con segunda instancia; RetroAchievements; trucos con Cuaderno de Trucos.
+
 ## Estado al 23 de noviembre de 2026 (build 12)
 
 Publicada como Release `build-12` (zip + `.sha256`, verificado). La ejecución 11 del CI falló antes

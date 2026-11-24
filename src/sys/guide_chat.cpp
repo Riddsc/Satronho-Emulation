@@ -275,7 +275,7 @@ ChatReply AnswerQuestion(const std::string& question, const ChatContext& ctx, in
         if (sys) {
             std::string t;
             for (const auto& v : ctx.verdicts)
-                if (v.system == sys->id) t = sys->full + " " + LevelWords(v.level) + " en tu equipo. " + v.text;
+                if (v.system == sys->id) t = sys->full + " en tu equipo: " + v.text;
             if (t.empty()) t = sys->full + " debería ir bien.";
             if (sys->cpu_need >= 2) t += " Si notas tirones, apaga el rebobinado en esa consola y usa la configuración sugerida.";
             say(Nono, t);

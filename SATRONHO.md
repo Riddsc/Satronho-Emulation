@@ -50,6 +50,12 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
 - `src/core/` — `core_host` (carga del núcleo, entorno libretro, estados, SRAM, opciones),
   `audio` (SDL_AudioStream con control dinámico de velocidad ±0.5 %), `input` (teclado, mandos,
   turbo, asignación), `video` (escala, filtro nítido suave, fondo ambiente, líneas, CRT).
+- `src/gfx/` — motor OpenGL (`gl`, `video_gl`) y dibujo por tarjeta gráfica de los núcleos
+  (`hw_render` para OpenGL, `vulkan_bridge` para Vulkan). Ver `CONTINUAR.md` (24 de noviembre).
+- `src/app_extra.cpp` — temas, logo de fondo, carrusel, carátulas, preguntas al salir, novedades de
+  Juana, conversación con los guías y la elección de motor/resolución de CD y 64.
+- `src/sys/covers` (carátulas), `src/sys/guide_chat` (respuestas de los guías), `src/util/net`
+  (descargas).
 - `src/sys/` — `hardware` (CPU, RAM, GPU por DXGI, pantalla; uso del proceso), `settings`
   (ajustes y la configuración sugerida de Ñoño), `library` (escaneo en segundo plano, tiempo de
   juego, favoritos).
@@ -81,7 +87,10 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
   compilar el núcleo nativo (p. ej. `make -C nestopia/libretro`) y ponerlo en `cores/`; hay homebrew
   libre en GitHub (p. ej. `nesdoug/01_Hello`, `BUILD/hello.nes`).
 - Dear ImGui 1.93.0: ojo, `AddRect`, `PathStroke` y `AddPolyline` llevan el grosor **antes** de las
-  banderas.
+  banderas. Las banderas de esquinas son `ImDrawFlags_RoundTop/Left/…` (no `RoundCorners…`).
+- En Windows, `windows.h` define macros como `LoadImage`: no usar esos nombres para funciones propias.
+- Modo de revisión, además: `page=guias` + `preguntar=…`, `tema=N`, `vista=1` (con `sistema=`),
+  `salir=1|2`, `novedades_ventana=1`, `gpu=1|2|3` y `res=N` (CD y 64).
 
 ## Datos del usuario (dónde queda cada cosa)
 
@@ -148,15 +157,16 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
 `App::EmulateTick` corre un cuadro de más o de menos cuando el búfer de sonido se aleja mucho de la
 latencia elegida (pantallas de 120/144 Hz), y `AudioOut` ajusta la velocidad ±1 %. Cada minuto de
 juego anota en el registro: cortes, descartes, búfer y tirones.
-- **CD (Beetle PSX, software)**: `platform=win` con `SHARED` propio. Sin BIOS usa OpenBIOS (viene
+- **CD (Beetle PSX HW)**: `platform=win HAVE_HW=1` con `SHARED` propio (`mednafen_psx_hw_libretro.dll`).
+  Dibuja con OpenGL, Vulkan o software según `beetle_psx_hw_renderer`. Sin BIOS usa OpenBIOS (viene
   dentro del núcleo). El mando se conecta como DualShock (`port_device`), el stick derecho va al
   juego (`analog`), y `disc` activa el aviso de BIOS. La biblioteca esconde los .bin que nombra un
   .cue y los discos que nombra un .m3u; un .bin de más de 16 MB no se toma como juego de Mega.
   El rebobinado se limita a ~600 MB de estados.
 - Hexa también va sin adelanto: el remuestreo de bsnes queda fuera del estado.
 - **64 (Mupen64Plus-Next)**: `platform=win MSYSTEM=MINGW64` (dynarec x86_64, necesita nasm) y
-  `LDFLAGS` propio. Por defecto Angrylion + ParaLLEl-RSP: no necesitan OpenGL ni Vulkan (el host
-  todavía no ofrece contexto de hardware; GLideN64 y ParaLLEl-RDP quedan para cuando lo tenga).
+  `LDFLAGS` propio. Trae GLideN64, ParaLLEl-RDP y Angrylion; Satronho elige según el motor
+  (`App::ApplyGpuChoice`). GLideN64 va con el RSP HLE; ParaLLEl-RDP y Angrylion con ParaLLEl-RSP.
   Botones C independientes (`alt-map`); las flechas del teclado mueven el stick si no están asignadas.
 - **Dual (melonDS DS)**: CMake con el toolchain de llvm-mingw, sin OpenGL, con JIT. FreeBIOS
   incluida. La pantalla de abajo se toca con el mouse (`RETRO_DEVICE_POINTER`, `SystemDef::touch`).
