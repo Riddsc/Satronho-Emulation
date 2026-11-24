@@ -146,6 +146,18 @@ private:
     void DrawLibraryCarousel(const std::vector<const Game*>& list, const SystemDef* lib_sys);
     bool DrawCover(ImDrawList* dl, const Game& g, ImVec2 a, ImVec2 b, float rounding, bool hovered);
     void DrawConfirm();
+    // Barra de menús del juego (app_bar.cpp).
+    void DrawGameBar();
+    bool GameBarVisible() const;
+    bool GameBarReserves() const;   // en ventana: el juego se dibuja entre las barras
+    float GameBarTop() const;
+    float GameBarBottom() const;
+    void ToggleGameBar();
+    bool bar_open_ = false;          // desplegada a pedido (pantalla completa, Android)
+    bool bar_menu_active_ = false;   // un menú de la barra está abierto: el juego espera
+    bool fast_forward_toggle_ = false;
+    float muted_volume_ = 0.0f;
+    int pending_page_ = -1;          // pantalla a la que ir al terminar de salir del juego
     Settings VideoSettings() const;   // imagen del juego actual (con «según la consola» resuelto)
     int confirm_frames_ = 0;          // cuadros que la pregunta lleva sin poder mostrarse
     void RequestQuit();               // cerrar la app (pregunta si está activado)

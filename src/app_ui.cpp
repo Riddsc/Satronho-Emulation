@@ -2041,6 +2041,7 @@ void App::DrawGameLayer() {
         DrawPauseMenu();
         return;
     }
+    DrawGameBar();
     if (settings_.meter > 0) DrawMeter();
 
     // Indicadores de estado arriba al centro.
@@ -2056,7 +2057,7 @@ void App::DrawGameLayer() {
         FontScope f(GetFonts().semibold, 14);
         const ImVec2 ts = ImGui::CalcTextSize(chip.c_str());
         const float w = ts.x + S(52), h = S(38);
-        const ImVec2 p(vp->Pos.x + (vp->Size.x - w) * 0.5f, vp->Pos.y + S(20));
+        const ImVec2 p(vp->Pos.x + (vp->Size.x - w) * 0.5f, vp->Pos.y + GameBarTop() + S(20));
         dl->AddRectFilled(p, {p.x + w, p.y + h}, U32(Color::Surface, 0.92f), h * 0.5f);
         dl->AddRect(p, {p.x + w, p.y + h}, U32(col, 0.6f), h * 0.5f);
         DrawIcon(dl, icon, {p.x + S(22), p.y + h * 0.5f}, S(15), U32(col));
@@ -2373,7 +2374,7 @@ void App::DrawMeter(bool preview, ImVec2 preview_pos) {
         if (!preview) {
             const float m = S(16);
             p.x = (settings_.meter_corner % 2) ? vp->Pos.x + vp->Size.x - size.x - m : vp->Pos.x + m;
-            p.y = (settings_.meter_corner >= 2) ? vp->Pos.y + vp->Size.y - size.y - m : vp->Pos.y + m;
+            p.y = (settings_.meter_corner >= 2) ? vp->Pos.y + vp->Size.y - size.y - m - GameBarBottom() : vp->Pos.y + m + GameBarTop();
         }
         dl->AddRectFilled(p, {p.x + size.x, p.y + size.y}, U32(0x1B1829, 0.88f), S(10));
         dl->AddCircleFilled({p.x + S(14), p.y + size.y * 0.5f}, S(4), U32(accent));

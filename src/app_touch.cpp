@@ -201,7 +201,7 @@ std::vector<App::TouchButton> App::TouchLayout(float W, float H) const {
 void App::ApplyTouchPad() {
     touch_buttons_ = 0;
     touch_stick_[0] = touch_stick_[1] = 0;
-    if (!TouchPadVisible() || touch_edit_) {
+    if (!TouchPadVisible() || touch_edit_ || bar_open_) {
         touch_prev_ = 0;
         return;
     }
@@ -258,12 +258,12 @@ void App::ApplyTouchPad() {
         core_.pads[0].analog[0][0] = static_cast<int16_t>(touch_stick_[0] * 32767);
         core_.pads[0].analog[0][1] = static_cast<int16_t>(touch_stick_[1] * 32767);
     }
-    if (menu && !touch_menu_latched_) SetMenuOpen(true);
+    if (menu && !touch_menu_latched_) ToggleGameBar(); // con el dedo, el botón de menú despliega la barra de arriba
     touch_menu_latched_ = menu;
 }
 
 void App::DrawTouchPad() {
-    if (!TouchPadVisible() && !touch_edit_) return;
+    if ((!TouchPadVisible() && !touch_edit_) || (bar_open_ && !touch_edit_)) return;
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     // La interfaz va en puntos y los dedos en píxeles: se convierte.
     int W, H;

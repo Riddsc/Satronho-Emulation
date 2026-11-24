@@ -111,6 +111,7 @@ public:
     void ResetHotkeys();
     bool HotkeyHeld(Hotkey h) const;
     std::vector<Hotkey> TakeHotkeyPresses();
+    bool menu_from_keyboard = false; // el último «Menú» vino del teclado (Esc) y no del mando
     bool MenuComboPressed(); // Select+Start en cualquier mando
     // Aviso pendiente de una asignación que choca con otra («Esa tecla también es el atajo…»).
     std::string TakeConflict() { std::string c; c.swap(conflict_); return c; }

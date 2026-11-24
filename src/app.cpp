@@ -328,6 +328,7 @@ bool App::Init() {
         for (std::string q : {std::string("hola"), qa_["preguntar"]}) AskGuides(q);
     }
     if (qa_.count("salir")) confirm_ = std::atoi(qa_["salir"].c_str());
+    if (qa_.count("barra")) bar_open_ = true;
     if (qa_.count("ventana")) {
         int w = 0, h = 0;
         if (std::sscanf(qa_["ventana"].c_str(), "%dx%d", &w, &h) == 2) SDL_SetWindowSize(window_, w, h);
@@ -602,7 +603,7 @@ void App::Frame() {
 
     // El cursor se esconde mientras se juega.
     // En Satronho Dual el mouse es el lápiz de la pantalla táctil: no se esconde.
-    const bool want_hidden = in_game_ && !menu_open_ && !sys_->touch && SDL_GetTicks() - last_mouse_move_ > 2000;
+    const bool want_hidden = in_game_ && !menu_open_ && !bar_menu_active_ && !bar_open_ && !sys_->touch && SDL_GetTicks() - last_mouse_move_ > 2000;
     if (want_hidden != cursor_hidden_) {
         cursor_hidden_ = want_hidden;
         if (want_hidden) SDL_HideCursor();
@@ -622,7 +623,7 @@ void App::Frame() {
     if ((in_game_ && !menu_open_ && confirm_ == 0) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0 && !touch_edit_) EmulateTick(dt);
+    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0 && !touch_edit_ && !bar_menu_active_) EmulateTick(dt);
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) {
         if (gl_) video_gl_.Upload(core_);
@@ -653,7 +654,15 @@ void App::Frame() {
         const unsigned bg = in_game_ ? 0 : Ui::Color::Bg;
         Gl::ClearColor(((bg >> 16) & 0xFF) / 255.0f, ((bg >> 8) & 0xFF) / 255.0f, (bg & 0xFF) / 255.0f, 1.0f);
         Gl::Clear(GL_COLOR_BUFFER_BIT);
-        if (in_game_) video_gl_.Draw(core_, &hw_render_, VideoSettings(), pw, ph, sys_->handheld);
+        if (in_game_) {
+            // En ventana, el juego va entre la barra de menús y la de estado.
+            const float fb = ImGui::GetIO().DisplayFramebufferScale.y;
+            const int top = GameBarReserves() ? static_cast<int>(GameBarTop() * fb) : 0;
+            const int bot = GameBarReserves() ? static_cast<int>(GameBarBottom() * fb) : 0;
+            video_gl_.SetArea(0, bot);
+            video_gl_.Draw(core_, &hw_render_, VideoSettings(), pw, std::max(1, ph - top - bot), sys_->handheld);
+            video_gl_.SetArea(0, 0);
+        }
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         QaTick();
         SDL_GL_SwapWindow(window_);
@@ -664,7 +673,13 @@ void App::Frame() {
         if (in_game_) {
             SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
             SDL_RenderClear(renderer_);
-            video_.Draw(core_, VideoSettings(), pw, ph, sys_->handheld);
+            const float fb = ImGui::GetIO().DisplayFramebufferScale.y;
+            const int top = GameBarReserves() ? static_cast<int>(GameBarTop() * fb) : 0;
+            const int bot = GameBarReserves() ? static_cast<int>(GameBarBottom() * fb) : 0;
+            const SDL_Rect area{0, top, pw, std::max(1, ph - top - bot)};
+            SDL_SetRenderViewport(renderer_, &area);
+            video_.Draw(core_, VideoSettings(), area.w, area.h, sys_->handheld);
+            SDL_SetRenderViewport(renderer_, nullptr);
         }
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
         QaTick();
@@ -982,6 +997,7 @@ void App::HandleEvent(const SDL_Event& e) {
             if (browser_open_) browser_open_ = false;
             else if (touch_edit_) { touch_edit_ = false; SaveConfig(); }
             else if (confirm_) confirm_ = 0;
+            else if (in_game_ && bar_open_) bar_open_ = false;
             else if (in_game_) SetMenuOpen(!menu_open_);
             else if (page_ != Page::Library || !lib_system_.empty()) { page_ = Page::Library; lib_system_.clear(); }
             else RequestQuit();
@@ -1009,7 +1025,15 @@ void App::DoHotkey(Hotkey h) {
         return;
     }
     switch (h) {
-    case Hotkey::Menu: SetMenuOpen(!menu_open_); break;
+    case Hotkey::Menu:
+        // Esc del teclado en pantalla completa: despliega (o esconde) la barra de menús de arriba.
+        // Con el mando, o en ventana, abre el menú grande del juego como siempre.
+        if (input_.menu_from_keyboard && settings_.fullscreen && !menu_open_) ToggleGameBar();
+        else {
+            bar_open_ = false;
+            SetMenuOpen(!menu_open_);
+        }
+        break;
     case Hotkey::SaveState: SaveSlot(slot_); break;
     case Hotkey::LoadState: LoadSlot(slot_); break;
     case Hotkey::PrevSlot:
@@ -1167,6 +1191,13 @@ void App::StopGame() {
     runahead_state_.clear();
     runahead_state_.shrink_to_fit();
     disk_swap_target_ = -1;
+    bar_open_ = false;
+    bar_menu_active_ = false;
+    fast_forward_toggle_ = false;
+    if (pending_page_ >= 0) {
+        page_ = static_cast<Page>(pending_page_);
+        pending_page_ = -1;
+    }
     for (auto& [k, img] : slot_thumbs_) Ui::FreeImage(img);
     slot_thumbs_.clear();
     SDL_SetWindowTitle(window_, "Satronho Emulation");
@@ -1204,7 +1235,7 @@ void App::EmulateTick(double dt) {
     }
     const double fps = core_.Fps();
     const bool typing = ImGui::GetIO().WantTextInput;
-    fast_forward_ = settings_.fast_forward_enabled && !typing && input_.HotkeyHeld(Hotkey::FastForward);
+    fast_forward_ = settings_.fast_forward_enabled && ((!typing && input_.HotkeyHeld(Hotkey::FastForward)) || fast_forward_toggle_);
     rewinding_ = RewindActive() && !typing && input_.HotkeyHeld(Hotkey::Rewind);
     core_.fast_forwarding = fast_forward_;
 

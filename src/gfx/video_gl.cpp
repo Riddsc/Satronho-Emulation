@@ -287,7 +287,7 @@ void VideoOutGl::Draw(const CoreHost& core, const HwRender* hw, const Settings& 
             Gl::DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             Gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
         }
-        Gl::Viewport(0, 0, win_w, win_h);
+        Gl::Viewport(area_x_, area_y_, win_w, win_h);
         const float cover = std::max(W / dw, H / dh) * 1.15f;
         Gl::UseProgram(amb_prog_);
         Gl::BindTexture(GL_TEXTURE_2D, small_tex_);
@@ -298,7 +298,7 @@ void VideoOutGl::Draw(const CoreHost& core, const HwRender* hw, const Settings& 
         Gl::Uniform1f(a_.vignette, 1.0f);
         Gl::DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
-    Gl::Viewport(0, 0, win_w, win_h);
+    Gl::Viewport(area_x_, area_y_, win_w, win_h);
 
     // Imagen del juego.
     const auto filter = static_cast<Filter>(s.filter);
