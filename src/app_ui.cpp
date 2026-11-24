@@ -111,7 +111,7 @@ void App::DrawUi() {
         DrawGameOverlay();
         DrawToasts();
         if (!pending_start_.empty()) DrawLoading();
-        DrawTouchPad();
+        if (overlay_page_ < 0) DrawTouchPad(); // con una pantalla de Satronho encima, el control táctil se esconde
         DrawConfirm();
         return;
     }
@@ -2392,7 +2392,7 @@ void App::DrawGameLayer() {
         return;
     }
     DrawGameBar();
-    if (settings_.meter > 0) DrawMeter();
+    if (settings_.meter > 0 && overlay_page_ < 0) DrawMeter();
 
     // Indicadores de estado arriba al centro.
     std::string chip;

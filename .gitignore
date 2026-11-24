@@ -3,3 +3,4 @@
 *.zip
 release-notes.md
 /build-linux/
+scripts/idiomas/claves_nuevas.json
