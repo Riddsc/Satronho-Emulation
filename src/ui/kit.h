@@ -133,6 +133,9 @@ void HelpTooltip(const char* text);
 bool PanelBegin(const char* id, ImVec2 size, unsigned bg = Color::Surface, float rounding = 16, ImVec2 padding = {18, 16});
 void PanelEnd();
 
+// Vaivén del avatar de un guía (en píxeles), distinto para cada uno.
+float GuideBob(const char* seed);
+
 // Tarjeta de un guía: avatar, nombre, rol y mensaje.
 void GuideBanner(const Image& avatar, const char* name, const char* role, unsigned color, const char* text, float width = 0);
 

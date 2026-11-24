@@ -131,6 +131,14 @@ private:
     // Acabados de la etapa 1 (app_extra.cpp)
     void ApplyTheme();
     void DrawWatermark(ImVec2 p0, ImVec2 p1);
+    void DrawBackdrop(ImVec2 p0, ImVec2 p1);
+    void DrawSplash();
+    std::string hover_key_, hover_key_next_; // juego bajo el mouse (cuadro anterior)
+    std::string backdrop_key_, backdrop_prev_;
+    double backdrop_t_ = 0;
+    double splash_t0_ = -1;                // inicio de la presentación animada
+    bool splash_done_ = false;
+    double game_enter_t_ = -10;            // para el fundido al entrar a un juego
     void DrawSettingsAppearance();
     void DrawGpuSettings(bool& changed);
     void DrawLibraryCarousel(const std::vector<const Game*>& list, const SystemDef* lib_sys);

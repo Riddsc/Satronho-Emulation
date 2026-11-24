@@ -897,6 +897,17 @@ bool PanelBegin(const char* id, ImVec2 size, unsigned bg, float rounding, ImVec2
 
 void PanelEnd() { ImGui::EndChild(); }
 
+float GuideBob(const char* seed) {
+    // Cada guía se mueve un poquito, a su ritmo (sale de su nombre), para que se sientan vivos.
+    unsigned h = 2166136261u;
+    for (const char* c = seed; c && *c; ++c) h = (h ^ static_cast<unsigned char>(*c)) * 16777619u;
+    const float t = static_cast<float>(ImGui::GetTime());
+    const float phase = (h % 628) / 100.0f, speed = 1.6f + (h % 7) * 0.12f;
+    // Saltito de vez en cuando (cada ~5 s) sobre un vaivén lento.
+    const float hop = std::max(0.0f, std::sin(t * 1.25f + phase) - 0.92f) * 12.0f;
+    return S(1.6f) * std::sin(t * speed + phase) - S(3.0f) * hop;
+}
+
 void GuideBanner(const Image& avatar, const char* name, const char* role, unsigned color, const char* text, float width) {
     if (width <= 0) width = ImGui::GetContentRegionAvail().x;
     const float av = S(58);
@@ -914,8 +925,13 @@ void GuideBanner(const Image& avatar, const char* name, const char* role, unsign
     dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(Color::Surface), S(16));
     dl->AddRectFilled(p, {p.x + width, p.y + h}, U32(color, 0.06f), S(16));
     dl->AddRect(p, {p.x + width, p.y + h}, U32(color, 0.35f), S(16), 1.0f);
-    const ImVec2 ac(p.x + pad + av * 0.5f, p.y + pad + av * 0.5f);
-    if (avatar) dl->AddImageRounded(avatar.Ref(), {ac.x - av * 0.5f, ac.y - av * 0.5f}, {ac.x + av * 0.5f, ac.y + av * 0.5f}, {0, 0}, {1, 1}, IM_COL32_WHITE, av * 0.5f);
+    const ImVec2 ac(p.x + pad + av * 0.5f, p.y + pad + av * 0.5f + GuideBob(name));
+    if (avatar) {
+        // Un brillo suave detrás, como si el guía respirara.
+        const float glow = 0.5f + 0.5f * std::sin(static_cast<float>(ImGui::GetTime()) * 1.7f + name[0]);
+        dl->AddCircleFilled(ac, av * 0.5f + S(3) + glow * S(2), U32(color, 0.10f + 0.08f * glow));
+        dl->AddImageRounded(avatar.Ref(), {ac.x - av * 0.5f, ac.y - av * 0.5f}, {ac.x + av * 0.5f, ac.y + av * 0.5f}, {0, 0}, {1, 1}, IM_COL32_WHITE, av * 0.5f);
+    }
     else dl->AddCircleFilled(ac, av * 0.5f, U32(color));
     const float tx = p.x + pad * 2 + av;
     {

@@ -28,6 +28,8 @@ public:
 
     // Imagen lista para dibujar, o nullptr mientras se carga (o si no hay).
     const Ui::Image* Get(const Game& g);
+    // La misma carátula muy reducida (se ve borrosa al estirarla): para el fondo de la biblioteca.
+    const Ui::Image* GetBlur(const Game& g);
     // En el hilo principal, cada cuadro: sube a la tarjeta gráfica lo que ya se decodificó.
     void Pump();
     // Busca en internet las carátulas que faltan (en segundo plano, una por una).
@@ -50,12 +52,12 @@ public:
 private:
     struct Decoded {
         std::string key;
-        std::vector<unsigned char> rgba;
-        int w = 0, h = 0;
+        std::vector<unsigned char> rgba, small;
+        int w = 0, h = 0, sw = 0, sh = 0;
         bool ok = false;
     };
     struct Entry {
-        Ui::Image img;
+        Ui::Image img, blur;
         bool loading = false;
         bool missing = false;
         double used = 0;
