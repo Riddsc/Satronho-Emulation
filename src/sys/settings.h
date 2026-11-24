@@ -67,11 +67,21 @@ struct Settings {
     bool guides = true;
     bool bubble = true;
     float ui_scale = 0.0f;           // 0 = automático según la pantalla
+    int theme = 0;                   // tema de colores (Ui::Themes)
+    float watermark = 0.18f;         // opacidad del logo de fondo: de 0.10 a 1.0 (nunca se apaga)
+    bool confirm_exit_app = true;    // preguntar antes de cerrar la app
+    bool confirm_exit_game = true;   // preguntar antes de salir de un juego
 
     // Biblioteca
     std::vector<std::string> folders;
     int sort = 0;                  // 0 A-Z, 1 recientes, 2 más jugados
     bool favorites_only = false;
+    std::map<std::string, int> lib_view; // vista por consola ("" = todas): 0 cuadrícula, 1 carrusel
+    bool covers = true;            // descargar carátulas reales de los juegos
+    int LibView(const std::string& sys) const {
+        auto it = lib_view.find(sys.empty() ? "todas" : sys);
+        return it == lib_view.end() ? 0 : it->second;
+    }
 
     // Actualizaciones
     bool auto_update = true;

@@ -16,25 +16,39 @@ namespace Satronho::Ui {
 
 // ---------------------------------------------------------------- colores
 namespace Color {
-constexpr unsigned Bg = 0x0F0D17;
-constexpr unsigned Side = 0x13111D;
-constexpr unsigned Surface = 0x1B1829;
-constexpr unsigned Surface2 = 0x241F38;
-constexpr unsigned Surface3 = 0x2E2848;
-constexpr unsigned Border = 0x2E2848;
-constexpr unsigned Text = 0xEBE8F5;
-constexpr unsigned Muted = 0xA9A4C2;
-constexpr unsigned Dim = 0x6E6A86;
-constexpr unsigned Accent = 0x9B8CFF;   // Troya, lila
-constexpr unsigned Accent2 = 0xA78BFA;
-constexpr unsigned Gold = 0xFFD166;     // anillo del planeta
-constexpr unsigned Amber = 0xFFB23E;    // Samy
-constexpr unsigned Teal = 0x4FD1C5;     // Ñoño
-constexpr unsigned Pink = 0xFF8FB5;     // Juana
-constexpr unsigned Green = 0x74D14C;    // MechaRidds
-constexpr unsigned Red = 0xFF5D73;
-constexpr unsigned Orange = 0xFF9F43;
+inline unsigned Bg = 0x0F0D17;
+inline unsigned Side = 0x13111D;
+inline unsigned Surface = 0x1B1829;
+inline unsigned Surface2 = 0x241F38;
+inline unsigned Surface3 = 0x2E2848;
+inline unsigned Border = 0x2E2848;
+inline unsigned Text = 0xEBE8F5;
+inline unsigned Muted = 0xA9A4C2;
+inline unsigned Dim = 0x6E6A86;
+inline unsigned Accent = 0x9B8CFF;   // Troya, lila
+inline unsigned Accent2 = 0xA78BFA;
+inline unsigned Gold = 0xFFD166;     // anillo del planeta
+inline unsigned Amber = 0xFFB23E;    // Samy
+inline unsigned Teal = 0x4FD1C5;     // Ñoño
+inline unsigned Pink = 0xFF8FB5;     // Juana
+inline unsigned Green = 0x74D14C;    // MechaRidds
+inline unsigned Red = 0xFF5D73;
+inline unsigned Orange = 0xFF9F43;
 } // namespace Color
+
+// ---------------------------------------------------------------- temas
+// Cada tema cambia los colores de fondo, superficies, texto y acento. Los colores de los guías
+// (Samy ámbar, Troya lila…) son los mismos en todos.
+struct Theme {
+    const char* name;
+    const char* blurb;   // una frase corta para Ajustes
+    unsigned bg, side, surface, surface2, surface3, border, text, muted, dim, accent, accent2;
+    bool light;
+};
+const std::vector<Theme>& Themes();
+void ApplyTheme(int index); // cambia los colores; después hay que llamar ApplyStyle()
+int CurrentTheme();
+bool LightTheme();
 
 ImU32 U32(unsigned rgb, float alpha = 1.0f);
 ImVec4 V4(unsigned rgb, float alpha = 1.0f);
@@ -61,14 +75,23 @@ struct FontScope {
 };
 
 // ---------------------------------------------------------------- imágenes
+// Una imagen subida a la tarjeta gráfica. Quien la crea depende del motor gráfico en uso
+// (OpenGL o el dibujador de SDL): la aplicación registra las funciones con SetTextureBackend.
 struct Image {
-    SDL_Texture* tex = nullptr;
+    ImTextureID tex = ImTextureID_Invalid;
     int w = 0, h = 0;
     ImTextureRef Ref() const;
-    explicit operator bool() const { return tex != nullptr; }
+    explicit operator bool() const { return tex != ImTextureID_Invalid; }
 };
-Image LoadImage(SDL_Renderer* r, const std::string& file);
-Image ImageFromRGBA(SDL_Renderer* r, const unsigned char* rgba, int w, int h);
+struct TextureBackend {
+    ImTextureID (*create)(const unsigned char* rgba, int w, int h, bool smooth) = nullptr;
+    void (*destroy)(ImTextureID tex) = nullptr;
+};
+void SetTextureBackend(const TextureBackend& b);
+Image LoadImage(const std::string& file);
+Image ImageFromRGBA(const unsigned char* rgba, int w, int h, bool smooth = true);
+// Decodifica un PNG o JPG a RGBA (se puede llamar desde otro hilo).
+bool DecodeImage(const std::string& file, std::vector<unsigned char>& rgba, int* w, int* h);
 void FreeImage(Image& img);
 SDL_Surface* LoadSurface(const std::string& file); // RGBA, para el ícono de la ventana
 bool SavePng(const std::string& file, const unsigned char* rgba, int w, int h);
@@ -78,7 +101,7 @@ enum class Icon {
     Library, Gamepad, Gear, Sparkle, Bell, Info, Search, Play, Plus, Folder, Star, StarFill,
     Clock, ChevronRight, ChevronLeft, Close, Pause, Save, Load, Restart, Camera, Exit, Meter,
     Volume, Rewind, Forward, Check, Cpu, Memory, Monitor, Chip, Keyboard, Heart, Refresh, File,
-    Grid, Palette,
+    Grid, Palette, Carousel, Chat, Send,
     None, // no dibuja ícono (quien llama dibuja el suyo)
 };
 void DrawIcon(ImDrawList* dl, Icon icon, ImVec2 center, float size, ImU32 color);

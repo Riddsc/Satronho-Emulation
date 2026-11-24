@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 
 #include "sys/systems.h"
 #include "util/ini.h"
@@ -58,6 +59,10 @@ void Settings::Load(const Ini& ini) {
     bubble = ini.GetBool("guias.burbuja", bubble);
     ui_scale = ini.GetFloat("interfaz.escala2", ui_scale);
     if (ui_scale != 0.0f) ui_scale = std::clamp(ui_scale, 0.75f, 1.75f);
+    theme = std::clamp(ini.GetInt("interfaz.tema", theme), 0, 4);
+    watermark = std::clamp(ini.GetFloat("interfaz.marca_agua", watermark), 0.10f, 1.0f);
+    confirm_exit_app = ini.GetBool("avisos.salir_app", confirm_exit_app);
+    confirm_exit_game = ini.GetBool("avisos.salir_juego", confirm_exit_game);
 
     folders.clear();
     const int n = ini.GetInt("biblioteca.carpetas", 0);
@@ -67,6 +72,10 @@ void Settings::Load(const Ini& ini) {
     }
     sort = std::clamp(ini.GetInt("biblioteca.orden", sort), 0, 2);
     favorites_only = ini.GetBool("biblioteca.solo_favoritos", favorites_only);
+    covers = ini.GetBool("biblioteca.caratulas", covers);
+    lib_view.clear();
+    for (const auto& [k, v] : ini.Values())
+        if (k.rfind("biblioteca.vista.", 0) == 0) lib_view[k.substr(17)] = std::clamp(std::atoi(v.c_str()), 0, 1);
 
     auto_update = ini.GetBool("actualizaciones.buscar", auto_update);
     first_run_done = ini.GetBool("estado.bienvenida", first_run_done);
@@ -117,6 +126,12 @@ void Settings::Save(Ini& ini) const {
     ini.SetBool("guias.activas", guides);
     ini.SetBool("guias.burbuja", bubble);
     ini.SetFloat("interfaz.escala2", ui_scale);
+    ini.SetInt("interfaz.tema", theme);
+    ini.SetFloat("interfaz.marca_agua", watermark);
+    ini.SetBool("avisos.salir_app", confirm_exit_app);
+    ini.SetBool("avisos.salir_juego", confirm_exit_game);
+    ini.SetBool("biblioteca.caratulas", covers);
+    for (const auto& [k, v] : lib_view) ini.SetInt("biblioteca.vista." + k, v);
     ini.Erase("interfaz.escala");
 
     // Se borran las carpetas viejas antes de escribir la lista nueva.

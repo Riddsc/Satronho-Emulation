@@ -15,6 +15,8 @@
 #include "core/input.h"
 #include "core/rewind.h"
 #include "core/video.h"
+#include "sys/covers.h"
+#include "sys/guide_chat.h"
 #include "sys/hardware.h"
 #include "sys/library.h"
 #include "sys/settings.h"
@@ -26,8 +28,8 @@
 
 namespace Satronho {
 
-enum class Page { Library, Controls, Suggested, News, Settings, About };
-enum class SettingsTab { Video, Audio, Controls, Performance, Meter, Core, Library, Guides, Count };
+enum class Page { Library, Controls, Suggested, News, Settings, About, Guides };
+enum class SettingsTab { Video, Audio, Controls, Performance, Meter, Core, Library, Guides, Appearance, Count };
 enum class GuideId { MechaRidds = 0, Samy, Troya, Nono, Juana, Count };
 
 struct GuideInfo {
@@ -37,6 +39,7 @@ struct GuideInfo {
     unsigned color;
 };
 const GuideInfo& Guide(GuideId id);
+void CoverDialogCallback(void* user, const char* const* list, int filter);
 
 class App {
 public:
@@ -122,6 +125,24 @@ private:
     void DrawCoreMissing();
     void GuideSays(GuideId id, const char* text, float width = 0);
 
+    // Acabados de la etapa 1 (app_extra.cpp)
+    void ApplyTheme();
+    void DrawWatermark(ImVec2 p0, ImVec2 p1);
+    void DrawSettingsAppearance();
+    void DrawLibraryCarousel(const std::vector<const Game*>& list, const SystemDef* lib_sys);
+    bool DrawCover(ImDrawList* dl, const Game& g, ImVec2 a, ImVec2 b, float rounding, bool hovered);
+    void DrawConfirm();
+    void RequestQuit();               // cerrar la app (pregunta si está activado)
+    void RequestExitGame();           // salir del juego (pregunta si está activado)
+    void DrawWhatsNew();
+    void DrawGuideChat();
+    void AskGuides(const std::string& text);
+    void DoChatAction(const ChatButton& b);
+    ChatContext BuildChatContext() const;
+    void PickCoverDialog(const Game& g);
+    void BeginPageTransition();
+    int NextTip();
+
     // Utilidades
     void Toast(const std::string& text, GuideId guide = GuideId::MechaRidds, double seconds = 3.5);
     void SaveConfig();
@@ -186,6 +207,35 @@ private:
     // Imágenes
     Ui::Image logo_;
     Ui::Image guides_[static_cast<int>(GuideId::Count)];
+    Covers covers_;
+    bool gfx_vulkan_available_ = false; // hay Vulkan en este equipo
+
+    // Preguntas al salir: 0 ninguna, 1 cerrar la app, 2 salir del juego.
+    int confirm_ = 0;
+    bool confirm_dont_ask_ = false;
+    bool show_whats_new_ = false;     // Juana muestra lo nuevo después de actualizar
+
+    // Conversación con los guías.
+    struct ChatMsg {
+        int guide = -1;               // -1 = la persona
+        std::string text;
+        std::vector<ChatButton> buttons;
+        double born = 0;
+    };
+    std::vector<ChatMsg> chat_;
+    int chat_guide_ = -1;             // a quién se le pregunta (-1 = a quien sepa más)
+    char chat_input_[256] = {};
+    bool chat_scroll_ = false;
+    bool chat_focus_ = false;
+
+    // Transición entre páginas y carrusel.
+    Page shown_page_ = Page::Library;
+    double page_anim_t_ = 0;
+    float carousel_pos_ = 0;          // posición animada (índice con decimales)
+    int carousel_index_ = 0;
+    std::string carousel_key_;        // juego seleccionado en el carrusel
+    std::string carousel_list_;       // consola del carrusel (para reiniciar al cambiar)
+    std::string cover_target_;        // juego al que se le elige carátula
 
     // Navegación
     Page page_ = Page::Library;
@@ -267,6 +317,7 @@ private:
     std::vector<std::string> pending_folders_;
     std::vector<std::string> pending_roms_;
     std::vector<std::string> pending_bios_;
+    std::vector<std::string> pending_covers_;
     bool bios_hint_shown_ = false;
     std::string bios_target_;
     float sidebar_full_h_ = 0;
@@ -280,6 +331,7 @@ private:
     friend void FolderDialogCallback(void*, const char* const*, int);
     friend void FileDialogCallback(void*, const char* const*, int);
     friend void BiosDialogCallback(void*, const char* const*, int);
+    friend void CoverDialogCallback(void*, const char* const*, int);
 };
 
 } // namespace Satronho

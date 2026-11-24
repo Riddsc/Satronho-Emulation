@@ -35,6 +35,7 @@ add_executable(satronho-emulation WIN32
   src/main.cpp
   src/app.cpp
   src/app_ui.cpp
+  src/app_extra.cpp
   src/core/audio.cpp
   src/core/core_host.cpp
   src/core/input.cpp
@@ -42,6 +43,8 @@ add_executable(satronho-emulation WIN32
   src/core/video.cpp
   src/sys/hardware.cpp
   src/sys/library.cpp
+  src/sys/covers.cpp
+  src/sys/guide_chat.cpp
   src/sys/settings.cpp
   src/sys/updater.cpp
   src/ui/kit.cpp
@@ -51,6 +54,7 @@ add_executable(satronho-emulation WIN32
   src/util/ini.cpp
   src/util/json.cpp
   src/util/log.cpp
+  src/util/net.cpp
   src/util/paths.cpp
   ${IMGUI}/imgui.cpp
   ${IMGUI}/imgui_draw.cpp
