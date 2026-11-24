@@ -96,7 +96,7 @@ std::vector<SystemDef> Build() {
     v.push_back(hexa);
 
     // PlayStation con el DualShock: análogos, L1/L2/R1/R2 y clic de los sticks.
-    SystemDef cd = Make("cd", "CD", "juegos de PlayStation", "PS1", "mednafen_psx", {"cue", "chd", "pbp", "m3u", "ccd"}, "CD",
+    SystemDef cd = Make("cd", "CD", "juegos de PlayStation", "PS1", "mednafen_psx_hw", {"cue", "chd", "pbp", "m3u", "ccd"}, "CD",
                         0x5B7CFF, Layout::PlayStation, false);
     cd.buttons = With({{RETRO_DEVICE_ID_JOYPAD_B, "Cruz"},
                        {RETRO_DEVICE_ID_JOYPAD_A, "Círculo"},
@@ -128,9 +128,12 @@ std::vector<SystemDef> Build() {
     // Imagen al doble de resolución (polígonos más finos) y sin el tramado de la época.
     // El desentrelazado adaptativo evita las rayas en los modos de alta resolución (las peleas
     // de Bloody Roar, por ejemplo).
-    cd.core_defaults = {{"beetle_psx_internal_resolution", "2x"},
-                        {"beetle_psx_dither_mode", "disabled"},
-                        {"beetle_psx_deinterlacer", "fastmad"}};
+    // Beetle PSX HW: dibuja con la tarjeta gráfica (OpenGL o Vulkan) o con el procesador; el motor
+    // y la resolución los pone Satronho según Ajustes » Imagen (App::ApplyGpuChoice).
+    cd.core_defaults = {{"beetle_psx_hw_internal_resolution", "2x"},
+                        {"beetle_psx_hw_dither_mode", "disabled"},
+                        {"beetle_psx_hw_deinterlacer", "fastmad"},
+                        {"beetle_psx_hw_filter", "nearest"}};
     v.push_back(cd);
 
     // Nintendo 64 con los botones C independientes (opción alt-map del núcleo).
@@ -156,7 +159,8 @@ std::vector<SystemDef> Build() {
     n64.analog = true;
     n64.runahead_ok = false;
     n64.cpu_need = 3;
-    // Angrylion (dibuja como la consola, sin necesitar OpenGL) con el RSP ParaLLEl.
+    // El dibujo lo elige Satronho (App::ApplyGpuChoice): GLideN64 con OpenGL, ParaLLEl-RDP con
+    // Vulkan o Angrylion con el procesador. Por defecto (sin tarjeta gráfica), Angrylion.
     n64.core_defaults = {{"mupen64plus-rdp-plugin", "angrylion"},
                          {"mupen64plus-rsp-plugin", "parallel"},
                          {"mupen64plus-alt-map", "True"}};

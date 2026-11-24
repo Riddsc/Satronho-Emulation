@@ -1054,7 +1054,7 @@ void App::DrawSettingsVideo() {
 
     RowBegin("Sincronización vertical", "Evita que la imagen se corte. Déjala activada salvo que sepas lo que haces.");
     if (Toggle("##vsync", &settings_.vsync)) {
-        SDL_SetRenderVSync(renderer_, settings_.vsync ? 1 : 0);
+        ApplyVsync();
         changed = true;
     }
     RowEnd();

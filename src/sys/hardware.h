@@ -18,6 +18,7 @@ struct HardwareInfo {
     int vram_mb = 0;
     std::string renderer;         // motor gráfico que eligió SDL
     bool software = false;        // dibujo por software (sin tarjeta gráfica)
+    bool gpu_render = false;      // los núcleos pueden dibujar con la tarjeta gráfica (OpenGL/Vulkan)
     int display_w = 0, display_h = 0;
     float refresh = 60.0f;
     std::string os;
