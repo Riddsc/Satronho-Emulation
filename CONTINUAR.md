@@ -3,6 +3,69 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (build 20)
+
+Ridds mandó un video del celular (build 19) y pidió revisar el repo entero antes de la parte C. Rama
+`build-20`. Lo siguiente sigue siendo **agregar consolas** (parte C, ver «Ideas que quedan» de la build 15).
+
+- **Biblioteca que no bajaba** (desde la build 18): en `DrawLibrary` el encabezado comparaba posiciones de
+  pantalla con `0.0f` (`narrow ? search_bottom : 0.0f`); al bajar, el título queda arriba con posiciones
+  negativas y los juegos se pegaban arriba en cada cuadro (página infinita). Ahora compara con `after_title`.
+- **Página que se iba de lado**: `Ui::BackToTop()` ponía el botón con `Scroll.x/y`, eso agrandaba la página
+  y crecía con cada desplazamiento. Ahora el botón no cuenta como contenido (guarda y devuelve
+  `CursorMaxPos`). Helper nuevo `Ui::KeepContentSize` (lo usa también el carrusel: sus carátulas de los
+  bordes agrandaban la página de lado). Cada pantalla y cada consola empiezan arriba (`page_scroll_reset_`).
+- **Prueba de desplazamiento** (`desplazar=1`, `App::QaScrollTest`): baja y mueve de lado; si la página se
+  corre de lado o sigue creciendo, la app sale con **código 2**. En el CI (`build.yml`) con 40 juegos falsos en
+  13 pantallas. Crecer una vez está bien (paneles que se miden al verlos, como en Novedades).
+- **Abrir juegos**: ▶ de verdad en las tarjetas (antes solo dibujo); con el dedo, primer toque elige y el
+  segundo abre (tarjeta y fila); doble toque con `MouseDoubleClickMaxDist` S(36) y 0,40 s en táctil.
+- **Discos en .zip/.7z en segundo plano** (`BeginUnpack`/`PollUnpack`/`DrawUnpack`): barra de avance (en
+  bytes en .zip; los .7z van de un bloque y muestran barrita que va y viene) y Cancelar. Al terminar se pide
+  el juego otra vez (`start_resume_` guarda si era «Continuar»). `Archive::ExtractAll` ahora recibe
+  `bool(float)` (false = cancelar). QA: `descomprimir=archivo.zip`.
+- **Android: carpeta pública «Satronho Games»** (`Paths::SetPublicRoot`): `Juegos/<Consola>`, `Partidas` y
+  `Estados` (Saves/States la usan si está puesta). `SetupPublicFolder` al arrancar y cada 1,5 s hasta tener
+  el permiso; la primera vez `BeginDataMove` muda lo de la carpeta de la app (renombra o copia+verifica+quita),
+  pasa las claves de juego viejas a las nuevas (`Library::Rekey`, `Library::KeyFor`) y renombra los estados.
+  Marca: `android.carpeta_publica` en satronho.ini. Cambiar de lugar: Ajustes » Biblioteca » Cambiar
+  (explorador con `browser_for_root_`; mueve todo). Android 8–10: `tieneAccesoArchivos`/`pedirAccesoArchivos`
+  ahora piden WRITE_EXTERNAL_STORAGE (código 7731). QA: `publica=/ruta` (prueba la mudanza en PC).
+- **Margen de espacio**: `biblioteca.margen_gb` (2 GB, 1–32 en Ajustes » Biblioteca) y
+  `SystemDef::margin_gb` para consolas que pidan más (PS2…). Lo usan la importación y `BeginUnpack`.
+  Ajustes » Biblioteca muestra lo libre y cuánto ocupa cada consola en la carpeta de juegos.
+- **Control táctil a los costados** (`TouchReserve`): acostado, el juego se dibuja entre las columnas del
+  control (`SetArea(lx, …)`, `game_x_off_` para el lápiz de Dual); Select/Start y la pausa van a los costados
+  (en vertical, como antes). El medidor se corre (`MeterSides`).
+- **Barra del juego sin fondo en Android**: ImGui recortaba el fondo (la ventana es solo la barra de
+  menús). Arreglado con `PushClipRect`. Aviso de inicio según dedo/mando/teclado.
+- **Ajustes por juego** (`DrawGameSettings`, menú del juego › «Ajustes de este juego…»; con el dedo, toque
+  largo `LongPressMenu`): tipo de mando (DualShock o normal, `ajuste.mando` en biblioteca.ini), motor y
+  resolución en CD/64 (`game_api_`/`game_res_` solo al abrir). QA: `ajustes_juego=ruta`.
+- Textos: `DrawEmptySystem` (consola sin juegos), plurales dentro de la frase, `TrFmt` y `HumanSize` ahora
+  en `util/i18n.h`, sin el «nueve» fijo. «Verificar el archivo» ya no deja el hilo suelto. Sin avisos del
+  compilador (Linux y llvm-mingw).
+- El botón verde con un mando que se vio en el video (arriba a la derecha, también en la biblioteca) **no es
+  de Satronho**: es el atajo de juegos del celular (Game Booster de Samsung o similar).
+
+### Falta probar (pedírselo a Ridds)
+
+1. Bajar en la biblioteca (Cuadrícula y Lista) con el dedo y con la rueda: llega al final y no se corre de lado.
+2. Tocar un juego y volver a tocarlo (o su ▶) para abrir; toque largo para el menú.
+3. Abrir un disco en .zip: barra de avance y Cancelar; la segunda vez abre al instante.
+4. Al abrir la build 20 en el celular: que pida el permiso, mude todo a «Satronho Games» (con tiempos y
+   favoritos) y que los juegos de WhatsApp lleguen ahí.
+5. Dragon Ball GT Final Bout con «Ajustes de este juego» › Mando normal: ¿se va el aviso del mando?
+6. El control en pantalla a los costados en CD y en 64 (que nada tape la imagen y todo se alcance con los dedos).
+7. Pendientes de la build 18 que siguen sin probar: vertical (Ajustes, Controles, chat con teclado) y Atrás /
+   deslizar desde arriba dentro del juego.
+
+### Ideas que quedan
+
+- Copiar los assets en un hilo al primer arranque de Android (hoy `prepareFiles` va en el hilo principal).
+- Los .7z grandes se sacan de un solo bloque en memoria: un disco de 700 MB en .7z pide 700 MB de RAM.
+- Traducir las notas de Novedades (hoy salen en español en todos los idiomas).
+
 ## Estado al 24 de noviembre de 2026 (build 19)
 
 - Arreglo: aviso de ImGui «SetCursorPos… submit an item» lo causaba `Ui::BackToTop()` (movía el cursor y lo

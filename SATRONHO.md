@@ -101,6 +101,11 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
   (despliega la barra del juego), `barra_menu=Juego|Imagen|…` (abre ese menú), `salir_tarde=1|2`
   (pregunta de salir a mitad de la prueba), `presionar=<bits>` (simula botones en Controles),
   `page=herramientas`, `vista=2` (lista). `qa.sh` acepta el tamaño de Xvfb como 3er argumento.
+- Modo de revisión (build 20): `desplazar=1` (prueba de desplazamiento; sale con código 2 si falla),
+  `descomprimir=archivo.zip` (disco en segundo plano), `publica=/ruta` (mudanza a la carpeta pública de
+  Android, también en PC), `ajustes_juego=ruta` (ventana de ajustes de un juego).
+- Botones que flotan sobre la página (como «Volver arriba») o cosas que se salen a propósito (carátulas del
+  carrusel) no deben contar como contenido: usar `Ui::KeepContentSize`. Si cuentan, la página se estira.
 - Parche propio en Dear ImGui (`external/imgui/imgui_draw.cpp`, buscar «Satronho»): al actualizar
   ImGui hay que volver a ponerlo.
 - Cierres en Windows: el log trae `exe+desplazamiento` y la cadena de llamadas. Para saber qué
@@ -119,6 +124,9 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
 - No se puede compilar en el entorno remoto (SDK/NDK bloqueados): solo en el CI (`android.yml`).
   Firma: secretos `ANDROID_KEYSTORE_B64` y `ANDROID_KEYSTORE_PASS`; sin ellos, llave provisional.
 - Sin artifacts de Actions: los núcleos van en la caché y el APK directo al Release.
+- Carpeta pública «Satronho Games» (build 20): con el permiso de archivos, `Paths::PublicRoot()` tiene la
+  ruta y ahí van `Juegos/<Consola>`, `Partidas` y `Estados`. La configuración, la caché y las BIOS siguen en
+  la carpeta de la app. Ver `SetupPublicFolder` y `BeginDataMove` (app_import.cpp).
 
 ## Datos del usuario (dónde queda cada cosa)
 
