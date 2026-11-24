@@ -2,6 +2,57 @@
   "builds": [
     {
       "version": "Esta build",
+      "fecha": "24 de noviembre de 2026",
+      "titulo": "Motor gráfico nuevo, CD y 64 en HD, temas, carrusel, carátulas y guías con las que puedes hablar",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Motor gráfico OpenGL: toda la app y los juegos se dibujan con la tarjeta gráfica. Los filtros y efectos (nítido suave, CRT, líneas, rejilla LCD y fondo ambiente) ahora son sombreadores. El motor clásico queda de respaldo en Ajustes » Imagen."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho CD y Satronho 64 dibujan con la tarjeta gráfica, con OpenGL o Vulkan según tu tarjeta (NVIDIA, AMD o Intel), y suben la resolución sola para verse en HD. En Ajustes » Imagen eliges el motor y la resolución de cada una."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Satronho 64 deja de depender solo del procesador: con OpenGL usa GLideN64 y con Vulkan, ParaLLEl-RDP. En equipos sin tarjeta gráfica sigue Angrylion."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Pregúntale a los guías: escríbeles lo que quieras saber y responden con datos reales de tu equipo, tus juegos, tus mandos y tus ajustes, y te llevan a la pantalla correcta. Funciona sin internet."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Cinco temas (Noche Satronho, Medianoche, Atardecer, Bosque y Claro) con el logo de Satronho de fondo. Su opacidad va de 10 % a 100 % en Ajustes » Apariencia; nunca se apaga."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Vista en carrusel en la biblioteca, elegible para cada consola: se navega con las flechas, el mando o la rueda del mouse."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Carátulas reales de tus juegos (de libretro-thumbnails, las mismas de RetroArch). Se descargan solas; clic derecho en un juego para poner la tuya."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Antes de cerrar la app o salir de un juego te pregunto si estás seguro, con opción de «No volver a preguntar»."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Después de actualizar, Juana te muestra lo nuevo en una ventana."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Transiciones suaves entre páginas y los consejos de la burbuja reparten a los guías: MechaRidds aparece más, y después Samy, Troya, Ñoño y Juana."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Los botones de opciones ya no se salen de su espacio cuando la interfaz está agrandada."
+        }
+      ]
+    },
+    {
+      "version": "Build 12",
       "fecha": "23 de noviembre de 2026",
       "titulo": "Partidas más seguras, seguir donde quedaste y muchos arreglos",
       "cambios": [
