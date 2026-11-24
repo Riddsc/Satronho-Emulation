@@ -118,6 +118,8 @@ struct CoreCallbacks {
         return true;
     }
     static void Poll() {}
+    static uintptr_t HwFramebuffer() { return g_host && g_host->hw_host ? g_host->hw_host->Framebuffer() : 0; }
+    static retro_proc_address_t HwProc(const char* sym) { return g_host && g_host->hw_host ? g_host->hw_host->ProcAddress(sym) : nullptr; }
     static int16_t State(unsigned port, unsigned device, unsigned index, unsigned id) {
         if (!g_host || port >= 4) return 0;
         const PadState& pad = g_host->pads[port];
@@ -272,9 +274,30 @@ bool CoreHost::LoadGame(const fs::path& rom, std::string* error) {
     rom_path_ = rom;
     frame_.clear();
     frame_w_ = frame_h_ = 0;
+    hw_requested_ = false;
+    hw_active_ = false;
+    hw_cb_ = {};
     g_verbose = true;
-    const bool loaded = retro_load_game_(&info);
+    bool loaded = retro_load_game_(&info);
     g_verbose = false;
+    if (loaded && hw_requested_) {
+        // El núcleo pidió la tarjeta gráfica: se crea el contexto y se le avisa (context_reset).
+        retro_system_av_info av{};
+        retro_get_system_av_info_(&av);
+        if (hw_host && hw_host->Start(av)) {
+            hw_active_ = true;
+            HwEnter();
+            if (hw_cb_.context_reset) hw_cb_.context_reset();
+            HwLeave();
+        } else {
+            Log::Error("No se pudo preparar la tarjeta gráfica para este núcleo");
+            retro_unload_game_();
+            loaded = false;
+            if (error) *error = "No se pudo preparar la tarjeta gráfica. Prueba con otro motor gráfico en Ajustes » Imagen.";
+            rom_path_.clear();
+            return false;
+        }
+    }
     if (!loaded) {
         if (error) *error = "El núcleo no pudo abrir este juego. Puede que el archivo esté dañado o que su chip no sea compatible.";
         rom_path_.clear();
@@ -294,7 +317,13 @@ bool CoreHost::LoadGame(const fs::path& rom, std::string* error) {
 void CoreHost::UnloadGame() {
     if (!game_loaded_) return;
     SaveSram();
+    HwEnter();
     retro_unload_game_();
+    if (hw_active_ && hw_cb_.context_destroy) hw_cb_.context_destroy();
+    HwLeave();
+    if (hw_active_ && hw_host) hw_host->Stop();
+    hw_active_ = false;
+    hw_requested_ = false;
     game_loaded_ = false;
     rom_path_.clear();
     rom_data_.clear();
@@ -306,13 +335,18 @@ void CoreHost::UnloadGame() {
 void CoreHost::RunFrame() {
     if (!game_loaded_) return;
     const Uint64 t0 = SDL_GetPerformanceCounter();
+    HwEnter();
     retro_run_();
+    HwLeave();
     const Uint64 t1 = SDL_GetPerformanceCounter();
     last_run_ms = static_cast<double>(t1 - t0) * 1000.0 / static_cast<double>(SDL_GetPerformanceFrequency());
 }
 
 void CoreHost::Reset() {
-    if (game_loaded_) retro_reset_();
+    if (!game_loaded_) return;
+    HwEnter();
+    retro_reset_();
+    HwLeave();
 }
 
 float CoreHost::AspectRatio() const {
@@ -327,18 +361,30 @@ std::string CoreHost::GameKey() const { return Paths::SafeName(Paths::ToUtf8(rom
 
 // ---------------------------------------------------------------- estados y partidas
 
-size_t CoreHost::StateSize() const { return game_loaded_ ? retro_serialize_size_() : 0; }
+size_t CoreHost::StateSize() const {
+    if (!game_loaded_) return 0;
+    HwEnter();
+    const size_t n = retro_serialize_size_();
+    HwLeave();
+    return n;
+}
 
 bool CoreHost::SaveState(std::vector<uint8_t>& out) const {
     const size_t size = StateSize();
     if (!size) return false;
     out.resize(size);
-    return retro_serialize_(out.data(), size);
+    HwEnter();
+    const bool ok = retro_serialize_(out.data(), size);
+    HwLeave();
+    return ok;
 }
 
 bool CoreHost::LoadState(const std::vector<uint8_t>& in) {
     if (!game_loaded_ || in.empty()) return false;
-    return retro_unserialize_(in.data(), in.size());
+    HwEnter();
+    const bool ok = retro_unserialize_(in.data(), in.size());
+    HwLeave();
+    return ok;
 }
 
 bool CoreHost::SaveStateFile(const fs::path& file) const {
@@ -416,7 +462,18 @@ void CoreHost::SaveSram() {
 // ---------------------------------------------------------------- imagen
 
 void CoreHost::Video(const void* data, unsigned w, unsigned h, size_t pitch) {
-    if (!data || data == RETRO_HW_FRAME_BUFFER_VALID || !w || !h) return; // cuadro repetido
+    if (data == RETRO_HW_FRAME_BUFFER_VALID && w && h) {
+        // Cuadro dibujado por la tarjeta gráfica: queda en la textura del contexto del núcleo.
+        if (!video_enabled || !hw_host) return;
+        if (w != frame_w_ || h != frame_h_) geometry_changed_ = true;
+        frame_w_ = w;
+        frame_h_ = h;
+        frame_.clear();
+        hw_host->Frame(w, h);
+        ++frame_serial_;
+        return;
+    }
+    if (!data || !w || !h) return; // cuadro repetido
     if (!video_enabled) return;
     const size_t bpp = pixel_format_ == PixelFormat::XRGB8888 ? 4 : 2;
     const size_t row = static_cast<size_t>(w) * bpp;
@@ -708,11 +765,33 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
         geometry_changed_ = true;
         return true;
     }
+    case Cmd(RETRO_ENVIRONMENT_SET_HW_RENDER): {
+        auto* cb = static_cast<retro_hw_render_callback*>(data);
+        if (!hw_host) return false;
+        if (!hw_host->Accept(cb)) {
+            Log::Info("El núcleo pidió dibujo por tarjeta gráfica (tipo %u) y no se le dio", static_cast<unsigned>(cb->context_type));
+            return false;
+        }
+        cb->get_current_framebuffer = &CoreCallbacks::HwFramebuffer;
+        cb->get_proc_address = &CoreCallbacks::HwProc;
+        hw_cb_ = *cb;
+        hw_requested_ = true;
+        return true;
+    }
+    case Cmd(RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER):
+        if (!hw_host) return false;
+        *static_cast<unsigned*>(data) = hw_host->Preferred();
+        return true;
+    case Cmd(RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE):
+        return hw_host && hw_host->Interface(static_cast<const retro_hw_render_interface**>(data));
+    case Cmd(RETRO_ENVIRONMENT_SET_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE):
+        return hw_host && hw_host->Negotiation(static_cast<const retro_hw_render_context_negotiation_interface*>(data));
     case Cmd(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO): {
         const auto* av = static_cast<const retro_system_av_info*>(data);
         if (std::fabs(av->timing.sample_rate - av_info_.timing.sample_rate) > 0.5) audio_rate_changed_ = true;
         av_info_ = *av;
         geometry_changed_ = true;
+        if (hw_active_ && hw_host) hw_host->Geometry(av_info_);
         return true;
     }
     case Cmd(RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE):
@@ -778,7 +857,7 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
     case Cmd(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO):
     case Cmd(RETRO_ENVIRONMENT_SET_SUBSYSTEM_INFO):
     case Cmd(RETRO_ENVIRONMENT_SET_MEMORY_MAPS):
-    case Cmd(RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS):
+    case Cmd(RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS): // también SET_HW_SHARED_CONTEXT (44): se acepta
     case Cmd(RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS):
     case Cmd(RETRO_ENVIRONMENT_SET_CONTENT_INFO_OVERRIDE):
     case Cmd(RETRO_ENVIRONMENT_SET_MINIMUM_AUDIO_LATENCY):

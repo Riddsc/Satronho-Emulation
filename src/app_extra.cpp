@@ -13,6 +13,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "ui/controllers.h"
+#include "util/log.h"
 
 namespace Satronho {
 
@@ -860,6 +861,95 @@ void App::DrawGuideChat() {
             AskGuides(chat_input_);
             chat_input_[0] = 0;
             chat_focus_ = true;
+        }
+    }
+}
+
+} // namespace Satronho
+
+namespace Satronho {
+
+// ---------------------------------------------------------------- tarjeta gráfica en CD y 64
+
+namespace {
+// Factores que acepta cada núcleo, de menor a mayor.
+int Floor(int want, std::initializer_list<int> allowed) {
+    int best = *allowed.begin();
+    for (int a : allowed)
+        if (a <= want) best = a;
+    return best;
+}
+} // namespace
+
+int App::GpuApiFor(const SystemDef& sys) const {
+    // 1 OpenGL, 2 Vulkan, 3 procesador.
+    if (!gl_) return 3;
+    int api = settings_.GpuApi(sys.id);
+    if (api == 0 && hw_.software) return 3; // sin tarjeta gráfica de verdad
+    if (api == 0) {
+        // Automático: Vulkan en tarjetas NVIDIA y AMD (dedicadas), OpenGL en el resto (Intel,
+        // integradas viejas): es lo más compatible.
+        std::string g = hw_.gpu;
+        for (auto& c : g) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        const bool strong = g.find("nvidia") != std::string::npos || g.find("geforce") != std::string::npos ||
+                            g.find("rtx") != std::string::npos || g.find("radeon") != std::string::npos || g.find("amd") != std::string::npos;
+        api = strong && hw_render_.VulkanAvailable() ? 2 : 1;
+        // La 64 con ParaLLEl-RDP pide una tarjeta con bastante memoria de video.
+        if (api == 2 && sys.id == "n64" && hw_.vram_mb > 0 && hw_.vram_mb < 2000) api = 1;
+    }
+    if (api == 2 && !hw_render_.VulkanAvailable()) api = 1;
+    return api;
+}
+
+int App::GpuResFor(const SystemDef& sys, int api) const {
+    int res = settings_.GpuRes(sys.id);
+    if (res > 0) return res;
+    if (api == 3) return sys.id == "cd" ? 1 : 1;
+    // Automática: según el alto de la pantalla (240 líneas de la consola) y la tarjeta.
+    const int lines = std::max(480, hw_.display_h > 0 ? hw_.display_h : 1080);
+    res = std::clamp(lines / 240, 1, 8);
+    std::string g = hw_.gpu;
+    for (auto& c : g) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    const bool integrated = g.find("intel") != std::string::npos || g.find("uhd") != std::string::npos || g.find("vega") != std::string::npos ||
+                            (hw_.vram_mb > 0 && hw_.vram_mb < 1500);
+    if (integrated) res = std::min(res, 2);
+    else if (hw_.vram_mb > 0 && hw_.vram_mb < 4000) res = std::min(res, 3);
+    else res = std::min(res, 4);
+    return std::max(1, res);
+}
+
+void App::ApplyGpuChoice(const SystemDef& sys) {
+    const bool gpu_sys = sys.id == "cd" || sys.id == "n64";
+    if (!gpu_sys) {
+        hw_render_.SetWanted(gl_ ? RETRO_HW_CONTEXT_OPENGL_CORE : RETRO_HW_CONTEXT_NONE);
+        return;
+    }
+    const int api = GpuApiFor(sys);
+    const int res = GpuResFor(sys, api);
+    hw_render_.SetWanted(api == 1 ? RETRO_HW_CONTEXT_OPENGL_CORE : api == 2 ? RETRO_HW_CONTEXT_VULKAN : RETRO_HW_CONTEXT_NONE);
+    const char* api_name = api == 1 ? "OpenGL" : api == 2 ? "Vulkan" : "procesador";
+    if (sys.id == "cd") {
+        core_.SetOption("beetle_psx_hw_renderer", api == 1 ? "hardware_gl" : api == 2 ? "hardware_vk" : "software");
+        // Con el procesador, más de 2× va lento: se limita.
+        const int k = Floor(api == 3 ? std::min(res, 2) : res, {1, 2, 4, 8, 16});
+        core_.SetOption("beetle_psx_hw_internal_resolution", k == 1 ? "1x(native)" : std::to_string(k) + "x");
+        Log::Info("CD: %s a %d×", api_name, k);
+    } else {
+        if (api == 1) {
+            core_.SetOption("mupen64plus-rdp-plugin", "gliden64");
+            core_.SetOption("mupen64plus-rsp-plugin", "hle");
+            core_.SetOption("mupen64plus-EnableNativeResFactor", std::to_string(std::clamp(res, 1, 8)));
+            Log::Info("64: GLideN64 (OpenGL) a %d×", std::clamp(res, 1, 8));
+        } else if (api == 2) {
+            const int k = Floor(res, {1, 2, 4, 8});
+            core_.SetOption("mupen64plus-rdp-plugin", "parallel");
+            core_.SetOption("mupen64plus-rsp-plugin", "parallel");
+            core_.SetOption("mupen64plus-parallel-rdp-upscaling", std::to_string(k) + "x");
+            Log::Info("64: ParaLLEl-RDP (Vulkan) a %d×", k);
+        } else {
+            core_.SetOption("mupen64plus-rdp-plugin", "angrylion");
+            core_.SetOption("mupen64plus-rsp-plugin", "parallel");
+            Log::Info("64: Angrylion (procesador)");
         }
     }
 }

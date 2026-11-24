@@ -51,6 +51,25 @@ struct PadState {
 
 enum class PixelFormat { XRGB1555, XRGB8888, RGB565 };
 
+// Dibujo por tarjeta gráfica que piden algunos núcleos (CD con Beetle PSX HW, 64 con GLideN64 o
+// ParaLLEl-RDP). La aplicación lo implementa con OpenGL o Vulkan (gfx/hw_render).
+class HwRenderHost {
+public:
+    virtual ~HwRenderHost() = default;
+    virtual bool Accept(retro_hw_render_callback* cb) = 0;   // RETRO_ENVIRONMENT_SET_HW_RENDER
+    virtual unsigned Preferred() const = 0;                  // RETRO_HW_CONTEXT_* que conviene en este equipo
+    virtual bool Interface(const retro_hw_render_interface** out) = 0;
+    virtual bool Negotiation(const retro_hw_render_context_negotiation_interface* iface) = 0;
+    virtual bool Start(const retro_system_av_info& av) = 0;  // tras cargar el juego: crea el contexto
+    virtual void Stop() = 0;                                 // al cerrar el juego
+    virtual void Enter() = 0;                                // antes de llamar al núcleo
+    virtual void Leave() = 0;                                // después
+    virtual void Frame(unsigned w, unsigned h) = 0;          // el núcleo entregó un cuadro
+    virtual void Geometry(const retro_system_av_info& av) = 0;
+    virtual uintptr_t Framebuffer() = 0;
+    virtual retro_proc_address_t ProcAddress(const char* sym) = 0;
+};
+
 // Carga un núcleo libretro (.dll/.so), le habla al juego y guarda lo que el núcleo entrega:
 // la imagen, el sonido y los mensajes.
 class CoreHost {
@@ -137,6 +156,11 @@ public:
     // Información para el medidor.
     double last_run_ms = 0.0;
 
+    // Tarjeta gráfica: quién atiende a los núcleos que la piden (nullptr = solo software).
+    HwRenderHost* hw_host = nullptr;
+    bool HwActive() const { return hw_active_; }
+    const retro_hw_render_callback& HwCallback() const { return hw_cb_; }
+
 private:
     friend struct CoreCallbacks;
 
@@ -145,6 +169,12 @@ private:
     void SetCoreOptionsV1(const retro_core_option_definition* defs, const retro_core_option_definition* local);
     void SetCoreOptionsV2(const retro_core_options_v2* opts, const retro_core_options_v2* local);
     void LoadSram();
+    void HwEnter() const { if (hw_active_ && hw_host) hw_host->Enter(); }
+    void HwLeave() const { if (hw_active_ && hw_host) hw_host->Leave(); }
+
+    retro_hw_render_callback hw_cb_{};
+    bool hw_requested_ = false;
+    bool hw_active_ = false;
 
     void* lib_ = nullptr;
     bool game_loaded_ = false;

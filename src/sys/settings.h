@@ -44,6 +44,12 @@ struct Settings {
 
     std::map<std::string, VideoOverride> video_for; // por consola (id)
 
+    // Tarjeta gráfica en CD y 64: motor (0 automático, 1 OpenGL, 2 Vulkan, 3 procesador) y
+    // resolución interna (0 automática, 1 a 8 veces la original).
+    std::map<std::string, int> gpu_api, gpu_res;
+    int GpuApi(const std::string& sys) const { auto it = gpu_api.find(sys); return it == gpu_api.end() ? 0 : it->second; }
+    int GpuRes(const std::string& sys) const { auto it = gpu_res.find(sys); return it == gpu_res.end() ? 0 : it->second; }
+
     // Rendimiento
     int runahead = 0;              // cuadros de adelanto para reducir el retraso (solo NES por ahora)
     bool rewind = true;

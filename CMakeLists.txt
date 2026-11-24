@@ -55,6 +55,10 @@ add_executable(satronho-emulation WIN32
   src/util/json.cpp
   src/util/log.cpp
   src/util/net.cpp
+  src/gfx/gl.cpp
+  src/gfx/hw_render.cpp
+  src/gfx/video_gl.cpp
+  src/gfx/vulkan_bridge.cpp
   src/util/paths.cpp
   ${IMGUI}/imgui.cpp
   ${IMGUI}/imgui_draw.cpp
@@ -62,8 +66,9 @@ add_executable(satronho-emulation WIN32
   ${IMGUI}/imgui_widgets.cpp
   ${IMGUI}/backends/imgui_impl_sdl3.cpp
   ${IMGUI}/backends/imgui_impl_sdlrenderer3.cpp
+  ${IMGUI}/backends/imgui_impl_opengl3.cpp
 )
-target_include_directories(satronho-emulation PRIVATE src ${IMGUI} ${IMGUI}/backends external/stb external/libretro)
+target_include_directories(satronho-emulation PRIVATE src ${IMGUI} ${IMGUI}/backends external/stb external/libretro external/vulkan)
 target_compile_definitions(satronho-emulation PRIVATE SATRONHO_BUILD=${SATRONHO_BUILD} IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
 if(TARGET SDL3::SDL3-static)
   target_link_libraries(satronho-emulation PRIVATE SDL3::SDL3-static)

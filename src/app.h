@@ -15,6 +15,8 @@
 #include "core/input.h"
 #include "core/rewind.h"
 #include "core/video.h"
+#include "gfx/hw_render.h"
+#include "gfx/video_gl.h"
 #include "sys/covers.h"
 #include "sys/guide_chat.h"
 #include "sys/hardware.h"
@@ -159,7 +161,16 @@ private:
 
     // Sistema
     SDL_Window* window_ = nullptr;
-    SDL_Renderer* renderer_ = nullptr;
+    SDL_Renderer* renderer_ = nullptr;   // motor clásico (SDL)
+    SDL_GLContext gl_ctx_ = nullptr;     // motor OpenGL
+    bool gl_ = false;
+    VideoOutGl video_gl_;
+    HwRender hw_render_;
+    void ApplyVsync();
+    std::vector<uint8_t> CurrentFrameRGBA(unsigned* w, unsigned* h);
+    void ApplyGpuChoice(const SystemDef& sys); // motor y resolución de CD y 64
+    int GpuApiFor(const SystemDef& sys) const;  // 1 OpenGL, 2 Vulkan, 3 procesador
+    int GpuResFor(const SystemDef& sys, int api) const;
     bool running_ = true;
     Uint64 last_ns_ = 0;
     double loop_ema_ = 1.0 / 60.0;

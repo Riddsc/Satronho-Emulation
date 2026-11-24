@@ -51,6 +51,14 @@ void Settings::Load(const Ini& ini) {
         video_for[sys.id] = v;
     }
 
+    gpu_api.clear();
+    gpu_res.clear();
+    for (const char* id : {"cd", "n64"}) {
+        const std::string b = std::string("gpu.") + id + ".";
+        if (ini.Values().count(b + "motor")) gpu_api[id] = std::clamp(ini.GetInt(b + "motor", 0), 0, 3);
+        if (ini.Values().count(b + "resolucion")) gpu_res[id] = std::clamp(ini.GetInt(b + "resolucion", 0), 0, 8);
+    }
+
     meter = std::clamp(ini.GetInt("medidor.modo", meter), 0, 2);
     meter_corner = std::clamp(ini.GetInt("medidor.esquina", meter_corner), 0, 3);
     meter_color = std::clamp(ini.GetInt("medidor.color", meter_color), 0, 4);
@@ -118,6 +126,9 @@ void Settings::Save(Ini& ini) const {
         ini.SetInt(b + "efecto", v.effect);
         ini.SetFloat(b + "intensidad", v.effect_strength);
     }
+
+    for (const auto& [id, v] : gpu_api) ini.SetInt("gpu." + id + ".motor", v);
+    for (const auto& [id, v] : gpu_res) ini.SetInt("gpu." + id + ".resolucion", v);
 
     ini.SetInt("medidor.modo", meter);
     ini.SetInt("medidor.esquina", meter_corner);

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <sstream>
@@ -12,6 +13,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include "imgui_impl_opengl3.h"
 
 #include "util/hash.h"
 #include "util/log.h"
@@ -45,6 +47,26 @@ ImTextureID SdlCreateTexture(const unsigned char* rgba, int w, int h, bool smoot
     return static_cast<ImTextureID>(reinterpret_cast<intptr_t>(t));
 }
 void SdlDestroyTexture(ImTextureID id) { SDL_DestroyTexture(reinterpret_cast<SDL_Texture*>(static_cast<intptr_t>(id))); }
+
+// Texturas de la interfaz con OpenGL.
+ImTextureID GlCreateTexture(const unsigned char* rgba, int w, int h, bool smooth) {
+    GLuint t = 0;
+    Gl::GenTextures(1, &t);
+    Gl::BindTexture(GL_TEXTURE_2D, t);
+    Gl::PixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    Gl::PixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    Gl::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+    Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, smooth ? GL_LINEAR : GL_NEAREST);
+    Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, smooth ? GL_LINEAR : GL_NEAREST);
+    Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    Gl::BindTexture(GL_TEXTURE_2D, 0);
+    return static_cast<ImTextureID>(t);
+}
+void GlDestroyTexture(ImTextureID id) {
+    const GLuint t = static_cast<GLuint>(id);
+    Gl::DeleteTextures(1, &t);
+}
 } // namespace
 
 void FolderDialogCallback(void* user, const char* const* list, int) {
@@ -117,13 +139,42 @@ bool App::Init() {
     }
 
     ini_.Load(Paths::ConfigFile());
+    // Hasta la build 12, CD usaba Beetle PSX solo por software («beetle_psx_…»); ahora es la
+    // versión con tarjeta gráfica («beetle_psx_hw_…»): los cambios de la persona se pasan solos.
+    {
+        std::vector<std::pair<std::string, std::string>> moved;
+        for (const auto& [k, v] : ini_.Values())
+            if (k.rfind("nucleo.cd.beetle_psx_", 0) == 0 && k.rfind("nucleo.cd.beetle_psx_hw_", 0) != 0) moved.emplace_back(k, v);
+        for (const auto& [k, v] : moved) {
+            const std::string nk = "nucleo.cd.beetle_psx_hw_" + k.substr(std::strlen("nucleo.cd.beetle_psx_"));
+            if (!ini_.Values().count(nk)) ini_.Set(nk, v);
+            ini_.Erase(k);
+        }
+        if (!moved.empty()) Log::Info("Opciones de CD pasadas a Beetle PSX HW: %zu", moved.size());
+    }
     settings_.Load(ini_);
     if (qa_.count("fresh")) settings_ = Settings{};
+    if (qa_.count("gpu")) settings_.gpu_api["cd"] = settings_.gpu_api["n64"] = std::atoi(qa_["gpu"].c_str());
+    if (qa_.count("res")) settings_.gpu_res["cd"] = settings_.gpu_res["n64"] = std::atoi(qa_["res"].c_str());
     if (qa_.count("tema")) settings_.theme = std::atoi(qa_["tema"].c_str());
     if (qa_.count("vista")) settings_.lib_view[qa_.count("sistema") ? qa_["sistema"] : "todas"] = std::atoi(qa_["vista"].c_str());
     Ui::ApplyTheme(settings_.theme);
 
+    // Motor gráfico: OpenGL (el de Satronho, con sombreadores y dibujo por tarjeta gráfica para
+    // CD y 64) o el clásico de SDL (Direct3D…), que queda de respaldo si OpenGL no arranca.
+    std::string engine = settings_.renderer;
+    if (const char* env = SDL_getenv("SATRONHO_GFX")) engine = env;
+    bool want_gl = engine == "auto" || engine == "opengl";
     SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
+    if (want_gl) {
+        flags |= SDL_WINDOW_OPENGL;
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+        SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
+    }
     int ww = 1320, wh = 820;
     if (const SDL_DisplayMode* dm = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay())) {
         if (dm->h >= 1350) {
@@ -134,6 +185,11 @@ bool App::Init() {
     ww = std::max(960, ini_.GetInt("ventana.ancho", ww));
     wh = std::max(620, ini_.GetInt("ventana.alto", wh));
     window_ = SDL_CreateWindow("Satronho Emulation", ww, wh, flags);
+    if (!window_ && want_gl) {
+        Log::Warn("No se pudo crear la ventana con OpenGL (%s); sigo con el motor clásico", SDL_GetError());
+        want_gl = false;
+        window_ = SDL_CreateWindow("Satronho Emulation", ww, wh, flags & ~SDL_WINDOW_OPENGL);
+    }
     if (!window_) {
         Log::Error("No se pudo crear la ventana: %s", SDL_GetError());
         return false;
@@ -147,17 +203,46 @@ bool App::Init() {
         SDL_DestroySurface(icon);
     }
 
-    const char* wanted = settings_.renderer == "auto" ? nullptr : settings_.renderer.c_str();
-    renderer_ = SDL_CreateRenderer(window_, wanted);
-    if (!renderer_ && wanted) renderer_ = SDL_CreateRenderer(window_, nullptr);
-    if (!renderer_) {
-        Log::Error("No se pudo crear el dibujador: %s", SDL_GetError());
-        return false;
+    if (want_gl) {
+        gl_ctx_ = SDL_GL_CreateContext(window_);
+        if (gl_ctx_ && SDL_GL_MakeCurrent(window_, gl_ctx_) && Gl::Load() && video_gl_.Init()) {
+            gl_ = true;
+            const char* ver = reinterpret_cast<const char*>(Gl::GetString(GL_VERSION));
+            const char* gpu = reinterpret_cast<const char*>(Gl::GetString(GL_RENDERER));
+            Log::Info("Motor gráfico: OpenGL %s · %s", ver ? ver : "?", gpu ? gpu : "?");
+        } else {
+            Log::Warn("OpenGL 3.3 no está disponible (%s); sigo con el motor clásico", SDL_GetError());
+            if (gl_ctx_) SDL_GL_DestroyContext(gl_ctx_);
+            gl_ctx_ = nullptr;
+        }
     }
-    SDL_SetRenderVSync(renderer_, settings_.vsync ? 1 : 0);
-    Log::Info("Motor gráfico: %s", SDL_GetRendererName(renderer_));
+    if (!gl_) {
+        const char* wanted = (engine == "auto" || engine == "opengl") ? nullptr : engine.c_str();
+        renderer_ = SDL_CreateRenderer(window_, wanted);
+        if (!renderer_ && wanted) renderer_ = SDL_CreateRenderer(window_, nullptr);
+        if (!renderer_) {
+            Log::Error("No se pudo crear el dibujador: %s", SDL_GetError());
+            return false;
+        }
+        Log::Info("Motor gráfico: %s (clásico)", SDL_GetRendererName(renderer_));
+    }
+    ApplyVsync();
 
     hw_ = DetectHardware(window_, renderer_);
+    if (gl_) {
+        const char* ver = reinterpret_cast<const char*>(Gl::GetString(GL_VERSION));
+        std::string v = ver ? ver : "";
+        if (const size_t sp = v.find(' '); sp != std::string::npos) v = v.substr(0, sp);
+        hw_.renderer = "OpenGL " + v;
+        const char* gpu = reinterpret_cast<const char*>(Gl::GetString(GL_RENDERER));
+        const std::string g = gpu ? gpu : "";
+        hw_.software = g.find("llvmpipe") != std::string::npos || g.find("softpipe") != std::string::npos || g.find("GDI Generic") != std::string::npos;
+        if ((hw_.gpu.empty() || hw_.gpu == "Desconocida") && !g.empty()) hw_.gpu = g;
+        hw_.gpu_render = !hw_.software;
+        hw_render_.Init(window_, gl_ctx_);
+        core_.hw_host = &hw_render_;
+        hw_render_.ProbeVulkan();
+    }
     Log::Info("Equipo: %s · %d hilos · %d MB RAM · %s (%d MB) · %.0f Hz", hw_.cpu.c_str(), hw_.threads, hw_.ram_mb,
               hw_.gpu.c_str(), hw_.vram_mb, hw_.refresh);
 
@@ -167,14 +252,20 @@ bool App::Init() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
     io.IniFilename = nullptr;
     io.LogFilename = nullptr;
-    ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);
-    ImGui_ImplSDLRenderer3_Init(renderer_);
-    g_ui_renderer = renderer_;
-    Ui::SetTextureBackend({&SdlCreateTexture, &SdlDestroyTexture});
+    if (gl_) {
+        ImGui_ImplSDL3_InitForOpenGL(window_, gl_ctx_);
+        ImGui_ImplOpenGL3_Init("#version 330 core");
+        Ui::SetTextureBackend({&GlCreateTexture, &GlDestroyTexture});
+    } else {
+        ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);
+        ImGui_ImplSDLRenderer3_Init(renderer_);
+        g_ui_renderer = renderer_;
+        Ui::SetTextureBackend({&SdlCreateTexture, &SdlDestroyTexture});
+    }
     Ui::LoadFonts(Paths::ToUtf8(Paths::Assets() / "fonts"));
     UpdateScale();
 
-    video_.Init(renderer_);
+    if (!gl_) video_.Init(renderer_);
     covers_.Init();
     audio_.Open();
     ApplyAudioSettings();
@@ -306,13 +397,17 @@ void App::Shutdown() {
     Ui::FreeImage(logo_);
     for (auto& g : guides_) Ui::FreeImage(g);
     covers_.Shutdown();
-    video_.Shutdown();
+    hw_render_.Shutdown();
+    if (gl_) video_gl_.Shutdown();
+    else video_.Shutdown();
     audio_.Close();
     input_.Shutdown();
-    ImGui_ImplSDLRenderer3_Shutdown();
+    if (gl_) ImGui_ImplOpenGL3_Shutdown();
+    else ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
-    SDL_DestroyRenderer(renderer_);
+    if (renderer_) SDL_DestroyRenderer(renderer_);
+    if (gl_ctx_) SDL_GL_DestroyContext(gl_ctx_);
     SDL_DestroyWindow(window_);
     Log::Info("Hasta pronto.");
     Log::Close();
@@ -336,7 +431,7 @@ void App::ApplySuggestion() {
     settings_ = s.result;
     settings_.preset = s.tier;
     ApplyAudioSettings();
-    SDL_SetRenderVSync(renderer_, settings_.vsync ? 1 : 0);
+    ApplyVsync();
     SaveConfig();
     Toast("Configuración " + s.tier + " aplicada. ¡Listo para jugar!", GuideId::Nono, 4.5);
 }
@@ -497,7 +592,10 @@ void App::Frame() {
 
     if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0) EmulateTick(dt);
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
-    if (in_game_) video_.Upload(core_);
+    if (in_game_) {
+        if (gl_) video_gl_.Upload(core_);
+        else video_.Upload(core_);
+    }
     if (const std::string c = input_.TakeConflict(); !c.empty()) Toast(c, GuideId::Samy, 7);
 
     usage_timer_ += dt;
@@ -506,24 +604,38 @@ void App::Frame() {
         proc_ = usage_.Sample(hw_.threads);
     }
 
-    ImGui_ImplSDLRenderer3_NewFrame();
+    if (gl_) ImGui_ImplOpenGL3_NewFrame();
+    else ImGui_ImplSDLRenderer3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     DrawUi();
     ImGui::Render();
 
     int pw, ph;
-    SDL_GetRenderOutputSize(renderer_, &pw, &ph);
-    SDL_SetRenderDrawColor(renderer_, (Ui::Color::Bg >> 16) & 0xFF, (Ui::Color::Bg >> 8) & 0xFF, Ui::Color::Bg & 0xFF, 255);
-    SDL_RenderClear(renderer_);
-    if (in_game_) {
-        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+    if (gl_) {
+        SDL_GetWindowSizeInPixels(window_, &pw, &ph);
+        Gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
+        Gl::Viewport(0, 0, pw, ph);
+        const unsigned bg = in_game_ ? 0 : Ui::Color::Bg;
+        Gl::ClearColor(((bg >> 16) & 0xFF) / 255.0f, ((bg >> 8) & 0xFF) / 255.0f, (bg & 0xFF) / 255.0f, 1.0f);
+        Gl::Clear(GL_COLOR_BUFFER_BIT);
+        if (in_game_) video_gl_.Draw(core_, &hw_render_, settings_.ForSystem(sys_->id), pw, ph, sys_->handheld);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        QaTick();
+        SDL_GL_SwapWindow(window_);
+    } else {
+        SDL_GetRenderOutputSize(renderer_, &pw, &ph);
+        SDL_SetRenderDrawColor(renderer_, (Ui::Color::Bg >> 16) & 0xFF, (Ui::Color::Bg >> 8) & 0xFF, Ui::Color::Bg & 0xFF, 255);
         SDL_RenderClear(renderer_);
-        video_.Draw(core_, settings_.ForSystem(sys_->id), pw, ph, sys_->handheld);
+        if (in_game_) {
+            SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+            SDL_RenderClear(renderer_);
+            video_.Draw(core_, settings_.ForSystem(sys_->id), pw, ph, sys_->handheld);
+        }
+        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
+        QaTick();
+        SDL_RenderPresent(renderer_);
     }
-    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
-    QaTick();
-    SDL_RenderPresent(renderer_);
 
     // Juego pedido: ya se mostró «Cargando…», ahora se abre.
     if (!pending_start_.empty() && ++pending_frames_ >= 2) {
@@ -577,7 +689,15 @@ void App::QaTick() {
         if (qa_frames_ == wanted * 2 / 3) LoadSlot(2);
     }
     if (qa_frames_ < wanted) return;
-    if (qa_.count("shot")) {
+    if (qa_.count("shot") && gl_) {
+        int w, h;
+        SDL_GetWindowSizeInPixels(window_, &w, &h);
+        std::vector<unsigned char> px(static_cast<size_t>(w) * h * 4), flip(px.size());
+        Gl::PixelStorei(GL_PACK_ALIGNMENT, 1);
+        Gl::ReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+        for (int y = 0; y < h; ++y) std::memcpy(&flip[static_cast<size_t>(y) * w * 4], &px[static_cast<size_t>(h - 1 - y) * w * 4], static_cast<size_t>(w) * 4);
+        Ui::SavePng(qa_["shot"], flip.data(), w, h);
+    } else if (qa_.count("shot")) {
         if (SDL_Surface* s = SDL_RenderReadPixels(renderer_, nullptr)) {
             SDL_Surface* c = SDL_ConvertSurface(s, SDL_PIXELFORMAT_RGBA32);
             if (c) {
@@ -891,6 +1011,7 @@ bool App::StartGame(const fs::path& rom) {
     core_.port_device = sys->port_device;
     // Cada consola guarda sus partidas en su propia carpeta (partidas/<consola>).
     core_.SetSaveDir(Paths::Saves() / sys->id);
+    ApplyGpuChoice(*sys);
     if (!core_.LoadGame(rom, &err)) {
         Toast(err, GuideId::MechaRidds, 6);
         return false;
@@ -909,6 +1030,7 @@ bool App::StartGame(const fs::path& rom) {
     audio_.Configure(core_.SampleRate());
     ApplyAudioSettings();
     video_.Invalidate();
+    video_gl_.Invalidate();
     rewind_.Clear();
     undo_state_.clear();
     resume_pending_ = false;
@@ -1098,8 +1220,15 @@ void App::Step(bool rewinding, bool fast_forward) {
         float mx, my;
         const SDL_MouseButtonFlags mb = SDL_GetMouseState(&mx, &my);
         float dx = mx, dy = my;
-        SDL_RenderCoordinatesFromWindow(renderer_, mx, my, &dx, &dy);
-        const SDL_FRect r = video_.LastRect();
+        if (gl_) {
+            // Del tamaño de la ventana a píxeles (pantallas con escala de Windows).
+            const float k = SDL_GetWindowPixelDensity(window_);
+            dx = mx * k;
+            dy = my * k;
+        } else {
+            SDL_RenderCoordinatesFromWindow(renderer_, mx, my, &dx, &dy);
+        }
+        const SDL_FRect r = gl_ ? video_gl_.LastRect() : video_.LastRect();
         if (r.w > 1 && r.h > 1) {
             const float u = (dx - r.x) / r.w, v = (dy - r.y) / r.h;
             const bool inside = u >= 0 && u <= 1 && v >= 0 && v <= 1;
@@ -1217,7 +1346,7 @@ void App::SaveSlot(int slot, bool quiet) {
         return;
     }
     unsigned w, h;
-    const auto rgba = core_.FrameRGBA(&w, &h);
+    const auto rgba = CurrentFrameRGBA(&w, &h);
     if (!rgba.empty()) {
         fs::path png = p;
         png += ".png";
@@ -1277,9 +1406,29 @@ void App::ServiceDiskSwap() {
     Toast(ok ? "Pusiste el " + core_.DiskLabel(target) + "." : std::string("No se pudo poner ese disco."), GuideId::Samy, 3);
 }
 
+std::vector<uint8_t> App::CurrentFrameRGBA(unsigned* w, unsigned* h) {
+    // Los cuadros de la tarjeta gráfica no pasan por la memoria: se leen de la textura.
+    if (core_.HwActive() && core_.Frame().empty()) {
+        std::vector<uint8_t> out;
+        if (hw_render_.ReadRGBA(out, w, h)) return out;
+        return {};
+    }
+    return core_.FrameRGBA(w, h);
+}
+
+void App::ApplyVsync() {
+    if (gl_) {
+        // -1 = adaptativa (si la tarjeta la tiene): no traba cuando un cuadro llega tarde.
+        if (!settings_.vsync) SDL_GL_SetSwapInterval(0);
+        else if (!SDL_GL_SetSwapInterval(1)) SDL_GL_SetSwapInterval(1);
+    } else if (renderer_) {
+        SDL_SetRenderVSync(renderer_, settings_.vsync ? 1 : 0);
+    }
+}
+
 void App::Screenshot() {
     unsigned w, h;
-    const auto rgba = core_.FrameRGBA(&w, &h);
+    const auto rgba = CurrentFrameRGBA(&w, &h);
     if (rgba.empty()) return;
     char stamp[64];
     const std::time_t t = std::time(nullptr);
