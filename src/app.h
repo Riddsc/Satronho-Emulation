@@ -196,6 +196,7 @@ private:
     std::vector<fs::path> import_queue_;
     bool import_busy_ = false;
     std::thread import_thread_;
+    std::thread verify_thread_; // «Verificar el archivo» (CRC32)
     fs::path ImportFolder() const;
     void QueueImport(const fs::path& file);
     void PollImports();

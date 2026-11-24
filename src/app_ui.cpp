@@ -809,7 +809,10 @@ void App::VerifyGame(const Game& g) {
     const uintmax_t size = fs::file_size(g.path, ec);
     const fs::path path = g.path;
     const std::string title = g.title;
-    std::thread([this, path, title, size]() {
+    // El hilo tiene dueño: al cerrar la app se espera a que termine (antes quedaba suelto y podía
+    // cerrarse con error si la app se cerraba a mitad de la revisión).
+    if (verify_thread_.joinable()) verify_thread_.join();
+    verify_thread_ = std::thread([this, path, title, size]() {
         std::ifstream f(path, std::ios::binary);
         mz_ulong crc = 0;
         if (f) {
@@ -826,7 +829,7 @@ void App::VerifyGame(const Game& g) {
         pending_toasts_.push_back(ok ? Fmt("«%s»: %.1f MB · CRC32 %08lX. Compáralo con la lista de tu juego (No-Intro o Redump).", title.c_str(),
                                           size / 1048576.0, static_cast<unsigned long>(crc))
                                     : "No pude leer «" + title + "».");
-    }).detach();
+    });
 }
 
 // Fila de la vista en lista: carátula chica, nombre, consola, tiempo jugado y botón de jugar.

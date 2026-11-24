@@ -3,6 +3,57 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "La biblioteca baja bien, los juegos abren fácil y tus cosas se quedan en «Satronho Games»",
+      "cambios": [
+        {
+          "tipo": "arreglo",
+          "texto": "En la biblioteca ya se puede bajar de verdad: antes la barra bajaba pero los juegos se quedaban pegados arriba, y la página podía irse de lado hasta quedar vacía. Lo causaban el cálculo del encabezado y el botón para volver arriba."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Cada pantalla y cada consola empiezan arriba (antes Herramientas podía abrir vacía)."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Abrir un juego es más fácil: el botón ▶ de las tarjetas ya funciona, y en el celular el primer toque elige el juego y el segundo lo abre (el doble toque también acepta que el dedo se mueva un poco)."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Los discos que vienen en .zip o .7z se sacan en segundo plano, con barra de avance y botón para cancelar. Solo pasa la primera vez; después abren al instante, y la app ya no se congela mientras tanto."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "En el celular, tus juegos, partidas y estados viven en la carpeta «Satronho Games» de la memoria: no se borran si desinstalas la app. La primera vez Ñoño muda solo lo que ya tenías, sin perder tiempo de juego, favoritos ni estados. Se puede cambiar de lugar (por ejemplo a la tarjeta SD) en Ajustes » Biblioteca."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Antes de copiar o descomprimir un juego, Ñoño revisa que quede espacio libre en tu equipo (2 GB de fábrica; lo cambias en Ajustes » Biblioteca). Ahí también ves cuánto ocupa cada consola."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Con el dedo, el control en pantalla va a los costados del juego (Select, Start y la pausa también): ningún botón queda encima de la imagen. El medidor se acomoda en la esquina del juego."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "La barra de menús del juego en el celular ya tiene su fondo (antes los menús quedaban encima de la imagen y casi no se leían), y el aviso al empezar habla del dedo, del mando o del teclado según lo que uses."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Ajustes de un solo juego: clic derecho (o deja el dedo quieto medio segundo) » «Ajustes de este juego». En CD puedes cambiar el mando a uno normal sin palancas, para juegos viejos que dicen que el mando está mal conectado, y en CD y 64 el motor gráfico y la resolución solo para ese juego."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Una consola sin juegos ya no dice que tu biblioteca está vacía: te dice qué archivos abre esa consola. También quedaron traducidos los «juegos» de los títulos, los nombres de las consolas y el último botón en Herramientas."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Antes de publicar cada build, una prueba automática baja y mueve de lado todas las pantallas: si alguna se estira sin fin, la build no sale."
+        }
+      ]
+    },
+    {
+      "version": "Build 19",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "El carrusel se arrastra y ya no sale el aviso rojo",
       "cambios": [
         {

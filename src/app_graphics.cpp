@@ -44,11 +44,6 @@ void Muted(const char* text, float size = 13.5f) {
     ImGui::PopStyleColor();
 }
 
-void Heading(const char* text, float size = 18) {
-    FontScope f(GetFonts().semibold, size);
-    ImGui::TextUnformatted(Tr(text));
-}
-
 // Lo que hace el valor elegido, en una línea bajo la opción (color de acento suave).
 void ChoiceNote(const char* text) {
     if (!text || !*text) return;

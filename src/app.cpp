@@ -451,6 +451,7 @@ void App::Shutdown() {
     if (unpack_thread_.joinable()) unpack_thread_.join();
     if (move_thread_.joinable()) move_thread_.join();
     if (storage_thread_.joinable()) storage_thread_.join();
+    if (verify_thread_.joinable()) verify_thread_.join();
     if (import_thread_.joinable()) import_thread_.join();
     covers_.Shutdown();
     hw_render_.Shutdown();
@@ -621,8 +622,8 @@ void App::ApplySafeArea() {
     float l = 0, t = 0, r = 0, b = 0;
     int ww = 0, wh = 0;
     SDL_GetWindowSize(window_, &ww, &wh);
-    const float k = ww > 0 ? vp->Size.x / static_cast<float>(ww) : 1.0f;
 #ifdef __ANDROID__
+    const float k = ww > 0 ? vp->Size.x / static_cast<float>(ww) : 1.0f;
     SDL_Rect sa{};
     if (SDL_GetWindowSafeArea(window_, &sa) && sa.w > 0 && sa.h > 0) {
         l = sa.x * k;

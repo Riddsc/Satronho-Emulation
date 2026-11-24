@@ -494,7 +494,7 @@ void App::ImportWorker() {
 
     while (true) {
         fs::path file;
-        int index = 0, total = 0;
+        int total = 0;
         {
             std::lock_guard lock(import_mutex_);
             if (import_queue_.empty()) {
@@ -506,7 +506,7 @@ void App::ImportWorker() {
             }
             file = import_queue_.front();
             import_queue_.erase(import_queue_.begin());
-            index = ++import_.files_done;
+            ++import_.files_done;
             total = import_.files_done + static_cast<int>(import_queue_.size());
             import_.files_total = total;
         }
