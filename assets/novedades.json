@@ -3,6 +3,25 @@
     {
       "version": "Esta build",
       "fecha": "23 de noviembre de 2026",
+      "titulo": "Llega Satronho Anillo, y cada quien puede poner su BIOS",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Anillo, para juegos de Sega Saturn, con Beetle Saturn y su mando de 6 botones con L y R. La Saturn necesita su BIOS original (mpr-17933.bin o sega_101.bin): se agrega en Ajustes » Núcleo » Anillo, y si falta, la app te lleva ahí."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "BIOS opcional en Bolsillo, Bolsillo Plus, CD y Dual: en Ajustes » Núcleo, «Agregar BIOS…» la copia con el nombre que busca el núcleo, aunque el archivo se llame distinto. Sin BIOS todo sigue funcionando como hasta ahora."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Los juegos en disco se reconocen solos: si el disco es de Saturn va a Anillo, y si es de PlayStation, a CD."
+        }
+      ]
+    },
+    {
+      "version": "Build 9",
+      "fecha": "23 de noviembre de 2026",
       "titulo": "Llegan Satronho 64 y Satronho Dual, y Hexa se ve bien siempre",
       "cambios": [
         {

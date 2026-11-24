@@ -198,7 +198,7 @@ Mapping Input::DefaultMapping(const SystemDef& sys, bool keyboard_keys) {
         m.pad[RETRO_DEVICE_ID_JOYPAD_R] = kPadNone;
         m.pad[RETRO_DEVICE_ID_JOYPAD_START] = SDL_GAMEPAD_BUTTON_START;
     }
-    if (sys.layout == Layout::Genesis) {
+    if (sys.layout == Layout::Genesis || sys.layout == Layout::Saturn) {
         // Mando de 6 botones: A B C abajo y X Y Z arriba, como quedan en un mando moderno.
         // (BlastEm: A = B del RetroPad, B = A, C = R, X = Y, Y = X, Z = L.)
         if (keyboard_keys) {

@@ -116,6 +116,10 @@ std::vector<SystemDef> Build() {
     cd.port_device = RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1); // DualShock
     cd.analog = true;
     cd.disc = true;
+    cd.bios = {{"scph5501.bin", 524288, "5501|usa|us|america|ntsc-u"}, {"scph5500.bin", 524288, "5500|jap|jp|japan|ntsc-j"},
+               {"scph5502.bin", 524288, "5502|eur|eu|europe|pal"}, {"scph1001.bin", 524288, "1001"},
+               {"scph7001.bin", 524288, "7001"}, {"scph5552.bin", 524288, "5552"}};
+    cd.bios_note = "Sin BIOS se usa OpenBIOS, libre e incluida. Con la original sale el logo de PlayStation y algunos juegos andan mejor.";
     cd.runahead_ok = false; // por probar con juegos reales; el estado pesa varios MB
     // Imagen al doble de resolución (polígonos más finos) y sin el tramado de la época.
     // El desentrelazado adaptativo evita las rayas en los modos de alta resolución (las peleas
@@ -167,9 +171,39 @@ std::vector<SystemDef> Build() {
     ds.face = {{RETRO_DEVICE_ID_JOYPAD_X}, {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_A}, {RETRO_DEVICE_ID_JOYPAD_B}};
     ds.shoulders = {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R};
     ds.touch = true;
+    ds.bios = {{"bios7.bin", 16384, "bios7|arm7"}, {"bios9.bin", 4096, "bios9|arm9"}, {"firmware.bin", 262144, "firmware|fw"}};
+    ds.bios_note = "Sin BIOS se usa FreeBIOS, libre e incluida. Con la original (bios7, bios9 y firmware) y el modo «Native» en las "
+                   "opciones de abajo sale el menú de la DS al arrancar.";
     ds.core_defaults = {{"melonds_show_current_layout", "disabled"}};
     ds.runahead_ok = false;
     v.push_back(ds);
+
+    // Sega Saturn con el mando de 6 botones (como el de la Mega, con L y R arriba).
+    SystemDef ss = Make("anillo", "Anillo", "juegos de Sega Saturn", "Saturn", "mednafen_saturn", {"cue", "chd", "ccd", "m3u"},
+                        "ANILLO", 0xB07CFF, Layout::Saturn, false);
+    // Igual que en BlastEm: A = B del RetroPad, B = A, C = R, X = Y, Y = X, Z = L; L y R = L2 y R2.
+    ss.buttons = With({{RETRO_DEVICE_ID_JOYPAD_B, "A"},
+                       {RETRO_DEVICE_ID_JOYPAD_A, "B"},
+                       {RETRO_DEVICE_ID_JOYPAD_R, "C"},
+                       {RETRO_DEVICE_ID_JOYPAD_Y, "X"},
+                       {RETRO_DEVICE_ID_JOYPAD_X, "Y"},
+                       {RETRO_DEVICE_ID_JOYPAD_L, "Z"},
+                       {RETRO_DEVICE_ID_JOYPAD_L2, "L"},
+                       {RETRO_DEVICE_ID_JOYPAD_R2, "R"},
+                       {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    ss.face = {{RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_X, RETRO_DEVICE_ID_JOYPAD_L},
+               {RETRO_DEVICE_ID_JOYPAD_B, RETRO_DEVICE_ID_JOYPAD_A, RETRO_DEVICE_ID_JOYPAD_R}};
+    ss.shoulders = {RETRO_DEVICE_ID_JOYPAD_L2, RETRO_DEVICE_ID_JOYPAD_R2};
+    ss.center = {RETRO_DEVICE_ID_JOYPAD_START};
+    ss.center_title = "START";
+    ss.disc = true;
+    ss.runahead_ok = false;
+    ss.bios = {{"mpr-17933.bin", 524288, "17933|usa|us|eur|eu|america|europe|v1.00"}, {"sega_101.bin", 524288, "101|jap|jp|japan"}};
+    ss.bios_required = true;
+    ss.bios_note = "La Saturn necesita su BIOS original: mpr-17933.bin para juegos de América y Europa, sega_101.bin para los de "
+                   "Japón. No existe una libre que la reemplace.";
+    ss.core_defaults = {{"beetle_saturn_deinterlacer", "bob"}};
+    v.push_back(ss);
 
     SystemDef gb = Make("bolsillo", "Bolsillo", "juegos de Game Boy y Game Boy Color", "GB · GBC", "mgba", {"gb", "gbc", "sgb"},
                         "BOLSILLO", 0x9BBC0F, Layout::GameBoy, true);
@@ -178,6 +212,8 @@ std::vector<SystemDef> Build() {
     gb.face = ab_turbo;
     gb.runahead_ok = false; // mGBA guarda el sonido fuera del estado: con adelanto suena raro
     gb.tilt = true;
+    gb.bios = {{"gb_bios.bin", 256, "dmg|gb_bios"}, {"gbc_bios.bin", 2304, "cgb|gbc"}, {"sgb_bios.bin", 256, "sgb"}};
+    gb.bios_note = "No hace falta. Con la original y «Saltar la intro» apagado abajo, sale el logo al arrancar.";
     gb.core_defaults = {{"mgba_skip_bios", "ON"}, {"mgba_sgb_borders", "OFF"}};
     v.push_back(gb);
 
@@ -196,6 +232,8 @@ std::vector<SystemDef> Build() {
     gba.shoulders = {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R};
     gba.runahead_ok = false;
     gba.tilt = true;
+    gba.bios = {{"gba_bios.bin", 16384, "gba"}};
+    gba.bios_note = "No hace falta. Con la original y «Saltar la intro» apagado abajo, sale la animación de inicio.";
     // El sonido de la GBA es áspero de fábrica; un filtro suave lo deja más limpio.
     gba.core_defaults = {{"mgba_skip_bios", "ON"}, {"mgba_audio_low_pass_filter", "enabled"}, {"mgba_audio_low_pass_range", "60"}};
     v.push_back(gba);
@@ -251,7 +289,6 @@ const std::vector<SoonSystem>& SoonSystems() {
     // En el orden en que van llegando.
     static const std::vector<SoonSystem> soon{
         {"Cubo", "GC · Wii", "juegos de GameCube y Wii"},
-        {"Anillo", "Saturn", "juegos de Sega Saturn"},
         {"Sueño", "Dreamcast", "juegos de Dreamcast"},
         {"CD2", "PS2", "juegos de PlayStation 2"},
         {"Portátil", "PSP", "juegos de PSP"},

@@ -81,6 +81,63 @@ void Library::Save() {
     meta_.Save(Paths::LibraryFile());
 }
 
+namespace {
+
+// Busca un texto dentro de los primeros KB de un archivo.
+bool FileHas(const fs::path& file, const std::string& needle, size_t limit = 256 * 1024) {
+    std::ifstream in(file, std::ios::binary);
+    if (!in) return false;
+    std::string buf(limit, '\0');
+    in.read(buf.data(), static_cast<std::streamsize>(limit));
+    buf.resize(static_cast<size_t>(in.gcount()));
+    return buf.find(needle) != std::string::npos;
+}
+
+// Primer archivo de datos que nombra un .cue / .m3u / .ccd.
+fs::path FirstTrack(const fs::path& file, const std::string& ext) {
+    if (ext == "ccd") {
+        fs::path img = file;
+        img.replace_extension(".img");
+        return img;
+    }
+    std::ifstream in(file);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (ext == "m3u") {
+            if (line.empty() || line[0] == '#') continue;
+            const fs::path disc = file.parent_path() / Paths::FromUtf8(line);
+            std::string e = Lower(Paths::ToUtf8(disc.extension()));
+            if (!e.empty() && e[0] == '.') e.erase(0, 1);
+            return e == "cue" || e == "ccd" ? FirstTrack(disc, e) : disc;
+        }
+        const size_t a = line.find('"'), b = line.rfind('"');
+        if (Lower(line).find("file") != std::string::npos && a != std::string::npos && b > a)
+            return file.parent_path() / Paths::FromUtf8(line.substr(a + 1, b - a - 1));
+    }
+    return {};
+}
+
+// Los juegos en disco de PlayStation y de Saturn usan las mismas extensiones: se mira el disco.
+const SystemDef* DiscSystem(const fs::path& file, const std::string& ext) {
+    const SystemDef* cd = SystemById("cd");
+    const SystemDef* saturn = SystemById("anillo");
+    if (!saturn) return cd;
+    if (ext == "chd") {
+        // El CHD va comprimido; se guía por la carpeta o el nombre («Saturn», «SS»).
+        const std::string p = Lower(Paths::ToUtf8(file));
+        return p.find("saturn") != std::string::npos || p.find("/ss/") != std::string::npos ||
+                       p.find("\\ss\\") != std::string::npos
+                   ? saturn
+                   : cd;
+    }
+    const fs::path track = FirstTrack(file, ext);
+    if (!track.empty() && FileHas(track, "SEGA SEGASATURN", 64 * 1024)) return saturn;
+    return cd;
+}
+
+} // namespace
+
 Game Library::MakeGame(const fs::path& file) {
     Game g;
     g.path = file;
@@ -88,7 +145,9 @@ Game Library::MakeGame(const fs::path& file) {
     SplitTitle(Paths::ToUtf8(file.stem()), g.title, g.tags);
     g.ext = Lower(Paths::ToUtf8(file.extension()));
     if (!g.ext.empty() && g.ext[0] == '.') g.ext.erase(0, 1);
-    if (const SystemDef* sys = SystemForExtension(g.ext)) g.system = sys->id;
+    const SystemDef* sys = SystemForExtension(g.ext);
+    if (sys && sys->disc) sys = DiscSystem(file, g.ext);
+    if (sys) g.system = sys->id;
     char hex[16];
     std::snprintf(hex, sizeof hex, "%08x", Fnv(Lower(g.path_utf8)));
     g.key = hex;

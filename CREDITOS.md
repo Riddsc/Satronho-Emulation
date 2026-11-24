@@ -14,6 +14,7 @@ Componentes de terceros incluidos (licencias completas en la carpeta `licencias`
 - Beetle PSX — núcleo de Satronho CD (incluye OpenBIOS) — GPL 2.0 — https://github.com/libretro/beetle-psx-libretro
 - Mupen64Plus-Next — núcleo de Satronho 64 — GPL 2.0 — https://github.com/libretro/mupen64plus-libretro-nx
 - melonDS DS — núcleo de Satronho Dual (incluye FreeBIOS) — GPL 3.0 — https://github.com/JesseTG/melonds-ds
+- Beetle Saturn — núcleo de Satronho Anillo — GPL 2.0 — https://github.com/libretro/beetle-saturn-libretro
 - SDL 3 — zlib — https://github.com/libsdl-org/SDL
 - Dear ImGui — MIT — https://github.com/ocornut/imgui
 - libretro API — MIT — https://github.com/libretro/libretro-common

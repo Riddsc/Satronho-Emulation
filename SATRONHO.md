@@ -108,3 +108,9 @@ juego anota en el registro: cortes, descartes, búfer y tirones.
 - **Dual (melonDS DS)**: CMake con el toolchain de llvm-mingw, sin OpenGL, con JIT. FreeBIOS
   incluida. La pantalla de abajo se toca con el mouse (`RETRO_DEVICE_POINTER`, `SystemDef::touch`).
 - `CoreHost::LoadCore` reinicia el formato de imagen: bsnes no lo pide y heredaba el de otro núcleo.
+- **Anillo (Beetle Saturn)**: como Beetle PSX (`platform=win`, `SHARED` propio). Pide BIOS
+  (`bios_required`): sin ella `StartGame` lleva a Ajustes » Núcleo. Los discos (.cue/.ccd/.m3u)
+  se reparten entre CD y Anillo mirando la primera pista («SEGA SEGASATURN»); los .chd, por el nombre
+  de la carpeta.
+- BIOS: `SystemDef::bios` lista los archivos que reconoce cada núcleo; `App::ImportBios` copia el
+  archivo elegido con el nombre correcto (por nombre, tamaño y pistas como «jap» o «usa»).
