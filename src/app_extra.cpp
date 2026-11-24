@@ -953,6 +953,23 @@ int App::GpuApiFor(const SystemDef& sys) const {
     return api;
 }
 
+std::vector<int> App::GpuResSteps(const SystemDef& sys, int api) const {
+    if (sys.id == "cd") return api == 3 ? std::vector<int>{1, 2} : std::vector<int>{1, 2, 4, 8, 16};
+    if (api == 2) return {1, 2, 4, 8};          // ParaLLEl-RDP
+    if (api == 3) return {1};                    // Angrylion: siempre la original
+    return {1, 2, 3, 4, 5, 6, 8};                // GLideN64
+}
+
+std::string App::ResLabel(int k) {
+    // Las consolas dibujan 240 líneas: cada paso multiplica eso.
+    const int p = k * 240;
+    const char* tag = p <= 240 ? "original" : p < 700 ? "" : p < 900 ? "HD" : p < 1300 ? "Full HD" : p < 1700 ? "2K" : p < 3000 ? "4K" : "8K";
+    std::string s = k == 1 ? "Nativa · 240p" : Fmt("%d× · %dp", k, p);
+    if (*tag && k > 1) s += Fmt(" (%s)", tag);
+    else if (k == 1) s += " (original)";
+    return s;
+}
+
 int App::GpuResFor(const SystemDef& sys, int api) const {
     int res = settings_.GpuRes(sys.id);
     if (res > 0) return res;
@@ -1058,7 +1075,6 @@ void App::DrawGpuSettings(bool& changed) {
         std::string help;
         if (sys->id == "cd") help = api_now == 3 ? "Beetle PSX dibujando con el procesador." : std::string("Beetle PSX HW con ") + api_names[api_now] + ".";
         else help = api_now == 1 ? "GLideN64 con OpenGL." : api_now == 2 ? "ParaLLEl-RDP con Vulkan: el más fiel a la consola." : "Angrylion con el procesador: fiel, pero pesado.";
-        help += Fmt(" Ahora: %d× (unos %dp).", res_now, res_now * 240);
         RowBegin((sys->full + " · " + sys->hint).c_str(), help.c_str());
         int api = settings_.GpuApi(sys->id);
         if (Segmented("##api", &api, {"Auto", "OpenGL", "Vulkan", "Procesador"}, ImGui::GetContentRegionAvail().x)) {
@@ -1067,11 +1083,18 @@ void App::DrawGpuSettings(bool& changed) {
             changed = true;
             if (in_game_ && sys_ == sys) Toast("Se aplica la próxima vez que abras el juego.", GuideId::Troya, 3);
         }
-        std::vector<std::string> res_names = {"Resolución automática", "1× (original)", "2×", "3×", "4×", "5×", "6×", "7×", "8×"};
-        int res = settings_.GpuRes(sys->id);
+        // Resolución como en NX: cada opción dice a cuántas líneas queda y su nombre conocido (HD, 2K, 4K).
+        const std::vector<int> ks = GpuResSteps(*sys, api_now);
+        std::vector<std::string> res_names{Fmt("Automática (ahora %s)", ResLabel(res_now).c_str())};
+        int sel = 0;
+        const int stored = settings_.GpuRes(sys->id);
+        for (size_t i = 0; i < ks.size(); ++i) {
+            res_names.push_back(ResLabel(ks[i]));
+            if (stored > 0 && ks[i] <= stored) sel = static_cast<int>(i) + 1;
+        }
         ImGui::Dummy({0, S(2)});
-        if (ComboStyled("##res", &res, res_names, ImGui::GetContentRegionAvail().x)) {
-            settings_.gpu_res[sys->id] = res;
+        if (ComboStyled("##res", &sel, res_names, ImGui::GetContentRegionAvail().x)) {
+            settings_.gpu_res[sys->id] = sel == 0 ? 0 : ks[sel - 1];
             changed = true;
             if (in_game_ && sys_ == sys) Toast("Se aplica la próxima vez que abras el juego.", GuideId::Troya, 3);
         }

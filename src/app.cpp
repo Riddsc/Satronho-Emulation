@@ -328,6 +328,11 @@ bool App::Init() {
         for (std::string q : {std::string("hola"), qa_["preguntar"]}) AskGuides(q);
     }
     if (qa_.count("salir")) confirm_ = std::atoi(qa_["salir"].c_str());
+    if (qa_.count("ventana")) {
+        int w = 0, h = 0;
+        if (std::sscanf(qa_["ventana"].c_str(), "%dx%d", &w, &h) == 2) SDL_SetWindowSize(window_, w, h);
+    }
+    if (qa_.count("escala_ui")) { settings_.ui_scale = static_cast<float>(std::atof(qa_["escala_ui"].c_str())); UpdateScale(); }
     if (qa_.count("sistema")) {
         lib_system_ = qa_["sistema"];
         ctrl_system_ = qa_["sistema"];
@@ -648,7 +653,7 @@ void App::Frame() {
         const unsigned bg = in_game_ ? 0 : Ui::Color::Bg;
         Gl::ClearColor(((bg >> 16) & 0xFF) / 255.0f, ((bg >> 8) & 0xFF) / 255.0f, (bg & 0xFF) / 255.0f, 1.0f);
         Gl::Clear(GL_COLOR_BUFFER_BIT);
-        if (in_game_) video_gl_.Draw(core_, &hw_render_, settings_.ForSystem(sys_->id), pw, ph, sys_->handheld);
+        if (in_game_) video_gl_.Draw(core_, &hw_render_, VideoSettings(), pw, ph, sys_->handheld);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         QaTick();
         SDL_GL_SwapWindow(window_);
@@ -659,7 +664,7 @@ void App::Frame() {
         if (in_game_) {
             SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
             SDL_RenderClear(renderer_);
-            video_.Draw(core_, settings_.ForSystem(sys_->id), pw, ph, sys_->handheld);
+            video_.Draw(core_, VideoSettings(), pw, ph, sys_->handheld);
         }
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
         QaTick();
@@ -708,6 +713,15 @@ void App::PollUpdater() {
     default:
         break;
     }
+}
+
+Settings App::VideoSettings() const {
+    Settings v = settings_.ForSystem(sys_->id);
+    // «Según la consola»: CRT en las de TV en 2D, LCD en las portátiles y nada en las 3D (CD, 64,
+    // Anillo y Dual se ven mejor limpias, sobre todo a alta resolución).
+    const bool three_d = sys_->id == "cd" || sys_->id == "n64" || sys_->id == "anillo" || sys_->id == "dual";
+    if (v.effect == static_cast<int>(Effect::Auto) && three_d) v.effect = static_cast<int>(Effect::None);
+    return v;
 }
 
 void App::QaTick() {

@@ -146,6 +146,7 @@ private:
     void DrawLibraryCarousel(const std::vector<const Game*>& list, const SystemDef* lib_sys);
     bool DrawCover(ImDrawList* dl, const Game& g, ImVec2 a, ImVec2 b, float rounding, bool hovered);
     void DrawConfirm();
+    Settings VideoSettings() const;   // imagen del juego actual (con «según la consola» resuelto)
     int confirm_frames_ = 0;          // cuadros que la pregunta lleva sin poder mostrarse
     void RequestQuit();               // cerrar la app (pregunta si está activado)
     void RequestExitGame();           // salir del juego (pregunta si está activado)
@@ -241,6 +242,8 @@ private:
     void ApplyGpuChoice(const SystemDef& sys); // motor y resolución de CD y 64
     int GpuApiFor(const SystemDef& sys) const;  // 1 OpenGL, 2 Vulkan, 3 procesador
     int GpuResFor(const SystemDef& sys, int api) const;
+    std::vector<int> GpuResSteps(const SystemDef& sys, int api) const; // pasos que admite cada núcleo
+    static std::string ResLabel(int k);                                 // «4× · 960p (Full HD)»
     bool running_ = true;
     Uint64 last_ns_ = 0;
     double loop_ema_ = 1.0 / 60.0;
