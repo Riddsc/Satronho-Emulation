@@ -132,7 +132,7 @@ struct Topic {
 
 enum Intent {
     kNone, kGreet, kThanks, kWho, kHelp, kHardware, kPerf, kSuggest, kLibrary, kAddGames, kPads, kHotkeys, kStates,
-    kBios, kVideo, kTheme, kEngine, kNews, kCovers, kAudio, kExit, kSystem, kFastForward, kRewind,
+    kBios, kVideo, kTheme, kEngine, kNews, kCovers, kAudio, kExit, kSystem, kFastForward, kRewind, kZip,
 };
 } // namespace
 
@@ -203,6 +203,7 @@ ChatReply AnswerQuestion(const std::string& question, const ChatContext& ctx, in
         case kEngine: return Hits(q, {"vulkan", "opengl", "motor grafico", "motor", "resolucion", "hd", "nvidia", "amd", "radeon", "intel", "directx", "4k", "1080"}) * 2;
         case kNews: return Hits(q, {"novedades", "nuevo", "nueva", "actualiz*", "build", "version", "vienen", "pronto", "proxima", "en camino"});
         case kCovers: return Hits(q, {"caratula*", "portada*", "cajas", "box art", "dibujos de los juegos"}) * 2;
+        case kZip: return Hits(q, {"zip", "7z", "comprimido*", "descomprimir", "rar", "chd", "espacio", "ocupa*", "pesan", "convertir"}) * 2;
         case kAudio: return Hits(q, {"sonido", "audio", "volumen", "latencia", "crujido*", "chasquido*", "se corta el sonido", "musica"});
         case kExit: return Hits(q, {"salir", "cerrar", "cierro", "salgo", "confirmacion", "me pregunta"});
         case kFastForward: return Hits(q, {"avance rapido", "acelerar", "rapido", "turbo"});
@@ -211,7 +212,7 @@ ChatReply AnswerQuestion(const std::string& question, const ChatContext& ctx, in
         }
     };
     Topic best;
-    for (int i = kGreet; i <= kRewind; ++i) {
+    for (int i = kGreet; i <= kZip; ++i) {
         if (i == kSystem) continue;
         const int s = score(static_cast<Intent>(i));
         if (s > best.score) best = {s, i};
@@ -431,6 +432,13 @@ ChatReply AnswerQuestion(const std::string& question, const ChatContext& ctx, in
         say(Samy, Fmt("Las carátulas reales salen de libretro-thumbnails y se descargan solas cuando hay internet. Ya tengo %d guardadas. "
                       "Si alguna no aparece o no te gusta, clic derecho en el juego » «Elegir carátula…» y pones la tuya.", ctx.covers));
         button("Buscar carátulas ahora", ChatAction::DownloadCovers);
+        break;
+    case kZip:
+        say(Nono, "Tus juegos en .zip o .7z se juegan tal cual, sin descomprimirlos: los de cartucho los abro en la memoria y los de disco "
+                  "los saco una vez a una caché que se limpia sola. Y si quieres ahorrar espacio, en Ajustes » Biblioteca puedo convertir tus "
+                  "discos .cue/.bin a .chd: es el mismo disco comprimido, ocupa como la mitad y abre igual. Es opcional; tus originales se "
+                  "quedan salvo que me pidas borrarlos.");
+        button("Ir a Ajustes » Biblioteca", ChatAction::SettingsLibrary);
         break;
     case kAudio:
         say(Samy, Fmt("El volumen está en %d %% y la latencia en %d ms. Si el sonido cruje o se corta, sube la latencia un poco; si sientes "
