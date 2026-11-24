@@ -144,6 +144,12 @@ private:
     ChatContext BuildChatContext() const;
     void PickCoverDialog(const Game& g);
     void BeginPageTransition();
+    // Juegos en .zip / .7z: de cartucho van a la memoria; de disco se sacan a una caché.
+    bool PrepareArchived(const Game& g, fs::path& load_path, std::vector<uint8_t>& mem);
+    void TrimArchiveCache();
+    void DrawArchivePicker();
+    Game archive_pick_;               // juego con varios archivos adentro (se pregunta cuál)
+    std::string start_entry_;         // archivo de adentro elegido para el próximo inicio
     int NextTip();
 
     // Utilidades

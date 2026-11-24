@@ -81,7 +81,8 @@ public:
     void UnloadCore();
     bool CoreLoaded() const { return lib_ != nullptr; }
 
-    bool LoadGame(const fs::path& rom, std::string* error);
+    // data: el juego ya en memoria (sacado de un .zip/.7z); rom queda como nombre del juego.
+    bool LoadGame(const fs::path& rom, std::string* error, std::vector<uint8_t>* data = nullptr);
     void UnloadGame();
     bool GameLoaded() const { return game_loaded_; }
 

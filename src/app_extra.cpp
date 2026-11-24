@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
+#include <fstream>
 #include <random>
 
 #include "app.h"
@@ -1031,6 +1032,140 @@ void App::DrawGpuSettings(bool& changed) {
         RowEnd();
         ImGui::PopID();
     }
+}
+
+} // namespace Satronho
+
+#include "util/archive.h"
+
+namespace Satronho {
+
+// ---------------------------------------------------------------- juegos en .zip y .7z
+
+namespace {
+fs::path ArchiveCacheDir() { return Paths::User() / "cache" / "descomprimidos"; }
+constexpr uintmax_t kArchiveCacheMax = 4ull * 1024 * 1024 * 1024; // 4 GB
+} // namespace
+
+bool App::PrepareArchived(const Game& g, fs::path& load_path, std::vector<uint8_t>& mem) {
+    const SystemDef* sys = SystemById(g.system);
+    const bool full_path = core_.SystemInfo().need_fullpath || (sys && sys->disc);
+    // El nombre del juego (partidas y estados) sale del archivo comprimido, con la extensión real.
+    fs::path virt = g.path;
+    virt.replace_extension(Paths::FromUtf8("." + g.ext));
+    if (!full_path) {
+        if (!Archive::ExtractToMemory(g.path, g.entry, mem) || mem.empty()) {
+            Toast("No pude descomprimir «" + g.title + "». ¿El archivo está completo?", GuideId::Samy, 6);
+            return false;
+        }
+        load_path = virt;
+        Log::Info("Juego sacado del archivo comprimido a la memoria: %s (%zu KB)", g.entry.c_str(), mem.size() / 1024);
+        return true;
+    }
+    // De disco: se saca todo una vez a la caché y se reutiliza.
+    const fs::path dir = ArchiveCacheDir() / g.key;
+    const fs::path done = dir / ".listo";
+    std::error_code ec;
+    if (!fs::exists(done, ec)) {
+        fs::remove_all(dir, ec);
+        TrimArchiveCache();
+        Log::Info("Descomprimiendo %s…", Paths::ToUtf8(g.path).c_str());
+        if (!Archive::ExtractAll(g.path, dir)) {
+            fs::remove_all(dir, ec);
+            Toast("No pude descomprimir «" + g.title + "». Revisa que haya espacio en el disco.", GuideId::Samy, 6);
+            return false;
+        }
+        std::ofstream(done) << Paths::ToUtf8(g.path) << '\n';
+    } else {
+        // Se marca como usado (la caché suelta primero lo que hace más tiempo no se juega).
+        fs::last_write_time(done, fs::file_time_type::clock::now(), ec);
+    }
+    load_path = dir / Paths::FromUtf8(g.entry);
+    return true;
+}
+
+void App::TrimArchiveCache() {
+    std::error_code ec;
+    const fs::path root = ArchiveCacheDir();
+    if (!fs::exists(root, ec)) return;
+    struct Item {
+        fs::path dir;
+        fs::file_time_type used;
+        uintmax_t size;
+    };
+    std::vector<Item> items;
+    uintmax_t total = 0;
+    for (const auto& d : fs::directory_iterator(root, ec)) {
+        if (!d.is_directory(ec)) continue;
+        uintmax_t size = 0;
+        for (fs::recursive_directory_iterator it(d.path(), ec), end; it != end && !ec; it.increment(ec))
+            if (it->is_regular_file(ec)) size += it->file_size(ec);
+        auto used = fs::last_write_time(d.path() / ".listo", ec);
+        if (ec) used = fs::file_time_type::min();
+        items.push_back({d.path(), used, size});
+        total += size;
+    }
+    std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) { return a.used < b.used; });
+    for (const auto& it : items) {
+        if (total <= kArchiveCacheMax) break;
+        fs::remove_all(it.dir, ec);
+        total -= it.size;
+        Log::Info("Caché de descomprimidos: se soltó %s", Paths::ToUtf8(it.dir.filename()).c_str());
+    }
+}
+
+void App::DrawArchivePicker() {
+    if (!archive_pick_.Archived()) return;
+    ImGui::OpenPopup("##elegir_juego");
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    const float w = std::min(S(560), vp->Size.x - S(40));
+    ImGui::SetNextWindowPos({vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f}, ImGuiCond_Always, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({w, 0});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(26), S(24)});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(22));
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, V4(Color::Bg));
+    ImGui::PushStyleColor(ImGuiCol_Border, V4(Color::Amber, 0.45f));
+    if (ImGui::BeginPopupModal("##elegir_juego", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
+        const float inner = w - S(52);
+        GuideSays(GuideId::Samy, ("«" + archive_pick_.title + "» trae varios juegos adentro. ¿Cuál abrimos?").c_str(), inner);
+        ImGui::Dummy({0, S(10)});
+        ImGui::BeginChild("##lista_zip", {inner, std::min(S(330), S(62) * archive_pick_.choices.size() + S(6))});
+        std::string chosen;
+        for (const auto& c : archive_pick_.choices) {
+            const std::string base = c.substr(c.find_last_of("/\\") == std::string::npos ? 0 : c.find_last_of("/\\") + 1);
+            const Game g = Library::MakeGameEntry(archive_pick_.path, c);
+            const SystemDef* sys = SystemById(g.system);
+            ImGui::PushID(c.c_str());
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            if (ImGui::InvisibleButton("##op", {inner - S(12), S(46)})) chosen = c;
+            const bool hov = ImGui::IsItemHovered() || ImGui::IsItemFocused();
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            dl->AddRectFilled(p, {p.x + inner - S(12), p.y + S(46)}, U32(hov ? Color::Surface3 : Color::Surface2), S(12));
+            if (sys) DrawControllerMini(dl, sys->layout, {p.x + S(26), p.y + S(23)}, sys->handheld ? S(22) : S(30), 1.0f);
+            Ellipsize(dl, GetFonts().medium, S(14), {p.x + S(52), p.y + S(8)}, U32(Color::Text), base, inner - S(80), 1);
+            {
+                FontScope f(GetFonts().regular, 12);
+                dl->AddText({p.x + S(52), p.y + S(27)}, U32(sys ? sys->color : Color::Muted), sys ? sys->full.c_str() : "");
+            }
+            ImGui::PopID();
+            ImGui::Dummy({0, S(2)});
+        }
+        ImGui::EndChild();
+        ImGui::Dummy({0, S(8)});
+        const bool cancel = Button("Cancelar##zip", ButtonKind::Secondary, {inner, S(44)}) || ImGui::IsKeyPressed(ImGuiKey_Escape);
+        if (!chosen.empty()) {
+            start_entry_ = chosen;
+            RequestStart(archive_pick_.path);
+            archive_pick_ = Game{};
+            ImGui::CloseCurrentPopup();
+        } else if (cancel) {
+            archive_pick_ = Game{};
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
 }
 
 } // namespace Satronho

@@ -328,6 +328,7 @@ bool App::Init() {
         if (qa_.count("continuar")) RequestStart(Paths::FromUtf8(qa_["rom"]), true);
         else StartGame(Paths::FromUtf8(qa_["rom"]));
     }
+    if (qa_.count("abrir")) RequestStart(Paths::FromUtf8(qa_["abrir"]));
     if (qa_.count("carpeta")) {
         std::lock_guard lock(pending_mutex_);
         pending_folders_.push_back(qa_["carpeta"]);
@@ -983,7 +984,13 @@ void App::RequestStart(const fs::path& rom, bool resume) {
 
 bool App::StartGame(const fs::path& rom) {
     if (in_game_) StopGame();
-    Game probe = Library::MakeGame(rom);
+    Game probe = start_entry_.empty() ? Library::MakeGame(rom) : Library::MakeGameEntry(rom, start_entry_);
+    start_entry_.clear();
+    if (probe.Archived() && !probe.choices.empty() && !qa_.count("rom")) {
+        // Un .zip con varios juegos: se pregunta cuál (DrawArchivePicker).
+        archive_pick_ = probe;
+        return false;
+    }
     const SystemDef* sys = SystemById(probe.system);
     if (!sys) {
         Toast("Este archivo no es de ninguna consola de Satronho Emulation.", GuideId::MechaRidds, 5);
@@ -1012,7 +1019,10 @@ bool App::StartGame(const fs::path& rom) {
     // Cada consola guarda sus partidas en su propia carpeta (partidas/<consola>).
     core_.SetSaveDir(Paths::Saves() / sys->id);
     ApplyGpuChoice(*sys);
-    if (!core_.LoadGame(rom, &err)) {
+    fs::path load_path = rom;
+    std::vector<uint8_t> mem;
+    if (probe.Archived() && !PrepareArchived(probe, load_path, mem)) return false;
+    if (!core_.LoadGame(load_path, &err, mem.empty() ? nullptr : &mem)) {
         Toast(err, GuideId::MechaRidds, 6);
         return false;
     }
@@ -1021,7 +1031,7 @@ bool App::StartGame(const fs::path& rom) {
         Toast("Sin BIOS de PlayStation uso OpenBIOS, que es libre. Si un juego falla, agrega la tuya en Ajustes » Núcleo » CD.",
               GuideId::Nono, 8);
     }
-    current_ = Library::MakeGame(rom);
+    current_ = probe;
     MigrateLegacyStates();
     library_.MarkPlayed(current_.key);
     games_dirty_ = true;

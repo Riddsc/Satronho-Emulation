@@ -148,6 +148,7 @@ void App::DrawUi() {
     if (show_welcome_) DrawWelcome();
     else if (show_whats_new_) DrawWhatsNew();
     if (!pending_start_.empty()) DrawLoading();
+    DrawArchivePicker();
     DrawConfirm();
 }
 
@@ -156,7 +157,7 @@ void App::DrawLoading() {
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     ImDrawList* dl = ImGui::GetForegroundDrawList();
     dl->AddRectFilled(vp->Pos, {vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y}, IM_COL32(8, 6, 14, 215));
-    const Game g = Library::MakeGame(pending_start_);
+    const Game g = start_entry_.empty() ? Library::MakeGame(pending_start_) : Library::MakeGameEntry(pending_start_, start_entry_);
     const SystemDef* gs = SystemById(g.system);
     const float cw = S(150), chh = S(170);
     const ImVec2 c(vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f);
@@ -1381,6 +1382,14 @@ void App::DrawSettingsLibrary() {
             covers_.QueueDownloads(library_.Snapshot());
         }
     }
+    ImGui::Dummy({0, S(14)});
+    RowBegin("Juegos comprimidos (.zip y .7z)", "Se juegan sin descomprimir. Los de disco se sacan una vez a una caché de hasta 4 GB que se limpia sola.");
+    if (Button("Vaciar la caché", ButtonKind::Secondary, {0, 0}, Icon::Close, true)) {
+        std::error_code ec;
+        fs::remove_all(Paths::User() / "cache" / "descomprimidos", ec);
+        Toast("Caché de juegos descomprimidos vacía.", GuideId::Samy, 3);
+    }
+    RowEnd();
     ImGui::Dummy({0, S(14)});
     DrawHiddenGames();
     ImGui::Dummy({0, S(14)});
