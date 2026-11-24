@@ -59,8 +59,10 @@ struct Loader {
     PFN_vkCreateInstance create_instance = nullptr;
     bool Load() {
         if (gipa) return true;
-#ifdef _WIN32
+#if defined(_WIN32)
         const char* names[] = {"vulkan-1.dll"};
+#elif defined(__ANDROID__)
+        const char* names[] = {"libvulkan.so"};
 #elif defined(__APPLE__)
         const char* names[] = {"libvulkan.1.dylib", "libMoltenVK.dylib"};
 #else
@@ -492,7 +494,14 @@ void VulkanBridge::CopyFrame(unsigned w, unsigned h) {
     Gl::BindTexture(GL_TEXTURE_2D, owner_->Texture());
     Gl::PixelStorei(GL_UNPACK_ALIGNMENT, 4);
     Gl::PixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    Gl::TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, bgra ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, s.mapped);
+    if (Gl::Es()) {
+        // OpenGL ES no sube BGRA: la textura intercambia rojo y azul.
+        Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, bgra ? GL_BLUE : GL_RED);
+        Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, bgra ? GL_RED : GL_BLUE);
+        Gl::TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, s.mapped);
+    } else {
+        Gl::TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, bgra ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, s.mapped);
+    }
     Gl::BindTexture(GL_TEXTURE_2D, 0);
     s.last_w = w;
     s.last_h = h;

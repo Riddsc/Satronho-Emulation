@@ -11,8 +11,7 @@
 namespace Satronho {
 
 namespace {
-const char* kVs = R"(#version 330 core
-uniform vec4 u_rect;
+const char* kVs = R"(uniform vec4 u_rect;
 uniform vec4 u_uv;
 out vec2 v_uv;
 out vec2 v_pos;
@@ -25,8 +24,7 @@ void main() {
 )";
 
 // Imagen del juego: filtro (píxel / nítido suave / suave) y efectos de pantalla.
-const char* kFs = R"(#version 330 core
-in vec2 v_uv;
+const char* kFs = R"(in vec2 v_uv;
 in vec2 v_pos;
 out vec4 o_color;
 uniform sampler2D u_tex;
@@ -74,8 +72,7 @@ void main() {
 )";
 
 // Fondo ambiente: los colores del juego muy borrosos, oscurecidos y con viñeta.
-const char* kAmbFs = R"(#version 330 core
-in vec2 v_uv;
+const char* kAmbFs = R"(in vec2 v_uv;
 in vec2 v_pos;
 out vec4 o_color;
 uniform sampler2D u_tex;
@@ -142,28 +139,51 @@ void VideoOutGl::Upload(const CoreHost& core) {
     if (core.Frame().empty() || core.FrameSerial() == uploaded_serial_) return;
     const int w = static_cast<int>(core.FrameWidth()), h = static_cast<int>(core.FrameHeight());
     GLenum internal = GL_RGBA8, format = GL_BGRA, type = GL_UNSIGNED_INT_8_8_8_8_REV;
+    const void* pixels = core.Frame().data();
+    bool swap_rb = false;
     if (core.Format() == PixelFormat::RGB565) {
-        internal = GL_RGB;
+        internal = Gl::Es() ? GL_RGB565 : GL_RGB;
         format = GL_RGB;
         type = GL_UNSIGNED_SHORT_5_6_5;
     } else if (core.Format() == PixelFormat::XRGB1555) {
-        internal = GL_RGB5_A1;
-        format = GL_BGRA;
-        type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+        if (Gl::Es()) {
+            // OpenGL ES no tiene 1555 invertido: se pasa a 565 (es rápido).
+            const auto* src = reinterpret_cast<const uint16_t*>(core.Frame().data());
+            conv_.resize(static_cast<size_t>(w) * h);
+            for (size_t i = 0; i < conv_.size(); ++i) {
+                const uint16_t p = src[i];
+                conv_[i] = static_cast<uint16_t>(((p & 0x7C00) << 1) | ((p & 0x03E0) << 1) | ((p & 0x0200) >> 4) | (p & 0x1F));
+            }
+            pixels = conv_.data();
+            internal = GL_RGB565;
+            format = GL_RGB;
+            type = GL_UNSIGNED_SHORT_5_6_5;
+        } else {
+            internal = GL_RGB5_A1;
+            format = GL_BGRA;
+            type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+        }
+    } else if (Gl::Es()) {
+        // XRGB8888 en memoria es B, G, R, X: se sube como RGBA y la textura intercambia rojo y azul.
+        format = GL_RGBA;
+        type = GL_UNSIGNED_BYTE;
+        swap_rb = true;
     }
     if (!tex_) Gl::GenTextures(1, &tex_);
     Gl::BindTexture(GL_TEXTURE_2D, tex_);
     Gl::PixelStorei(GL_UNPACK_ALIGNMENT, 1);
     Gl::PixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     if (w != tex_w_ || h != tex_h_ || core.Format() != tex_fmt_) {
-        Gl::TexImage2D(GL_TEXTURE_2D, 0, internal, w, h, 0, format, type, core.Frame().data());
+        Gl::TexImage2D(GL_TEXTURE_2D, 0, internal, w, h, 0, format, type, pixels);
+        Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swap_rb ? GL_BLUE : GL_RED);
+        Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swap_rb ? GL_RED : GL_BLUE);
         Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         Gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         tex_w_ = w;
         tex_h_ = h;
         tex_fmt_ = core.Format();
     } else {
-        Gl::TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, format, type, core.Frame().data());
+        Gl::TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, format, type, pixels);
     }
     Gl::BindTexture(GL_TEXTURE_2D, 0);
     uploaded_serial_ = core.FrameSerial();

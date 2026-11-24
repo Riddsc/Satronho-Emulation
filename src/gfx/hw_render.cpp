@@ -53,6 +53,7 @@ std::string HwRender::VulkanGpu() const {
 
 std::string HwRender::ApiName() const {
     if (api_ == RETRO_HW_CONTEXT_VULKAN) return "Vulkan";
+    if (api_ == RETRO_HW_CONTEXT_OPENGLES2 || api_ == RETRO_HW_CONTEXT_OPENGLES3 || api_ == RETRO_HW_CONTEXT_OPENGLES_VERSION) return "OpenGL ES";
     if (api_ == RETRO_HW_CONTEXT_OPENGL || api_ == RETRO_HW_CONTEXT_OPENGL_CORE) {
         if (api_ == RETRO_HW_CONTEXT_OPENGL_CORE && cb_.version_major) return "OpenGL " + std::to_string(cb_.version_major) + "." + std::to_string(cb_.version_minor);
         return "OpenGL";
@@ -65,9 +66,16 @@ std::string HwRender::ApiName() const {
 bool HwRender::Accept(retro_hw_render_callback* cb) {
     if (!main_ || wanted_ == RETRO_HW_CONTEXT_NONE) return false;
     switch (cb->context_type) {
+#ifdef __ANDROID__
+    case RETRO_HW_CONTEXT_OPENGLES2:
+    case RETRO_HW_CONTEXT_OPENGLES3:
+    case RETRO_HW_CONTEXT_OPENGLES_VERSION:
+        break;
+#else
     case RETRO_HW_CONTEXT_OPENGL:
     case RETRO_HW_CONTEXT_OPENGL_CORE:
         break;
+#endif
     case RETRO_HW_CONTEXT_VULKAN:
         if (probe_.joinable() && !vk_probed_) probe_.join();
         if (!vk_ok_) return false;
@@ -141,7 +149,15 @@ bool HwRender::StartGl(const retro_system_av_info& av) {
     SDL_GL_ResetAttributes();
     SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    if (cb_.context_type == RETRO_HW_CONTEXT_OPENGL_CORE) {
+    if (cb_.context_type == RETRO_HW_CONTEXT_OPENGLES2 || cb_.context_type == RETRO_HW_CONTEXT_OPENGLES3 ||
+        cb_.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION) {
+        int major = 3, minor = 0;
+        if (cb_.context_type == RETRO_HW_CONTEXT_OPENGLES2) major = 2;
+        if (cb_.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION) major = static_cast<int>(cb_.version_major), minor = static_cast<int>(cb_.version_minor);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
+    } else if (cb_.context_type == RETRO_HW_CONTEXT_OPENGL_CORE) {
         unsigned major = cb_.version_major, minor = cb_.version_minor;
         if (major < 3 || (major == 3 && minor < 2)) major = 3, minor = 2;
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, static_cast<int>(major));
@@ -284,7 +300,15 @@ void HwRender::Geometry(const retro_system_av_info& av) {
 }
 
 retro_proc_address_t HwRender::ProcAddress(const char* sym) {
-    return reinterpret_cast<retro_proc_address_t>(SDL_GL_GetProcAddress(sym));
+    auto p = reinterpret_cast<retro_proc_address_t>(SDL_GL_GetProcAddress(sym));
+#ifdef __ANDROID__
+    // En Android las funciones básicas de GLES no siempre salen por eglGetProcAddress.
+    if (!p) {
+        static void* gles = SDL_LoadObject("libGLESv3.so");
+        if (gles) p = reinterpret_cast<retro_proc_address_t>(SDL_LoadFunction(static_cast<SDL_SharedObject*>(gles), sym));
+    }
+#endif
+    return p;
 }
 
 bool HwRender::ReadRGBA(std::vector<uint8_t>& out, unsigned* w, unsigned* h) {

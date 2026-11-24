@@ -168,9 +168,15 @@ bool App::Init() {
     SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
     if (want_gl) {
         flags |= SDL_WINDOW_OPENGL;
+#ifdef __ANDROID__
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+#else
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#endif
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
         SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
@@ -254,7 +260,7 @@ bool App::Init() {
     io.LogFilename = nullptr;
     if (gl_) {
         ImGui_ImplSDL3_InitForOpenGL(window_, gl_ctx_);
-        ImGui_ImplOpenGL3_Init("#version 330 core");
+        ImGui_ImplOpenGL3_Init(Gl::Es() ? "#version 300 es" : "#version 330 core");
         Ui::SetTextureBackend({&GlCreateTexture, &GlDestroyTexture});
     } else {
         ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);

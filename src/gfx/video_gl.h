@@ -4,6 +4,8 @@
 
 #include <SDL3/SDL.h>
 
+#include <vector>
+
 #include "core/core_host.h"
 #include "gfx/gl.h"
 #include "sys/settings.h"
@@ -32,6 +34,7 @@ private:
     int tex_w_ = 0, tex_h_ = 0;
     PixelFormat tex_fmt_ = PixelFormat::XRGB1555;
     uint64_t uploaded_serial_ = 0;
+    std::vector<uint16_t> conv_; // 1555 → 565 en OpenGL ES
     // Fondo ambiente: el cuadro reducido a 16×15 en un framebuffer pequeño.
     GLuint small_tex_ = 0, small_fbo_ = 0;
     uint64_t ambient_serial_ = 0;

@@ -1,0 +1,66 @@
+plugins {
+    id "com.android.application"
+}
+
+// Número de build (lo pone el CI, igual que en Windows) y llave de firma (secretos de GitHub).
+def buildNumber = (System.getenv("SATRONHO_BUILD") ?: "0") as int
+def keystore = System.getenv("SATRONHO_KEYSTORE")
+
+android {
+    namespace "com.ridds.satronho.emulation"
+    compileSdk 35
+    ndkVersion (System.getenv("SATRONHO_NDK") ?: "27.2.12479018")
+
+    defaultConfig {
+        applicationId "com.ridds.satronho.emulation"
+        minSdk 26
+        targetSdk 35
+        versionCode Math.max(1, buildNumber)
+        versionName buildNumber > 0 ? "build-" + buildNumber : "desarrollo"
+        ndk { abiFilters "arm64-v8a" }
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=c++_shared", "-DSATRONHO_BUILD=" + buildNumber, "-DANDROID_PLATFORM=android-26"
+                abiFilters "arm64-v8a"
+            }
+        }
+    }
+
+    signingConfigs {
+        release {
+            if (keystore != null) {
+                storeFile file(keystore)
+                storePassword System.getenv("SATRONHO_KEYSTORE_PASS")
+                keyAlias "satronho"
+                keyPassword System.getenv("SATRONHO_KEYSTORE_PASS")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig keystore != null ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "../../CMakeLists.txt"
+        }
+    }
+
+    sourceSets {
+        main {
+            // Los assets son los mismos de PC; los núcleos (lib*_libretro_android.so) los deja el CI aquí.
+            assets.srcDirs = ["../../assets"]
+            jniLibs.srcDirs = ["../../build-android-cores"]
+        }
+    }
+
+    packagingOptions {
+        jniLibs { useLegacyPackaging true }
+    }
+
+    lint { abortOnError false }
+}

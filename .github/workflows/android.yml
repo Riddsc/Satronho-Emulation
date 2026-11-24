@@ -1,0 +1,137 @@
+name: Android
+
+# APK de Satronho Emulation (arm64, Android 8 o más nuevo). Desde la rama de trabajo solo compila;
+# llamado desde «Build» en main, sube el APK al mismo Release que la versión de Windows.
+# No se usan artifacts de Actions: los núcleos van en la caché y el APK directo al Release.
+on:
+  push:
+    branches: [etapa-2]
+    paths:
+      - "src/**"
+      - "android/**"
+      - "assets/**"
+      - "external/**"
+      - "scripts/build-core-*.sh"
+      - "CMakeLists.txt"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        default: ""
+      build:
+        type: string
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    name: Android arm64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Herramientas
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build nasm
+          echo "ANDROID_NDK=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          echo "SATRONHO_NDK=$(basename "$ANDROID_NDK_LATEST_HOME")" >> "$GITHUB_ENV"
+          echo "NDK: $ANDROID_NDK_LATEST_HOME"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      # Los núcleos tardan mucho: se guardan en la caché (no cuenta como artifacts).
+      - name: Caché de los núcleos de Android
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: build-android-cores
+          key: android-cores-${{ env.SATRONHO_NDK }}-${{ hashFiles('scripts/build-core-*.sh') }}
+
+      - name: Núcleo de NES (Nestopia UE)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-android.sh nestopia build-android-cores/arm64-v8a
+      - name: Núcleo de Game Boy y GBA (mGBA)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-android.sh mgba build-android-cores/arm64-v8a
+      - name: Núcleo de Genesis (Genesis Plus GX)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-android.sh genesis_plus_gx build-android-cores/arm64-v8a
+      - name: Núcleo de SNES (bsnes)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-android.sh bsnes build-android-cores/arm64-v8a
+      - name: Núcleo de PlayStation (Beetle PSX HW)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-android.sh mednafen_psx_hw build-android-cores/arm64-v8a
+      - name: Núcleo de Nintendo 64 (Mupen64Plus-Next)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-android.sh mupen64plus_next build-android-cores/arm64-v8a
+      - name: Núcleo de Nintendo DS (melonDS DS)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-android.sh melondsds build-android-cores/arm64-v8a
+      - name: Núcleo de Sega Saturn (Beetle Saturn)
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: scripts/build-core-android.sh mednafen_saturn build-android-cores/arm64-v8a
+
+      - name: Núcleos listos
+        run: ls -la build-android-cores/arm64-v8a || true
+
+      - name: Llave de firma
+        env:
+          KEY: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          if [ -n "$KEY" ] && [ -n "$PASS" ]; then
+            echo "$KEY" | base64 -d > "$RUNNER_TEMP/satronho.jks"
+            echo "SATRONHO_KEYSTORE_PASS=$PASS" >> "$GITHUB_ENV"
+            echo "Firma: llave de Satronho (secretos del repo)"
+          else
+            # Sin los secretos todavía: llave provisional solo para esta build.
+            P="$(openssl rand -hex 16)"
+            keytool -genkeypair -keystore "$RUNNER_TEMP/satronho.jks" -storetype PKCS12 -alias satronho -keyalg RSA -keysize 2048 \
+              -validity 3650 -storepass "$P" -keypass "$P" -dname "CN=Satronho provisional" > /dev/null
+            echo "SATRONHO_KEYSTORE_PASS=$P" >> "$GITHUB_ENV"
+            echo "::warning::Sin la llave de Satronho en los secretos: APK con firma provisional"
+          fi
+          echo "SATRONHO_KEYSTORE=$RUNNER_TEMP/satronho.jks" >> "$GITHUB_ENV"
+
+      - name: APK
+        env:
+          SATRONHO_BUILD: ${{ inputs.build || '0' }}
+        run: |
+          cd android
+          gradle --no-daemon assembleRelease
+          ls -la app/build/outputs/apk/release/
+
+      - name: Subir al Release
+        if: inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N="${{ inputs.build }}"
+          APK="SatronhoEmulation-build-$N-android-arm64.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          sha256sum "$APK" | cut -d' ' -f1 > "$APK.sha256"
+          gh release upload "${{ inputs.tag }}" "$APK" "$APK.sha256" --clobber

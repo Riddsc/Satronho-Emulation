@@ -284,7 +284,12 @@ std::vector<std::string> AllExtensions() {
 }
 
 std::string CoreFile(const SystemDef& s) {
-#ifdef _WIN32
+#if defined(__ANDROID__)
+    // Android instala los núcleos junto a la app y exige «lib…so». Mega usa Genesis Plus GX
+    // (BlastEm solo tiene su recompilador para PC).
+    const std::string core = s.id == "mega" ? std::string("genesis_plus_gx") : s.core;
+    return "lib" + core + "_libretro_android.so";
+#elif defined(_WIN32)
     return s.core + "_libretro.dll";
 #elif defined(__APPLE__)
     return s.core + "_libretro.dylib";
