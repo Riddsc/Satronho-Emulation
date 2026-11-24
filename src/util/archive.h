@@ -23,7 +23,8 @@ bool IsArchive(const std::string& ext); // "zip" o "7z"
 bool List(const fs::path& archive, std::vector<Entry>& out);
 // Saca un archivo a la memoria (los juegos de cartucho no tocan el disco).
 bool ExtractToMemory(const fs::path& archive, const std::string& name, std::vector<uint8_t>& out);
-// Saca todo a una carpeta (los juegos de disco: .cue con sus .bin). progress(0..1) opcional.
-bool ExtractAll(const fs::path& archive, const fs::path& dir, const std::function<void(float)>& progress = {});
+// Saca todo a una carpeta (los juegos de disco: .cue con sus .bin). progress(0..1) opcional; si
+// devuelve false, se cancela (y ExtractAll devuelve false).
+bool ExtractAll(const fs::path& archive, const fs::path& dir, const std::function<bool(float)>& progress = {});
 
 } // namespace Satronho::Archive

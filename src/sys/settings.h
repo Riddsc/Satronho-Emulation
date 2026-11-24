@@ -97,6 +97,8 @@ struct Settings {
     std::map<std::string, int> lib_view; // vista por consola ("" = todas): 0 cuadrícula, 1 carrusel, 2 lista
     int cover_size = 1;              // carátulas: 0 pequeñas, 1 medianas, 2 grandes
     bool covers = true;            // descargar carátulas reales de los juegos
+    float free_margin_gb = 2.0f;     // espacio que siempre se deja libre al copiar o descomprimir juegos
+    std::string games_root;          // Android: carpeta pública de Satronho («» = Satronho Games en la memoria interna)
     int LibView(const std::string& sys) const {
         auto it = lib_view.find(sys.empty() ? "todas" : sys);
         return it == lib_view.end() ? 0 : it->second;

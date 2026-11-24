@@ -41,22 +41,6 @@ std::string ExtOf(const fs::path& p) {
     return e;
 }
 
-std::string Gb(uint64_t bytes) {
-    char b[32];
-    if (bytes >= (1ull << 30)) std::snprintf(b, sizeof b, "%.1f GB", bytes / 1073741824.0);
-    else std::snprintf(b, sizeof b, "%.0f MB", bytes / 1048576.0);
-    return b;
-}
-
-std::string TrFmt(const char* fmt, ...) {
-    char buf[512];
-    va_list args;
-    va_start(args, fmt);
-    std::vsnprintf(buf, sizeof buf, Tr(fmt), args);
-    va_end(args);
-    return buf;
-}
-
 // ¿Es una BIOS conocida? Por el nombre exacto, o por el tamaño y una pista clara en el nombre.
 const BiosFile* BiosFor(const std::string& name_lower, uint64_t size, const SystemDef** sys_out) {
     for (const auto& sd : Systems())
@@ -145,7 +129,7 @@ void App::PollImports() {
             import_.active = true;
             if (p[0] == "sinespacio" && p.size() >= 4)
                 import_.errors.push_back(TrFmt("No cabe «%s»: pesa %s y tu celular tiene %s libres.", p[1].c_str(),
-                                               Gb(std::stoull(p[2])).c_str(), Gb(std::stoull(p[3])).c_str()));
+                                               HumanSize(std::stoull(p[2])).c_str(), HumanSize(std::stoull(p[3])).c_str()));
             else
                 import_.errors.push_back(TrFmt("No pude recibir «%s» desde la otra app.", p.size() > 1 ? p[1].c_str() : "?"));
             Log::Warn("Recepción fallida: %s", r.c_str());
@@ -370,8 +354,8 @@ void App::ImportWorker() {
         const auto space = fs::space(root, ec);
         const uint64_t need = unpacked + (64ull << 20);
         if (!ec && space.available < need) {
-            error(TrFmt("No hay espacio para descomprimir «%s»: necesita %s y quedan %s libres.", name.c_str(), Gb(need).c_str(),
-                        Gb(space.available).c_str()));
+            error(TrFmt("No hay espacio para descomprimir «%s»: necesita %s y quedan %s libres.", name.c_str(), HumanSize(need).c_str(),
+                        HumanSize(space.available).c_str()));
             continue;
         }
         const fs::path tmp = root / ".descomprimiendo" / Paths::SafeName(Paths::ToUtf8(file.stem()));
@@ -381,6 +365,7 @@ void App::ImportWorker() {
         const bool ok = Archive::ExtractAll(file, tmp, [&](float p) {
             std::lock_guard lock(import_mutex_);
             import_.progress = p;
+            return true;
         });
         if (!ok) {
             error(TrFmt("No pude descomprimir «%s»: puede estar dañado o incompleto.", name.c_str()));
@@ -466,7 +451,7 @@ void App::DrawImport() {
         if (p.size() >= 4) {
             const double got = std::atof(p[1].c_str()), all = std::atof(p[2].c_str());
             progress = all > 0 ? static_cast<float>(got / all) : -1;
-            text = TrFmt("Recibiendo «%s» desde la otra app… %s", p[0].c_str(), Gb(static_cast<uint64_t>(got)).c_str());
+            text = TrFmt("Recibiendo «%s» desde la otra app… %s", p[0].c_str(), HumanSize(static_cast<uint64_t>(got)).c_str());
             if (std::atoi(p[3].c_str()) > 1) text += "  ·  " + TrFmt("faltan %d", std::atoi(p[3].c_str()));
         } else {
             text = Tr("Recibiendo desde la otra app…");

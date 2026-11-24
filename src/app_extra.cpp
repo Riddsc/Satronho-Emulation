@@ -1253,26 +1253,126 @@ bool App::PrepareArchived(const Game& g, fs::path& load_path, std::vector<uint8_
         Log::Info("Juego sacado del archivo comprimido a la memoria: %s (%zu KB)", g.entry.c_str(), mem.size() / 1024);
         return true;
     }
-    // De disco: se saca todo una vez a la caché y se reutiliza.
+    // De disco: se saca todo una vez a la caché (en segundo plano, BeginUnpack) y se reutiliza.
     const fs::path dir = ArchiveCacheDir() / g.key;
     const fs::path done = dir / ".listo";
     std::error_code ec;
-    if (!fs::exists(done, ec)) {
-        fs::remove_all(dir, ec);
-        TrimArchiveCache();
-        Log::Info("Descomprimiendo %s…", Paths::ToUtf8(g.path).c_str());
-        if (!Archive::ExtractAll(g.path, dir)) {
-            fs::remove_all(dir, ec);
-            Toast("No pude descomprimir «" + g.title + "». Revisa que haya espacio en el disco.", GuideId::Samy, 6);
-            return false;
-        }
-        std::ofstream(done) << Paths::ToUtf8(g.path) << '\n';
-    } else {
-        // Se marca como usado (la caché suelta primero lo que hace más tiempo no se juega).
-        fs::last_write_time(done, fs::file_time_type::clock::now(), ec);
-    }
+    if (!fs::exists(done, ec)) return false; // no debería pasar: StartGame lo descomprime antes
+    // Se marca como usado (la caché suelta primero lo que hace más tiempo no se juega).
+    fs::last_write_time(done, fs::file_time_type::clock::now(), ec);
     load_path = dir / Paths::FromUtf8(g.entry);
     return true;
+}
+
+bool App::ArchiveNeedsUnpack(const Game& g) const {
+    const SystemDef* sys = SystemById(g.system);
+    const bool full_path = core_.SystemInfo().need_fullpath || (sys && sys->disc);
+    if (!full_path) return false; // los cartuchos van directo a la memoria (es rápido)
+    std::error_code ec;
+    return !fs::exists(ArchiveCacheDir() / g.key / ".listo", ec);
+}
+
+// Un disco dentro de un .zip/.7z se saca a la caché en un hilo aparte, con barra de avance y botón
+// para cancelar (antes se hacía con la app congelada y Android podía decir que no respondía). Al
+// terminar se vuelve a pedir el juego y esa vez abre al instante.
+void App::BeginUnpack(const Game& g, const fs::path& rom) {
+    if (unpack_state_ == 1) return;
+    if (unpack_thread_.joinable()) unpack_thread_.join();
+    std::error_code ec;
+    const fs::path dir = ArchiveCacheDir() / g.key;
+    fs::remove_all(dir, ec);
+    TrimArchiveCache();
+    // ¿Cabe? Lo que ocupa descomprimido más el margen que se deja libre.
+    std::vector<Archive::Entry> entries;
+    uint64_t need = 0;
+    if (Archive::List(g.path, entries))
+        for (const auto& e : entries) need += e.size;
+    fs::create_directories(dir, ec);
+    if (const uint64_t free = FreeBytes(dir); free > 0 && free < need + MarginBytes()) {
+        fs::remove_all(dir, ec);
+        Toast(TrFmt("No hay espacio para abrir «%s»: necesita %s y quedan %s libres (dejo %s libres para tu equipo). Lo puedes cambiar en Ajustes » Biblioteca.",
+                    g.title.c_str(), HumanSize(need).c_str(), HumanSize(free).c_str(), HumanSize(MarginBytes()).c_str()),
+              GuideId::Nono, 8);
+        return;
+    }
+    unpack_game_ = g;
+    unpack_rom_ = rom;
+    unpack_resume_ = start_resume_;
+    unpack_progress_ = 0;
+    unpack_cancel_ = false;
+    unpack_state_ = 1;
+    Log::Info("Descomprimiendo %s…", Paths::ToUtf8(g.path).c_str());
+    const fs::path src = g.path;
+    unpack_thread_ = std::thread([this, src, dir] {
+        const bool ok = Archive::ExtractAll(src, dir, [this](float p) {
+            unpack_progress_ = p;
+            return !unpack_cancel_.load();
+        });
+        std::error_code e;
+        if (ok) std::ofstream(dir / ".listo") << Paths::ToUtf8(src) << '\n';
+        else fs::remove_all(dir, e);
+        unpack_state_ = ok ? 2 : unpack_cancel_ ? 4 : 3;
+    });
+}
+
+void App::PollUnpack() {
+    const int st = unpack_state_;
+    if (st < 2) return;
+    if (unpack_thread_.joinable()) unpack_thread_.join();
+    unpack_state_ = 0;
+    if (st == 2) {
+        start_entry_ = unpack_game_.entry;
+        RequestStart(unpack_rom_, unpack_resume_);
+    } else if (st == 3) {
+        Toast("No pude descomprimir «" + unpack_game_.title + "». Puede estar dañado o incompleto, o faltar espacio.", GuideId::Samy, 7);
+    } else {
+        Toast("Listo, cancelé la descompresión de «" + unpack_game_.title + "».", GuideId::Samy, 3);
+    }
+}
+
+void App::DrawUnpack() {
+    if (unpack_state_ != 1) return;
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(vp->Pos);
+    ImGui::SetNextWindowSize(vp->Size);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(4, 3, 12, 200));
+    ImGui::Begin("##velo_descomprimir", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    ImGui::End();
+    ImGui::PopStyleColor();
+
+    const float w = std::min(vp->Size.x - S(24), S(560));
+    ImGui::SetNextWindowPos({vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f}, 0, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({w, 0});
+    ImGui::SetNextWindowFocus();
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, V4(Color::Surface));
+    ImGui::PushStyleColor(ImGuiCol_Border, V4(Color::Accent, 0.35f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(18));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, S(1.5f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(22), S(20)});
+    ImGui::Begin("##descomprimir", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                                                ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
+    const float p = unpack_progress_;
+    const std::string text = TrFmt("Estoy sacando «%s» del archivo comprimido: %d %%. Solo pasa la primera vez; después abre al instante.",
+                                   unpack_game_.title.c_str(), static_cast<int>(p * 100));
+    GuideSays(GuideId::Samy, text.c_str(), w - S(44));
+    ImGui::Dummy({0, S(10)});
+    const ImVec2 bp = ImGui::GetCursorScreenPos();
+    const float bw = ImGui::GetContentRegionAvail().x, bh = S(8);
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    dl->AddRectFilled(bp, {bp.x + bw, bp.y + bh}, U32(Color::Surface2), bh * 0.5f);
+    if (p > 0.001f) {
+        dl->AddRectFilled(bp, {bp.x + bw * std::clamp(p, 0.02f, 1.0f), bp.y + bh}, U32(Color::Accent), bh * 0.5f);
+    } else {
+        // Los .7z se sacan de un solo bloque y no dicen cuánto llevan: barrita que va y viene.
+        const float t = static_cast<float>(std::fmod(ImGui::GetTime() * 0.7, 1.0));
+        const float x0 = bp.x + (bw * 1.3f) * t - bw * 0.3f;
+        dl->AddRectFilled({std::max(bp.x, x0), bp.y}, {std::min(bp.x + bw, x0 + bw * 0.3f), bp.y + bh}, U32(Color::Accent), bh * 0.5f);
+    }
+    ImGui::Dummy({bw, bh + S(12)});
+    if (Button("Cancelar##descomprimir", ButtonKind::Secondary, {bw, S(44)}) || ImGui::IsKeyPressed(ImGuiKey_Escape)) unpack_cancel_ = true;
+    ImGui::End();
 }
 
 void App::TrimArchiveCache() {

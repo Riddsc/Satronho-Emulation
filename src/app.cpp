@@ -373,6 +373,7 @@ bool App::Init() {
     if (qa_.count("explorador")) OpenBrowser(qa_["explorador"] == "1");
     if (qa_.count("editar_tactil")) touch_edit_ = true;
     if (qa_.count("abrir")) RequestStart(Paths::FromUtf8(qa_["abrir"]));
+    if (qa_.count("descomprimir")) BeginUnpack(Library::MakeGame(Paths::FromUtf8(qa_["descomprimir"])), Paths::FromUtf8(qa_["descomprimir"]));
     if (qa_.count("carpeta")) {
         std::lock_guard lock(pending_mutex_);
         pending_folders_.push_back(qa_["carpeta"]);
@@ -443,6 +444,8 @@ void App::Shutdown() {
     for (auto& g : guides_) Ui::FreeImage(g);
     chd_cancel_ = true;
     if (chd_thread_.joinable()) chd_thread_.join();
+    unpack_cancel_ = true;
+    if (unpack_thread_.joinable()) unpack_thread_.join();
     if (import_thread_.joinable()) import_thread_.join();
     covers_.Shutdown();
     hw_render_.Shutdown();
@@ -485,6 +488,14 @@ void App::ApplySuggestion() {
 }
 
 void App::Rescan() { library_.Rescan(settings_.folders); }
+
+uint64_t App::FreeBytes(const fs::path& dir) {
+    std::error_code ec;
+    const fs::space_info si = fs::space(dir, ec);
+    return ec ? 0 : static_cast<uint64_t>(si.available);
+}
+
+uint64_t App::MarginBytes() const { return static_cast<uint64_t>(settings_.free_margin_gb * 1073741824.0); }
 
 bool App::EnsureCore(const SystemDef& sys, std::string* error) {
     const std::string file = CoreFile(sys);
@@ -652,6 +663,7 @@ void App::Frame() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) HandleEvent(e);
     ProcessPendingPaths();
+    PollUnpack();
 
     if (library_.TakeChanged()) {
         games_dirty_ = true;
@@ -756,7 +768,9 @@ void App::Frame() {
         const fs::path rom = pending_start_;
         const bool resume = pending_resume_;
         pending_start_.clear();
+        start_resume_ = resume;
         if (StartGame(rom) && resume) resume_pending_ = true;
+        start_resume_ = false;
     }
 
     if (!settings_.vsync || (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)) {
@@ -1198,6 +1212,10 @@ bool App::StartGame(const fs::path& rom) {
     ApplyGpuChoice(*sys);
     fs::path load_path = rom;
     std::vector<uint8_t> mem;
+    if (probe.Archived() && ArchiveNeedsUnpack(probe)) {
+        BeginUnpack(probe, rom); // al terminar se vuelve a pedir este juego
+        return false;
+    }
     if (probe.Archived() && !PrepareArchived(probe, load_path, mem)) return false;
     if (!core_.LoadGame(load_path, &err, mem.empty() ? nullptr : &mem)) {
         Toast(err, GuideId::MechaRidds, 6);

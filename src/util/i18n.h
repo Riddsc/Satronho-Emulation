@@ -6,6 +6,7 @@
 // traducido se muestra en español.
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,4 +30,8 @@ std::string Tr(const std::string& es);
 
 namespace Satronho {
 using I18n::Tr;
+// Traduce el formato y después pone los datos («Quedan %s libres»).
+std::string TrFmt(const char* fmt, ...);
+// Tamaño para personas: «850 MB», «1.4 GB».
+std::string HumanSize(uint64_t bytes);
 }
