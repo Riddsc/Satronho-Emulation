@@ -337,9 +337,9 @@ bool App::Init() {
 
 void App::LoadAssets() {
     const fs::path a = Paths::Assets();
-    logo_ = Ui::LoadImage(Paths::ToUtf8(a / "logo.png"));
+    logo_ = Ui::LoadImageFile(Paths::ToUtf8(a / "logo.png"));
     for (int i = 0; i < static_cast<int>(GuideId::Count); ++i)
-        guides_[i] = Ui::LoadImage(Paths::ToUtf8(a / "guias" / (std::string(Guide(static_cast<GuideId>(i)).key) + ".png")));
+        guides_[i] = Ui::LoadImageFile(Paths::ToUtf8(a / "guias" / (std::string(Guide(static_cast<GuideId>(i)).key) + ".png")));
 
     auto read = [](const fs::path& p) {
         std::ifstream in(p, std::ios::binary);
@@ -1328,7 +1328,7 @@ void App::RefreshSlotThumbs() {
         if (!fs::exists(p, ec)) continue;
         fs::path png = p;
         png += ".png";
-        slot_thumbs_[s] = Ui::LoadImage(Paths::ToUtf8(png));
+        slot_thumbs_[s] = Ui::LoadImageFile(Paths::ToUtf8(png));
         const auto ft = fs::last_write_time(p, ec);
         if (!ec) {
             const auto sys = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
