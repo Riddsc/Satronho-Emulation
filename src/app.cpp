@@ -109,7 +109,7 @@ int App::Run(int argc, char** argv) {
     if (!Init()) return 1;
     while (running_) Frame();
     Shutdown();
-    return 0;
+    return qa_failed_ ? 2 : 0; // el modo de revisión avisa al CI si una prueba falló
 }
 
 bool App::Init() {

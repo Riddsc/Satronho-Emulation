@@ -118,6 +118,16 @@ bool Segmented(const char* id, int* value, const std::vector<const char*>& items
 bool SliderPercent(const char* id, float* value, float width);
 // Botón redondo «volver arriba» abajo a la derecha de la ventana actual, si bajaste bastante.
 void BackToTop();
+
+// Lo que se dibuja mientras exista uno de estos no agranda la página (ni de lado ni hacia abajo):
+// sirve para cosas que flotan o se salen a propósito, como las carátulas de los bordes del carrusel.
+class KeepContentSize {
+public:
+    KeepContentSize();
+    ~KeepContentSize();
+private:
+    float max_x_, max_y_, ideal_x_, ideal_y_;
+};
 bool SliderIntStyled(const char* id, int* value, int min, int max, const char* fmt, float width);
 bool ComboStyled(const char* id, int* current, const std::vector<std::string>& items, float width);
 
