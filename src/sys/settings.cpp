@@ -53,7 +53,7 @@ void Settings::Load(const Ini& ini) {
 
     gpu_api.clear();
     gpu_res.clear();
-    for (const char* id : {"cd", "n64"}) {
+    for (const char* id : {"cd", "n64", "sueno", "portatil"}) {
         const std::string b = std::string("gpu.") + id + ".";
         if (ini.Values().count(b + "motor")) gpu_api[id] = std::clamp(ini.GetInt(b + "motor", 0), 0, 3);
         if (ini.Values().count(b + "resolucion")) gpu_res[id] = std::clamp(ini.GetInt(b + "resolucion", 0), 0, 4320);
@@ -224,6 +224,15 @@ std::vector<SystemVerdict> Verdicts(const HardwareInfo& hw) {
             else v = {sys.id, 2, sys.id == "cd" ? "Puede ir justo: si va lento, pon la resolución interna en 1x." : "Puede ir justo en algunos juegos."};
             break;
         case 2:
+            if (sys.id == "sueno" || sys.id == "portatil") {
+                // Dreamcast y PSP necesitan la tarjeta gráfica y un procesador de 4 hilos o más.
+                if (!hw.gpu_render) v = {sys.id, 3, sys.id == "sueno" ? "Necesita tarjeta gráfica (OpenGL o Vulkan): sin ella no arranca."
+                                                                       : "Puede ir muy lento: sin tarjeta gráfica la PSP se dibuja con el procesador."};
+                else if (t >= 8) v = {sys.id, 1, "Va bien: se dibuja con la tarjeta gráfica."};
+                else if (t >= 4) v = {sys.id, 2, "Puede ir justo en los juegos 3D más exigentes."};
+                else v = {sys.id, 3, "Puede ir lento: el procesador tiene pocos hilos."};
+                break;
+            }
             if (t >= 8) v = {sys.id, 1, "Va bien."};
             else if (t >= 4) v = {sys.id, 2, "Puede ir justo en los juegos más exigentes."};
             else v = {sys.id, 3, "Puede ir lento: la Saturn pide mucho procesador."};

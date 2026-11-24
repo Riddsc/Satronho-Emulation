@@ -3,6 +3,48 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (build 22)
+
+Ridds probó la build 21: lo de WhatsApp, el permiso y la mudanza de carpeta funcionan. Reportó sonido
+perdido, cruceta táctil cruzada y que no encontraba «Mando normal» en Dragon Ball GT. Aprobó empezar la
+**parte C** con Dreamcast y PSP dentro del hub. Rama `build-22`.
+
+- **Sonido** (`AudioOut::Reopen`): al abrir cada juego se cierra y se abre la salida de sonido (antes el
+  primer juego sonaba y los siguientes no, en Android). `Update()` reanuda el dispositivo si quedó en pausa
+  sin pedirlo (log «La salida de sonido estaba en pausa sin pedirlo»). Al arrancar se escribe en el log
+  «Sonido: N Hz, volumen …» y, si el volumen es 0, un aviso. **Si sigue mudo, pedirle el log a Ridds.**
+- **Cruceta táctil** (`app_touch.cpp`): rectas ±30°, diagonales ±15°, histéresis de 8° (guarda `Finger::dir`)
+  y zona muerta 0,22·r. Palanca: zona muerta 0,15 y un eje se anula si es menor que 0,38 del total. Las
+  consolas con palanca (menos la 64) tienen palanca chica bajo la cruceta.
+- **Ajustes de este juego con el juego andando**: menú Juego » «Ajustes de este juego…»; el mando se cambia
+  al momento con `CoreHost::SetPortDevice` (motor/resolución: al volver a abrir). Dragon Ball GT puede que
+  igual no ande con mando normal: es el juego.
+- **Satronho Sueño** (`dc`, id `sueno`, Flycast) y **Satronho Portátil** (`psp`, id `portatil`, PPSSPP):
+  `SystemDef::gpu` (consola con motor y resolución propios) y `gpu_cpu` (Sueño no puede con el procesador).
+  Resoluciones: Sueño altos exactos 4:3 (480…2880), Portátil múltiplos de 272. Dibujos `DrawDreamcast` y
+  `DrawPsp`. BIOS de Sueño opcional (`dc/dc_boot.bin`, `dc/dc_flash.bin`; sin ella `flycast_hle_bios`).
+  Detección de discos en `library.cpp`: CHD con «CHGD» = Dreamcast, .pbp con PSISOIMG/PSTITLEIMG = PS1, si no
+  PSP, pista con «SEGA SEGAKATANA» = Dreamcast, y pistas de la ruta (carpeta «dreamcast», «psp»…). `.gdi` se
+  lee como hoja de pistas.
+- **Núcleos de Sueño y Portátil**: no se compilan (tardan horas); `scripts/build-core-descargado.sh` los baja
+  de buildbot.libretro.com (nocturna) para Windows y Android. Desde el sandbox buildbot da 403: **no se
+  pudieron probar con juegos aquí**. Los archivos de sistema de PPSSPP (`flash0`, letras, `compat.ini`,
+  shaders) los baja `scripts/ppsspp-assets.sh` a `assets/system/PPSSPP` (no van en git) y `Paths::Init`
+  copia todo `assets/system` a `sistema/` (también en Android).
+
+### Falta probar (pedírselo a Ridds)
+
+- Que el sonido siga en el segundo y tercer juego (PC y celular).
+- Cruceta táctil: arriba sin izquierda/derecha; diagonales; palanca chica en CD.
+- Un juego de Dreamcast (.gdi/.chd) y uno de PSP (.iso/.cso) en PC y en el celular: que abran, la imagen,
+  la resolución, el control en pantalla y que caigan en su consola.
+
+### Ideas que quedan
+
+- Parte C, siguiente: Cubo (GameCube/Wii), CD2 (PS2), 3DS y Satronho NX como apps aparte que el hub baja,
+  configura y abre, con Ñoño revisando el equipo antes.
+- Fijar versión de Flycast/PPSSPP (hoy nocturna) si alguna se rompe.
+
 ## Estado al 24 de noviembre de 2026 (build 21)
 
 Ridds mandó un video del celular (build 19) y pidió revisar el repo entero antes de la parte C. Rama

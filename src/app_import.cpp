@@ -16,6 +16,7 @@
 #include <fstream>
 #include <map>
 #include <set>
+#include <sstream>
 
 #include "app.h"
 #include "imgui.h"
@@ -45,7 +46,7 @@ std::string ExtOf(const fs::path& p) {
 const BiosFile* BiosFor(const std::string& name_lower, uint64_t size, const SystemDef** sys_out) {
     for (const auto& sd : Systems())
         for (const auto& b : sd.bios)
-            if (name_lower == b.name) {
+            if (name_lower == fs::path(b.name).filename().string()) { // «dc/dc_boot.bin» → «dc_boot.bin»
                 *sys_out = &sd;
                 return &b;
             }
@@ -76,6 +77,23 @@ std::vector<std::string> CueFiles(const fs::path& cue) {
     std::vector<std::string> out;
     std::ifstream in(cue, std::ios::binary);
     std::string line;
+    if (ExtOf(cue) == "gdi") {
+        // .gdi (Dreamcast): «número inicio tipo tamaño archivo desfase», el archivo puede ir entre comillas.
+        std::getline(in, line); // cantidad de pistas
+        while (std::getline(in, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            const size_t q = line.find('"');
+            if (q != std::string::npos) {
+                const size_t q2 = line.find('"', q + 1);
+                if (q2 != std::string::npos) out.push_back(line.substr(q + 1, q2 - q - 1));
+                continue;
+            }
+            std::istringstream ss(line);
+            std::string a, b, c, d, file;
+            if (ss >> a >> b >> c >> d >> file) out.push_back(file);
+        }
+        return out;
+    }
     while (std::getline(in, line)) {
         const size_t f = Lower(line).find("file");
         if (f == std::string::npos) continue;
@@ -455,7 +473,7 @@ void App::ImportWorker() {
         const SystemDef* sys = nullptr;
         const BiosFile* b = BiosFor(Lower(Paths::ToUtf8(f.filename())), sz, &sys);
         if (!b) return false;
-        fs::create_directories(Paths::System(), e);
+        fs::create_directories((Paths::System() / b->name).parent_path(), e);
         fs::copy_file(f, Paths::System() / b->name, fs::copy_options::overwrite_existing, e);
         if (!e) {
             std::lock_guard lock(import_mutex_);
@@ -539,7 +557,9 @@ void App::ImportWorker() {
         for (const auto& en : entries) {
             unpacked += en.size;
             const std::string e2 = Lower(en.name.substr(en.name.find_last_of('.') == std::string::npos ? en.name.size() : en.name.find_last_of('.') + 1));
-            if (e2 == "cue" || e2 == "chd" || e2 == "m3u" || e2 == "pbp" || e2 == "ccd" || e2 == "iso") ++discs;
+            if (e2 == "cue" || e2 == "chd" || e2 == "m3u" || e2 == "pbp" || e2 == "ccd" || e2 == "iso" || e2 == "cso" || e2 == "gdi" ||
+                e2 == "cdi")
+                ++discs;
             else if (e2 != "bin" && SystemForExtension(e2)) {
                 ++games;
                 only = en.name;
@@ -593,7 +613,7 @@ void App::ImportWorker() {
         std::set<fs::path> used;
         for (const auto& f : all) {
             const std::string e2 = ExtOf(f);
-            if (e2 != "cue" && e2 != "ccd" && e2 != "m3u") continue;
+            if (e2 != "cue" && e2 != "ccd" && e2 != "m3u" && e2 != "gdi") continue;
             std::vector<fs::path> extra;
             for (const auto& t : CueFiles(f)) {
                 const fs::path tp = f.parent_path() / Paths::FromUtf8(t);

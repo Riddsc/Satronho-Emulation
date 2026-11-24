@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cstdio>
 #include <ctime>
+#include <cstring>
 #include <fstream>
 #include <set>
 
@@ -125,21 +126,79 @@ fs::path FirstTrack(const fs::path& file, const std::string& ext) {
     return {};
 }
 
-// Los juegos en disco de PlayStation y de Saturn usan las mismas extensiones: se mira el disco.
+// ¿El .chd es un GD-ROM (Dreamcast)? Su primera etiqueta de datos es «CHGD» en vez de «CHT2».
+bool ChdIsGdrom(const fs::path& file) {
+    std::ifstream in(file, std::ios::binary);
+    unsigned char h[64] = {};
+    in.read(reinterpret_cast<char*>(h), sizeof h);
+    if (in.gcount() < 56 || std::memcmp(h, "MComprHD", 8) != 0) return false;
+    const unsigned version = (h[12] << 24) | (h[13] << 16) | (h[14] << 8) | h[15];
+    uint64_t meta = 0;
+    const int at = version >= 5 ? 48 : version >= 3 ? 36 : -1; // dónde dice el CHD que empiezan sus datos
+    if (at < 0) return false;
+    for (int i = 0; i < 8; ++i) meta = (meta << 8) | h[at + i];
+    if (!meta) return false;
+    in.seekg(static_cast<std::streamoff>(meta));
+    char tag[4] = {};
+    in.read(tag, 4);
+    return in.gcount() == 4 && std::memcmp(tag, "CHGD", 4) == 0;
+}
+
+// ¿El .pbp es un juego de PSP? Los de PS1 traen su disco adentro («PSISOIMG» / «PSTITLEIMG»).
+bool PbpIsPsp(const fs::path& file) {
+    std::ifstream in(file, std::ios::binary);
+    unsigned char h[40] = {};
+    in.read(reinterpret_cast<char*>(h), sizeof h);
+    if (in.gcount() < 40 || std::memcmp(h, "\0PBP", 4) != 0) return false;
+    const uint32_t psar = h[36] | (h[37] << 8) | (h[38] << 16) | (static_cast<uint32_t>(h[39]) << 24);
+    in.seekg(psar);
+    char tag[10] = {};
+    in.read(tag, 10);
+    return !(std::memcmp(tag, "PSISOIMG", 8) == 0 || std::memcmp(tag, "PSTITLEIMG", 10) == 0);
+}
+
+// Para juegos de disco dentro de un .zip/.7z: solo se puede guiar por la extensión y el nombre.
+const SystemDef* DiscSystemByName(const std::string& path_lower, const std::string& ext) {
+    auto has = [&](std::initializer_list<const char*> words) {
+        for (const char* w : words)
+            if (path_lower.find(w) != std::string::npos) return true;
+        return false;
+    };
+    if (ext == "gdi" || ext == "cdi" || has({"dreamcast", "sueño", "sueno", "/dc/"})) return SystemById("sueno");
+    if (ext == "iso" || ext == "cso" || has({"psp", "portátil", "portatil"})) return SystemById("portatil");
+    if (has({"saturn", "anillo", "/ss/"})) return SystemById("anillo");
+    return SystemById("cd");
+}
+
+// PlayStation, Saturn y Dreamcast usan las mismas extensiones de disco (y la PSP el .pbp):
+// se mira el disco y, si no alcanza, la carpeta o el nombre.
 const SystemDef* DiscSystem(const fs::path& file, const std::string& ext) {
     const SystemDef* cd = SystemById("cd");
     const SystemDef* saturn = SystemById("anillo");
-    if (!saturn) return cd;
+    const SystemDef* dc = SystemById("sueno");
+    const SystemDef* psp = SystemById("portatil");
+    const std::string p = Lower(Paths::ToUtf8(file));
+    auto has = [&](std::initializer_list<const char*> words) {
+        for (const char* w : words)
+            if (p.find(w) != std::string::npos) return true;
+        return false;
+    };
+    if (ext == "gdi" || ext == "cdi") return dc;
+    if (ext == "pbp") return psp && PbpIsPsp(file) ? psp : cd;
+    if (ext == "iso" || ext == "cso" || ext == "elf" || ext == "prx") return psp;
     if (ext == "chd") {
-        // El CHD va comprimido; se guía por la carpeta o el nombre («Saturn», «SS»).
-        const std::string p = Lower(Paths::ToUtf8(file));
-        return p.find("saturn") != std::string::npos || p.find("/ss/") != std::string::npos ||
-                       p.find("\\ss\\") != std::string::npos
-                   ? saturn
-                   : cd;
+        if (dc && ChdIsGdrom(file)) return dc;
+        // El resto de CHD va comprimido; se guía por la carpeta o el nombre.
+        if (dc && has({"dreamcast", "sueño", "sueno", "/dc/", "\\dc\\"})) return dc;
+        if (psp && has({"psp", "portátil", "portatil"})) return psp;
+        return saturn && has({"saturn", "anillo", "/ss/", "\\ss\\"}) ? saturn : cd;
     }
     const fs::path track = FirstTrack(file, ext);
-    if (!track.empty() && FileHas(track, "SEGA SEGASATURN", 64 * 1024)) return saturn;
+    if (!track.empty()) {
+        if (saturn && FileHas(track, "SEGA SEGASATURN", 64 * 1024)) return saturn;
+        if (dc && FileHas(track, "SEGA SEGAKATANA", 64 * 1024)) return dc;
+    }
+    if (dc && has({"dreamcast", "sueño", "sueno"})) return dc;
     return cd;
 }
 
@@ -158,7 +217,7 @@ std::vector<std::string> ArchiveCandidates(const std::vector<Archive::Entry>& en
     bool has_sheet = false;
     for (const auto& e : entries) {
         const std::string x = ExtOf(e.name);
-        if (x == "cue" || x == "m3u" || x == "ccd") has_sheet = true;
+        if (x == "cue" || x == "m3u" || x == "ccd" || x == "gdi") has_sheet = true;
     }
     for (const auto& e : entries) {
         const std::string x = ExtOf(e.name);
@@ -186,10 +245,7 @@ Game Library::MakeGameEntry(const fs::path& archive, const std::string& entry) {
     g.entry = entry;
     g.ext = ExtOf(entry);
     if (const SystemDef* sys = SystemForExtension(g.ext)) {
-        if (sys->disc) {
-            const std::string p = Lower(Paths::ToUtf8(archive) + "/" + entry);
-            sys = p.find("saturn") != std::string::npos ? SystemById("anillo") : SystemById("cd");
-        }
+        if (sys->disc) sys = DiscSystemByName(Lower(Paths::ToUtf8(archive) + "/" + entry), g.ext);
         if (sys) g.system = sys->id;
     }
     return g;
@@ -220,10 +276,7 @@ Game Library::MakeGame(const fs::path& file) {
             }
             g.ext = ExtOf(g.entry);
             sys = SystemForExtension(g.ext);
-            if (sys && sys->disc) {
-                const std::string p = Lower(Paths::ToUtf8(file) + "/" + g.entry);
-                sys = p.find("saturn") != std::string::npos || p.find("/ss/") != std::string::npos ? SystemById("anillo") : SystemById("cd");
-            }
+            if (sys && sys->disc) sys = DiscSystemByName(Lower(Paths::ToUtf8(file) + "/" + g.entry), g.ext);
         }
         if (g.choices.size() <= 1) g.choices.clear();
     } else {

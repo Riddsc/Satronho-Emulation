@@ -185,7 +185,7 @@ std::vector<App::TouchButton> App::TouchLayout(float W, float H) const {
         else out.push_back({c, u * 1.45f, -2, "", "izq"});
         // En CD, el stick izquierdo va abajo a la derecha de la cruceta (dentro de la columna, sin
         // tapar el juego).
-        if (sys.id == "cd" && sys.analog) out.push_back({{c.x + u * 1.15f, c.y + u * 2.05f}, u * 0.75f, -3, "", "izq"});
+        if (sys.analog && sys.id != "n64") out.push_back({{c.x + u * 1.15f, c.y + u * 2.05f}, u * 0.75f, -3, "", "izq"});
     }
     // Derecha: los botones de acción en las mismas filas que en Controles.
     {
@@ -292,21 +292,46 @@ void App::ApplyTouchPad() {
         if (b.id == -1) {
             menu = true;
         } else if (b.id == -2) {
-            // Cruceta de 8 direcciones con una zona muerta pequeña al centro.
+            // Cruceta: arriba, abajo, izquierda y derecha tienen zonas anchas (60°) y las diagonales
+            // angostas (30°), así tocar «arriba» no marca también un lado. Para cambiar de dirección
+            // hay que pasarse un poco del borde (no tiembla entre dos vecinas).
             const float d = std::sqrt(dx * dx + dy * dy);
-            if (d > b.r * 0.18f) {
-                const float a = std::atan2(dy, dx);
-                const int sector = static_cast<int>(std::lround(a / (kPi / 4))) & 7; // 0 derecha, 2 abajo…
+            if (d > b.r * 0.22f) {
+                float deg = std::atan2(dy, dx) * 180.0f / kPi; // 0 derecha, 90 abajo
+                if (deg < 0) deg += 360.0f;
+                auto half = [](int dir) { return dir % 2 == 0 ? 30.0f : 15.0f; };
+                auto dist = [](float a, float b2) {
+                    float x = std::fabs(a - b2);
+                    return x > 180.0f ? 360.0f - x : x;
+                };
+                int dir = -1;
+                if (f.dir >= 0 && dist(deg, f.dir * 45.0f) <= half(f.dir) + 8.0f) dir = f.dir; // se queda
+                for (int k = 0; dir < 0 && k < 8; ++k)
+                    if (dist(deg, k * 45.0f) <= half(k)) dir = k;
+                if (dir < 0) dir = static_cast<int>(std::lround(deg / 45.0f)) & 7;
+                f.dir = dir;
                 static const uint16_t dirs[8] = {
                     1u << RETRO_DEVICE_ID_JOYPAD_RIGHT, (1u << RETRO_DEVICE_ID_JOYPAD_RIGHT) | (1u << RETRO_DEVICE_ID_JOYPAD_DOWN),
                     1u << RETRO_DEVICE_ID_JOYPAD_DOWN,  (1u << RETRO_DEVICE_ID_JOYPAD_DOWN) | (1u << RETRO_DEVICE_ID_JOYPAD_LEFT),
                     1u << RETRO_DEVICE_ID_JOYPAD_LEFT,  (1u << RETRO_DEVICE_ID_JOYPAD_LEFT) | (1u << RETRO_DEVICE_ID_JOYPAD_UP),
                     1u << RETRO_DEVICE_ID_JOYPAD_UP,    (1u << RETRO_DEVICE_ID_JOYPAD_UP) | (1u << RETRO_DEVICE_ID_JOYPAD_RIGHT)};
-                touch_buttons_ |= dirs[sector];
+                touch_buttons_ |= dirs[dir];
+            } else {
+                f.dir = -1;
             }
         } else if (b.id == -3) {
-            touch_stick_[0] = std::clamp(dx / b.r, -1.0f, 1.0f);
-            touch_stick_[1] = std::clamp(dy / b.r, -1.0f, 1.0f);
+            // Palanca: zona muerta al centro y, cerca de arriba/abajo/izquierda/derecha, se endereza
+            // (si vas hacia arriba no se cuela un poquito de lado).
+            float x = std::clamp(dx / b.r, -1.0f, 1.0f), y = std::clamp(dy / b.r, -1.0f, 1.0f);
+            const float mag = std::sqrt(x * x + y * y);
+            if (mag < 0.15f) {
+                x = y = 0;
+            } else {
+                if (std::fabs(x) < mag * 0.38f) x = 0;
+                if (std::fabs(y) < mag * 0.38f) y = 0;
+            }
+            touch_stick_[0] = x;
+            touch_stick_[1] = y;
         } else {
             touch_buttons_ |= static_cast<uint16_t>(1u << b.id);
         }

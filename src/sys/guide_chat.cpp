@@ -128,6 +128,8 @@ const SystemDef* MentionedSystem(const std::string& q) {
         {"octa", {"octa", "nes", "nintendinho", "family"}},
         {"n64", {"n64", "64", "nintendo 64", "satronho 64"}},
         {"dual", {"dual", "ds", "nds", "nintendo ds", "3ds"}},
+        {"sueno", {"sueno", "dreamcast", "dc", "satronho sueno"}},
+        {"portatil", {"portatil", "psp", "satronho portatil"}},
         {"mega", {"mega", "genesis", "mega drive", "megadrive", "sega genesis"}},
         {"anillo", {"anillo", "saturn", "sega saturn"}},
         {"cd", {"cd", "ps1", "psx", "playstation", "play station", "play 1", "play"}},

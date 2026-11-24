@@ -116,6 +116,7 @@ std::vector<SystemDef> Build() {
     cd.port_device = RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1); // DualShock
     cd.analog = true;
     cd.disc = true;
+    cd.gpu = true;
     // Los nombres que busca Beetle PSX (por región). Una BIOS con otro modelo en el nombre
     // (SCPH-1001, 7001…) se guarda con el nombre de su región, que el núcleo sí abre.
     cd.bios = {{"scph5501.bin", 524288, "5501|1001|7001|7501|101|usa|america|ntsc-u|ntscu", "0555c6fae8906f3f09baf5988f00e55f88e9f30b"},
@@ -157,6 +158,7 @@ std::vector<SystemDef> Build() {
     n64.center_title = "START";
     n64.shoulders = {RETRO_DEVICE_ID_JOYPAD_SELECT, RETRO_DEVICE_ID_JOYPAD_R2, RETRO_DEVICE_ID_JOYPAD_L2};
     n64.analog = true;
+    n64.gpu = true;
     n64.runahead_ok = false;
     n64.cpu_need = 3;
     // El dibujo lo elige Satronho (App::ApplyGpuChoice): GLideN64 con OpenGL, ParaLLEl-RDP con
@@ -195,6 +197,29 @@ std::vector<SystemDef> Build() {
     ds.cpu_need = 1;
     v.push_back(ds);
 
+    // PSP con PPSSPP: también dibuja con la tarjeta gráfica (o con el procesador, más lento).
+    SystemDef psp = Make("portatil", "Portátil", "juegos de PSP", "PSP", "ppsspp", {"iso", "cso", "pbp", "chd", "elf", "prx"}, "UMD",
+                         0x7A8BA8, Layout::Psp, true);
+    psp.buttons = With({{RETRO_DEVICE_ID_JOYPAD_B, "Cruz"},
+                        {RETRO_DEVICE_ID_JOYPAD_A, "Círculo"},
+                        {RETRO_DEVICE_ID_JOYPAD_Y, "Cuadrado"},
+                        {RETRO_DEVICE_ID_JOYPAD_X, "Triángulo"},
+                        {RETRO_DEVICE_ID_JOYPAD_L, "L"},
+                        {RETRO_DEVICE_ID_JOYPAD_R, "R"},
+                        {RETRO_DEVICE_ID_JOYPAD_SELECT, "Select"},
+                        {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    psp.face = {{RETRO_DEVICE_ID_JOYPAD_X}, {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_A}, {RETRO_DEVICE_ID_JOYPAD_B}};
+    psp.shoulders = {RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_R};
+    psp.analog = true;
+    psp.disc = true; // .iso, .cso y .chd: «disco» UMD (se distinguen de PS1 al mirar el archivo)
+    psp.gpu = true;
+    psp.runahead_ok = false;
+    psp.cpu_need = 2;
+    psp.margin_gb = 2;
+    psp.bios_note = "No necesita BIOS. Las letras y fuentes del sistema de la PSP ya vienen con Satronho.";
+    psp.core_defaults = {{"ppsspp_internal_resolution", "960x544"}, {"ppsspp_button_preference", "Cross"}};
+    v.push_back(psp);
+
     // Sega Saturn con el mando de 6 botones (como el de la Mega, con L y R arriba).
     SystemDef ss = Make("anillo", "Anillo", "juegos de Sega Saturn", "Saturn", "mednafen_saturn", {"cue", "chd", "ccd", "m3u"},
                         "ANILLO", 0xB07CFF, Layout::Saturn, false);
@@ -222,6 +247,35 @@ std::vector<SystemDef> Build() {
                    "Japón. No existe una libre que la reemplace.";
     ss.core_defaults = {{"beetle_saturn_deinterlacer", "bob"}};
     v.push_back(ss);
+
+    // Dreamcast con Flycast: dibuja con la tarjeta gráfica (OpenGL o Vulkan). El mando tiene
+    // palanca, cruceta, A B X Y y los gatillos L y R (L2/R2 del RetroPad).
+    SystemDef dc = Make("sueno", "Sueño", "juegos de Dreamcast", "Dreamcast", "flycast", {"gdi", "cdi", "chd", "cue", "m3u"}, "SUEÑO",
+                        0xF28C28, Layout::Dreamcast, false);
+    dc.buttons = With({{RETRO_DEVICE_ID_JOYPAD_B, "A"},
+                       {RETRO_DEVICE_ID_JOYPAD_A, "B"},
+                       {RETRO_DEVICE_ID_JOYPAD_Y, "X"},
+                       {RETRO_DEVICE_ID_JOYPAD_X, "Y"},
+                       {RETRO_DEVICE_ID_JOYPAD_L2, "L"},
+                       {RETRO_DEVICE_ID_JOYPAD_R2, "R"},
+                       {RETRO_DEVICE_ID_JOYPAD_START, "Start"}});
+    dc.face = {{RETRO_DEVICE_ID_JOYPAD_X}, {RETRO_DEVICE_ID_JOYPAD_Y, RETRO_DEVICE_ID_JOYPAD_A}, {RETRO_DEVICE_ID_JOYPAD_B}};
+    dc.shoulders = {RETRO_DEVICE_ID_JOYPAD_L2, RETRO_DEVICE_ID_JOYPAD_R2};
+    dc.center = {RETRO_DEVICE_ID_JOYPAD_START};
+    dc.center_title = "START";
+    dc.analog = true;
+    dc.disc = true;
+    dc.gpu = true;
+    dc.gpu_cpu = false; // Flycast no dibuja con el procesador
+    dc.runahead_ok = false;
+    dc.cpu_need = 2;
+    dc.margin_gb = 3; // los GD-ROM descomprimidos pesan cerca de 1 GB
+    // Flycast busca la BIOS en «dc/». Sin ella usa su BIOS interna (HLE), que abre casi todo.
+    dc.bios = {{"dc/dc_boot.bin", 2097152, "boot|dc_bios|bios"}, {"dc/dc_flash.bin", 131072, "flash"}};
+    dc.bios_note = "No hace falta: sin BIOS uso la interna de Flycast, que abre casi todos los juegos. Con la original (dc_boot.bin y "
+                   "dc_flash.bin) sale el logo de la consola y algunos juegos andan mejor.";
+    dc.core_defaults = {{"flycast_internal_resolution", "1280x960"}, {"flycast_enable_purupuru", "enabled"}};
+    v.push_back(dc);
 
     SystemDef gb = Make("bolsillo", "Bolsillo", "juegos de Game Boy y Game Boy Color", "GB · GBC", "mgba", {"gb", "gbc", "sgb"},
                         "BOLSILLO", 0x9BBC0F, Layout::GameBoy, true);
@@ -312,9 +366,7 @@ const std::vector<SoonSystem>& SoonSystems() {
     // En el orden en que van llegando.
     static const std::vector<SoonSystem> soon{
         {"Cubo", "GC · Wii", "juegos de GameCube y Wii"},
-        {"Sueño", "Dreamcast", "juegos de Dreamcast"},
         {"CD2", "PS2", "juegos de PlayStation 2"},
-        {"Portátil", "PSP", "juegos de PSP"},
         {"Dual", "3DS", "juegos de Nintendo 3DS, que se suman a Satronho Dual"},
     };
     return soon;

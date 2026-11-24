@@ -838,7 +838,7 @@ Settings App::VideoSettings() const {
     Settings v = settings_.ForSystem(sys_->id);
     // «Según la consola»: CRT en las de TV en 2D, LCD en las portátiles y nada en las 3D (CD, 64,
     // Anillo y Dual se ven mejor limpias, sobre todo a alta resolución).
-    const bool three_d = sys_->id == "cd" || sys_->id == "n64" || sys_->id == "anillo" || sys_->id == "dual";
+    const bool three_d = sys_->gpu || sys_->id == "anillo" || sys_->id == "dual";
     if (v.effect == static_cast<int>(Effect::Auto) && three_d) v.effect = static_cast<int>(Effect::None);
     return v;
 }
@@ -966,7 +966,7 @@ void App::ImportBios(const std::string& sys_id, const fs::path& file) {
     }
     if (!pick)
         for (const auto& b : sys->bios)
-            if (name == b.name) pick = &b;
+            if (name == fs::path(b.name).filename().string()) pick = &b;
     auto size_ok = [&](const BiosFile& b) {
         return b.size == size || (std::string(b.name) == "firmware.bin" && (size == 131072 || size == 524288));
     };
@@ -995,7 +995,7 @@ void App::ImportBios(const std::string& sys_id, const fs::path& file) {
         Toast("Ese archivo no parece una BIOS de " + sys->full + " (no tiene el tamaño de ninguna).", GuideId::Nono, 5);
         return;
     }
-    fs::create_directories(Paths::System(), ec);
+    fs::create_directories((Paths::System() / pick->name).parent_path(), ec);
     fs::copy_file(file, Paths::System() / pick->name, fs::copy_options::overwrite_existing, ec);
     if (ec) {
         Toast("No pude copiar la BIOS: " + ec.message(), GuideId::Nono, 5);
@@ -1262,11 +1262,15 @@ bool App::StartGame(const fs::path& rom) {
     library_.MarkPlayed(current_.key);
     games_dirty_ = true;
     core_.target_refresh = hw_.refresh;
-    audio_.SetPaused(false);
+    // Salida de sonido nueva para cada juego (en Android a veces quedaba muda tras el primero).
+    audio_.Reopen();
     audio_.Configure(core_.SampleRate());
     ApplyAudioSettings();
+    Log::Info("Sonido: %.0f Hz, volumen %.0f %%%s", core_.SampleRate(), settings_.volume * 100.0f,
+              audio_.IsOpen() ? (audio_.DevicePaused() ? ", salida en pausa" : "") : ", sin salida");
     video_.Invalidate();
     video_gl_.Invalidate();
+    if (settings_.volume < 0.01f) Toast("El sonido está en silencio. Súbelo en el menú Sonido de la barra de arriba.", GuideId::Samy, 5);
     rewind_.Clear();
     undo_state_.clear();
     resume_pending_ = false;

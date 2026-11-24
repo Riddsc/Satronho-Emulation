@@ -27,6 +27,16 @@ void AudioOut::Close() {
     stream_ = nullptr;
 }
 
+void AudioOut::Reopen() {
+    Close();
+    if (!Open()) return;
+    paused_ = false;
+    starved_ = false;
+    SDL_SetAudioStreamGain(stream_, volume_);
+}
+
+bool AudioOut::DevicePaused() const { return stream_ && SDL_AudioStreamDevicePaused(stream_); }
+
 void AudioOut::Configure(double sample_rate) {
     if (!stream_) return;
     in_rate_ = sample_rate;
@@ -51,6 +61,11 @@ double AudioOut::QueuedMs() const {
 
 void AudioOut::Update() {
     if (!stream_ || paused_) return;
+    // Si el sistema dejó la salida en pausa sin que Satronho lo pidiera, se reanuda sola.
+    if (SDL_AudioStreamDevicePaused(stream_)) {
+        Log::Info("La salida de sonido estaba en pausa sin pedirlo: se reanuda");
+        SDL_ResumeAudioStreamDevice(stream_);
+    }
     const double queued = QueuedMs();
     const double target = latency_ms_;
     if (queued > std::max(250.0, target * 5.0)) {
@@ -91,7 +106,8 @@ void AudioOut::SetPaused(bool paused) {
 }
 
 void AudioOut::SetVolume(float volume) {
-    if (stream_) SDL_SetAudioStreamGain(stream_, std::clamp(volume, 0.0f, 1.0f));
+    volume_ = std::clamp(volume, 0.0f, 1.0f);
+    if (stream_) SDL_SetAudioStreamGain(stream_, volume_);
 }
 
 } // namespace Satronho

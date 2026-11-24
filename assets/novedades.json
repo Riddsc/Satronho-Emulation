@@ -3,6 +3,37 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "Llegan Satronho Sueño y Satronho Portátil, y el sonido ya no se pierde",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Sueño · para juegos de Dreamcast (.gdi, .cdi, .chd, .cue): con su carpeta en «Satronho Games», su mando dibujado, control en pantalla con palanca y cruceta, y resolución hasta 4K explicada por Troya. No necesita BIOS; si pones dc_boot.bin y dc_flash.bin, sale el logo de la consola."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho Portátil · para juegos de PSP (.iso, .cso, .pbp, .chd): igual, con su carpeta, su dibujo, control en pantalla y resolución en múltiplos de su pantalla. No necesita BIOS: las letras del sistema ya vienen incluidas."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Ñoño reconoce solo de qué consola es cada disco: un .chd de Dreamcast, PSP, Saturn o PS1, y un .pbp de PSP o de PS1, van a su consola sin preguntarte."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "El sonido ya no se pierde: antes el primer juego sonaba y los siguientes quedaban mudos hasta reiniciar la app. Ahora la salida de sonido se abre de nuevo con cada juego, y si quedó en silencio te aviso."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "La cruceta táctil ya no se cruza: tocar arriba ya no marca también izquierda o derecha. Las diagonales piden apuntar más al medio, y las consolas con palanca y cruceta (CD, Sueño, Portátil) tienen las dos sin mezclarse."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "«Ajustes de este juego» también se abre con el juego andando (menú Juego de la barra): ahí cambias a «Mando normal» o DualShock en el momento, sin reiniciar."
+        }
+      ]
+    },
+    {
+      "version": "Build 21",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "La biblioteca baja bien, los juegos abren fácil y tus cosas se quedan en «Satronho Games»",
       "cambios": [
         {

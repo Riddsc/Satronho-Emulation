@@ -110,6 +110,7 @@ void App::DrawUi() {
     if (in_game_) {
         DrawGameLayer();
         DrawGameOverlay();
+        DrawGameSettings();
         DrawToasts();
         if (!pending_start_.empty()) DrawLoading();
         if (overlay_page_ < 0) DrawTouchPad(); // con una pantalla de Satronho encima, el control táctil se esconde
@@ -1018,15 +1019,23 @@ void App::DrawGameSettings() {
             RowBegin("Tipo de mando",
                      "Algunos juegos viejos no aceptan el mando con palancas (DualShock) y dicen que el mando está mal conectado. Con «Mando normal» se conecta "
                      "uno sin palancas, como el original.");
-            if (Segmented("##mando_juego", &v, {"DualShock", "Mando normal"}, S(260))) library_.SetGameOption(g.key, "mando", v == 1 ? "normal" : "");
+            if (Segmented("##mando_juego", &v, {"DualShock", "Mando normal"}, S(260))) {
+                library_.SetGameOption(g.key, "mando", v == 1 ? "normal" : "");
+                // Con el juego abierto se cambia al momento (como enchufar el otro mando).
+                if (in_game_ && current_.key == g.key) {
+                    core_.SetPortDevice(v == 1 ? RETRO_DEVICE_JOYPAD : sys->port_device);
+                    Toast(v == 1 ? "Conecté un mando normal. Si el juego no lo nota, reinícialo (F4)." : "Conecté el DualShock.", GuideId::Samy, 4);
+                }
+            }
             RowEnd();
         }
         // Motor gráfico y resolución (consolas que dibujan con la tarjeta gráfica).
-        if (sys->id == "cd" || sys->id == "n64") {
+        if (sys->gpu) {
             any = true;
             int api = std::atoi(library_.GameOption(g.key, "motor").c_str());
             RowBegin("Motor gráfico", "Si un juego se ve mal o se cierra con un motor, prueba otro solo para él.");
-            std::vector<std::string> apis = {Tr("Como la consola"), "OpenGL", "Vulkan", Tr("Procesador")};
+            std::vector<std::string> apis = {Tr("Como la consola"), "OpenGL", "Vulkan"};
+            if (sys->gpu_cpu) apis.push_back(Tr("Procesador"));
             if (ComboStyled("##motor_juego", &api, apis, S(240))) {
                 library_.SetGameOption(g.key, "motor", api > 0 ? std::to_string(api) : "");
                 library_.SetGameOption(g.key, "res", ""); // los pasos cambian con el motor
@@ -1038,7 +1047,7 @@ void App::DrawGameSettings() {
             std::vector<std::string> labels = {Tr("Como la consola")};
             int cur = 0;
             for (size_t i = 0; i < steps.size(); ++i) {
-                labels.push_back(ResLabel(steps[i]));
+                labels.push_back(ResLabel(steps[i], sys));
                 if (steps[i] == res) cur = static_cast<int>(i) + 1;
             }
             RowBegin("Resolución", "Más alta se ve más nítido pero pide más a la tarjeta gráfica.");
@@ -1046,6 +1055,8 @@ void App::DrawGameSettings() {
             RowEnd();
         }
         if (!any) Muted("Esta consola todavía no tiene ajustes propios por juego.", 14);
+        else if (in_game_ && current_.key == g.key && (sys->gpu))
+            Muted("El motor y la resolución se aplican la próxima vez que abras el juego.", 12.5f);
         ImGui::Dummy({0, S(10)});
         if (Button("Listo##ajustes_juego", ButtonKind::Primary, {inner, S(46)}, Icon::Check, true) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
             game_settings_ = Game{};

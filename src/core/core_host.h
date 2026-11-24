@@ -140,6 +140,12 @@ public:
     bool fast_forwarding = false;
     float target_refresh = 60.0f;
     unsigned port_device = RETRO_DEVICE_JOYPAD; // tipo de mando que se conecta (DualShock en CD)
+    // Cambia el tipo de mando con el juego abierto (como desenchufar uno y enchufar otro).
+    void SetPortDevice(unsigned device) {
+        port_device = device;
+        if (retro_set_controller_port_device_ && GameLoaded())
+            for (unsigned port = 0; port < 2; ++port) retro_set_controller_port_device_(port, device);
+    }
 
     // Vibración que pide el núcleo (Rumble Pak, DualShock): 0..65535 por puerto, fuerte y débil.
     uint16_t rumble[4][2] = {};

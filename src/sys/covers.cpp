@@ -33,6 +33,8 @@ std::string RepoFor(const std::string& system, const std::string& ext) {
     if (system == "mega") return "Sega - Mega Drive - Genesis";
     if (system == "anillo") return "Sega - Saturn";
     if (system == "cd") return "Sony - PlayStation";
+    if (system == "sueno") return "Sega - Dreamcast";
+    if (system == "portatil") return "Sony - PlayStation Portable";
     return "";
 }
 
