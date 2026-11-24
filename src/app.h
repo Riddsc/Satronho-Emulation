@@ -111,9 +111,9 @@ private:
     void ApplySuggestion();
     void AddFolderDialog();
     void OpenRomDialog();
-    std::string PsxBiosFound() const;
-    void PickPsxBios();
-    void ImportPsxBios(const fs::path& file);
+    std::vector<std::string> BiosFound(const SystemDef& sys) const;
+    void PickBios(const SystemDef& sys);
+    void ImportBios(const std::string& sys_id, const fs::path& file);
     void Rescan();
     void LoadAssets();
     void QaTick();
@@ -228,6 +228,7 @@ private:
     std::vector<std::string> pending_roms_;
     std::vector<std::string> pending_bios_;
     bool bios_hint_shown_ = false;
+    std::string bios_target_;
     float sidebar_full_h_ = 0;
     std::string last_core_msg_;
     double last_core_msg_t_ = 0;

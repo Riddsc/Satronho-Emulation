@@ -1073,14 +1073,23 @@ void App::DrawSettingsCore() {
                   tsys.full.c_str(), si.library_name, si.library_version,
                   tsys.core == "mgba" ? " Bolsillo y Bolsillo Plus comparten el mismo núcleo y sus opciones." : "").c_str());
     ImGui::Dummy({0, S(16)});
-    if (tsys.disc) {
-        // BIOS de PlayStation: sin ella se usa OpenBIOS (libre), que va bien con casi todo.
-        const std::string bios = PsxBiosFound();
-        RowBegin("BIOS de PlayStation",
-                 bios.empty() ? "No hay BIOS: se usa OpenBIOS, libre e incluida. Con la original (scph5501.bin para juegos de "
-                                "América, scph5500 de Japón, scph5502 de Europa) algunos juegos andan mejor y sale la animación de inicio."
-                              : ("Usando " + bios + ". Gracias: así cada juego arranca como en la consola.").c_str());
-        if (Button(bios.empty() ? "Agregar BIOS…" : "Cambiar BIOS…", ButtonKind::Secondary, {0, 0}, Icon::Chip, true)) PickPsxBios();
+    if (!tsys.bios.empty()) {
+        // BIOS de la consola: la pone cada quien (no se incluye). Se muestra cuál hay y cuál falta.
+        const std::vector<std::string> have = BiosFound(tsys);
+        std::string status;
+        if (have.empty()) {
+            status = tsys.bios_required ? "Falta. " : "No hay (es opcional). ";
+        } else {
+            status = "Tienes: ";
+            for (size_t i = 0; i < have.size(); ++i) status += (i ? ", " : "") + have[i];
+            status += ". ";
+        }
+        std::string names;
+        for (size_t i = 0; i < tsys.bios.size(); ++i) names += std::string(i ? ", " : "") + tsys.bios[i].name;
+        RowBegin(("BIOS de " + tsys.full).c_str(), (status + tsys.bios_note + " Nombres que reconoce: " + names + ".").c_str());
+        if (Button(have.empty() ? "Agregar BIOS…" : "Agregar otra…", tsys.bios_required && have.empty() ? ButtonKind::Primary : ButtonKind::Secondary,
+                   {0, 0}, Icon::Chip, true))
+            PickBios(tsys);
         ImGui::SameLine(0, S(8));
         if (Button("Abrir carpeta", ButtonKind::Ghost, {0, 0}, Icon::Folder, true)) OpenFolder(Paths::System());
         RowEnd();
