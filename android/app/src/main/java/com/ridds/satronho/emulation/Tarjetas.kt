@@ -58,14 +58,19 @@ fun TarjetaCarga(c: Cargando) {
             modifier = Modifier.width(300.dp),
         ) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Portada(c.portada, c.titulo, c.color, Modifier.size(64.dp), 10)
+                Box {
+                    Portada(c.portada, c.titulo, c.color, Modifier.size(64.dp), 10)
+                    Logo(22.dp, Modifier.align(Alignment.BottomEnd).padding(2.dp))
+                }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(c.titulo, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(c.consola, style = MaterialTheme.typography.bodySmall, color = c.color, maxLines = 1)
+                    Text(t("Cargando…"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(8.dp))
                     if (c.avance >= 0f) {
                         LinearProgressIndicator(progress = { c.avance }, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)))
+                        TextButton(onClick = { SatronhoUi.orden("cancelar_descompresion") }) { Text(t("Cancelar")) }
                     } else {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)))
                     }
@@ -119,9 +124,13 @@ fun CapaAvisos(enJuego: Boolean) {
                         .border(1.dp, Guias.color(actual.guia).copy(alpha = 0.5f), RoundedCornerShape(22.dp)),
                 ) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Avatar(actual.guia, 28.dp)
+                        Avatar(actual.guia, 30.dp)
                         Spacer(Modifier.width(10.dp))
-                        Text(actual.texto, style = MaterialTheme.typography.bodyMedium)
+                        Column {
+                            Text(Guias.nombre(actual.guia), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Guias.color(actual.guia))
+                            Text(actual.texto, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
                 }
             }
@@ -145,13 +154,14 @@ fun TarjetaGuia(t: Tarjeta, enJuego: Boolean) {
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 4.dp,
             shadowElevation = 8.dp,
-            modifier = Modifier.widthIn(max = if (enJuego) 360.dp else 420.dp),
+            modifier = Modifier.widthIn(max = if (enJuego) 360.dp else 420.dp)
+                .border(1.dp, Guias.color(t.guia).copy(alpha = 0.5f), RoundedCornerShape(18.dp)),
         ) {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(t.guia, 32.dp)
+                    Avatar(t.guia, 36.dp)
                     Spacer(Modifier.width(10.dp))
-                    Text(t.titulo, style = MaterialTheme.typography.titleMedium)
+                    Text(t.titulo, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Guias.color(t.guia))
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(t.texto, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)

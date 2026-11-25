@@ -12,7 +12,14 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -79,9 +86,109 @@ private const val DERECHA = 7
 @Composable
 fun PantallaJuego(e: Estado) {
     val juego = e.juego ?: return
+    val ajustes = SatronhoUi.pilaAjustes.isNotEmpty()
     Box(Modifier.fillMaxSize()) {
-        if (e.tactil.visible && !juego.menu) ControlTactil(e.tactil)
+        e.medidor?.let { if (!ajustes) LineaMedidor(it) }
+        if (e.chip.isNotEmpty() && !ajustes) ChipEstado(e.chip)
+        if (e.tactil.editar) EditorTactil(e.tactil)
+        else if (e.tactil.visible && !juego.menu && !ajustes) ControlTactil(e.tactil)
         CajonJuego(juego, e.tactil)
+    }
+}
+
+// ------------------------------------------------------------------ medidor y estado
+
+/** El medidor: una línea fina en una esquina (como el de NX), con el color elegido. */
+@Composable
+private fun LineaMedidor(m: Medidor) {
+    val alinear = when (m.esquina) {
+        0 -> Alignment.TopStart
+        2 -> Alignment.BottomStart
+        3 -> Alignment.BottomEnd
+        else -> Alignment.TopEnd
+    }
+    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 10.dp, vertical = 4.dp), contentAlignment = alinear) {
+        Row(
+            Modifier.clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(alpha = 0.45f)).padding(horizontal = 8.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(7.dp).clip(CircleShape).background(if (m.lento) Color(0xFFFF9F43) else m.color))
+            Spacer(Modifier.width(6.dp))
+            Text(m.texto, color = if (m.lento) Color(0xFFFF9F43) else Color.White.copy(alpha = 0.9f), fontSize = 11.sp,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+        }
+    }
+}
+
+/** «En pausa», «Rebobinando»… arriba al centro. */
+@Composable
+private fun ChipEstado(texto: String) {
+    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(top = 22.dp), contentAlignment = Alignment.TopCenter) {
+        Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(18.dp))) {
+            Text(texto, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        }
+    }
+}
+
+// ------------------------------------------------------------------ mover los botones
+
+/** Editor del control: arrastra cada grupo (cruceta, botones, gatillos…) a donde te quede cómodo. */
+@Composable
+private fun EditorTactil(tc: Tactil) {
+    val medidor = rememberTextMeasurer()
+    val densidad = LocalDensity.current
+    val tcActual by rememberUpdatedState(tc)
+    var grupo by remember { mutableStateOf("") }
+    var corrido by remember { mutableStateOf(Offset.Zero) }
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f))) {
+        Canvas(
+            Modifier.fillMaxSize().pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { p ->
+                        val W = size.width.toFloat()
+                        val H = size.height.toFloat()
+                        var mejor = ""
+                        var mejorD = Float.MAX_VALUE
+                        for (b in tcActual.botones) {
+                            val d = hypot(p.x - b.x * W, p.y - b.y * H) / (b.r * H * 1.6f)
+                            if (d < 1f && d < mejorD) { mejorD = d; mejor = b.grupo }
+                        }
+                        grupo = mejor
+                        corrido = Offset.Zero
+                    },
+                    onDrag = { c, d -> if (grupo.isNotEmpty()) { c.consume(); corrido += d } },
+                    onDragEnd = {
+                        if (grupo.isNotEmpty() && corrido != Offset.Zero) {
+                            val W = size.width.toFloat()
+                            val H = size.height.toFloat()
+                            SatronhoUi.orden("tactil_mover|$grupo|${corrido.x / W}|${corrido.y / H}")
+                        }
+                        grupo = ""
+                        corrido = Offset.Zero
+                    },
+                    onDragCancel = { grupo = ""; corrido = Offset.Zero },
+                )
+            },
+        ) {
+            val op = tc.opacidad.coerceIn(0.5f, 1f)
+            for (b in tc.botones) {
+                val mover = if (b.grupo == grupo) corrido else Offset.Zero
+                val bm = b.copy(x = b.x + mover.x / size.width, y = b.y + mover.y / size.height)
+                dibujarBoton(bm, if (b.grupo == grupo) -1 else 0, Offset.Zero, op, medidor, densidad.density)
+            }
+        }
+        Column(Modifier.align(Alignment.TopCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(top = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(t("Arrastra cada grupo de botones"), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.width(10.dp))
+                    TextButton(onClick = { SatronhoUi.orden("tactil_restablecer") }) { Text(t("Restablecer")) }
+                    Button(onClick = { SatronhoUi.orden("tactil_listo") }) { Text(t("Listo")) }
+                }
+            }
+        }
     }
 }
 
@@ -333,7 +440,12 @@ private fun DrawScope.dibujarBoton(
 private fun CajonJuego(j: JuegoActual, tc: Tactil) {
     val abierto = j.menu
     var confirmarSalir by remember { mutableStateOf(false) }
-    LaunchedEffect(abierto) { if (!abierto) confirmarSalir = false }
+    LaunchedEffect(abierto) {
+        if (!abierto) {
+            confirmarSalir = false
+            if (SatronhoUi.pilaAjustes.isEmpty()) SatronhoUi.permitirFoco(false)
+        }
+    }
 
     AnimatedVisibility(visible = abierto, enter = fadeIn(), exit = fadeOut()) {
         Box(
@@ -351,6 +463,12 @@ private fun CajonJuego(j: JuegoActual, tc: Tactil) {
                 Modifier.windowInsetsPadding(WindowInsets.safeDrawing).verticalScroll(rememberScrollState())
                     .padding(horizontal = 12.dp, vertical = 16.dp),
             ) {
+                Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Logo(28.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Satronho Emulation", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.height(10.dp))
                 Text(j.titulo, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 12.dp))
                 Text(
@@ -381,14 +499,9 @@ private fun CajonJuego(j: JuegoActual, tc: Tactil) {
                 }
                 Item(Iconos.mando, textoControl) { SatronhoUi.orden("tactil|${(tc.modo + 1) % 3}") }
                 Item(Iconos.mando, t("Mover los botones")) { SatronhoUi.orden("tactil_editar") }
-                Item(Iconos.ajustesJuego, t("Ajustes de este juego")) {
-                    SatronhoUi.orden("menu|0")
-                    SatronhoUi.orden("ajustes_juego|${j.clave}")
-                }
-                Item(Icons.Filled.Settings, t("Ajustes")) {
-                    SatronhoUi.orden("menu|0")
-                    SatronhoUi.orden("pagina|ajustes")
-                }
+                Item(Iconos.ajustesJuego, t("Ajustes de este juego")) { SatronhoUi.abrirAjustes("juego", j.clave) }
+                Item(Iconos.tactil, t("Control en pantalla")) { SatronhoUi.abrirAjustes("tactil") }
+                Item(Icons.Filled.Settings, t("Ajustes")) { SatronhoUi.abrirAjustes() }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 Item(Iconos.salir, if (confirmarSalir) t("Toca otra vez para salir") else t("Salir del juego"), peligro = true) {
                     if (confirmarSalir) SatronhoUi.orden("salir_juego") else confirmarSalir = true

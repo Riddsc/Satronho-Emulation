@@ -56,6 +56,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +78,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 // Preferencias de la vista (solo del celular): cuadrícula/compacta/lista, orden y ocultos.
 private class Vista(context: Context) {
@@ -116,10 +118,10 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
         SatronhoUi.alTocarLocal = { id, boton ->
             if (id == "local:consejo") when (boton) {
                 "otro" -> {
-                    consejo++
+                    consejo = elegirConsejo(bActual, consejo)
                     mostrarConsejo(bActual, consejo)
                 }
-                "preguntar" -> SatronhoUi.orden("pagina|guias")
+                "preguntar" -> SatronhoUi.abrirAjustes("chat")
             }
         }
         onDispose {
@@ -128,6 +130,20 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
         }
     }
 
+    // Un guía pidió mostrar una consola.
+    LaunchedEffect(SatronhoUi.consolaPedida) {
+        if (SatronhoUi.consolaPedida.isNotEmpty()) {
+            consola = SatronhoUi.consolaPedida
+            SatronhoUi.consolaPedida = ""
+        }
+    }
+    // El guía de abajo va cambiando: Samy y Troya salen más (Samy un poco más), luego Ñoño, Juana y MechaRidds.
+    LaunchedEffect(b.consejos.size) {
+        while (b.consejos.isNotEmpty()) {
+            consejo = elegirConsejo(b, consejo)
+            delay(20_000)
+        }
+    }
     val filtro = busqueda.trim().lowercase()
     val lista = remember(b, filtro, consola, vista.orden, vista.ocultos, vista.favoritos) {
         b.juegos.asSequence()
@@ -154,14 +170,22 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
         // Logo de Satronho de fondo, muy suave (como el planeta de NX).
         val logo = Imagenes.cargar("asset:logo.png", 512)
         if (logo != null) {
-            Image(logo, null, modifier = Modifier.align(Alignment.Center).size(260.dp).alpha(0.07f), contentScale = ContentScale.Fit)
+            Image(logo, null, modifier = Modifier.align(Alignment.Center).size(300.dp).alpha(0.10f), contentScale = ContentScale.Fit)
         }
 
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             // Encabezado: nombre y los tres botones (ocultos, filtro, ajustes), como NX.
             Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Satronho Emulation", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
+                Logo(38.dp)
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Satronho Emulation", style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp), maxLines = 1,
+                        overflow = TextOverflow.Ellipsis)
+                    Text(
+                        if (b.juegos.isEmpty()) t("Por Ridds") else TrJuegos(b.juegos.count { !it.oculto }),
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1,
+                    )
+                }
                 BotonRedondo(Iconos.ojo, t(if (vista.ocultos) "Esconder los juegos ocultos" else "Mostrar los juegos ocultos"),
                     activo = vista.ocultos) {
                     vista.ocultos = !vista.ocultos
@@ -171,7 +195,7 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
                     BotonRedondo(Iconos.filtro, t("Vista y orden"), activo = menuFiltro) { menuFiltro = true }
                     MenuFiltro(menuFiltro, vista) { menuFiltro = false }
                 }
-                BotonRedondo(Icons.Filled.Settings, t("Ajustes")) { SatronhoUi.orden("pagina|ajustes") }
+                BotonRedondo(Icons.Filled.Settings, t("Ajustes")) { SatronhoUi.abrirAjustes() }
             }
 
             // Búsqueda.
@@ -258,6 +282,24 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
     }
 }
 
+// Reparto de las apariciones de los guías (de 100): Samy 32, Troya 26, Ñoño 16, Juana 14, MechaRidds 12.
+private val repartoGuias = listOf("samy" to 32, "troya" to 26, "nono" to 16, "juana" to 14, "mecharidds" to 12)
+
+/** Elige el próximo consejo: primero el guía (según el reparto) y luego uno de sus consejos. */
+private fun elegirConsejo(b: Biblioteca, actual: Int): Int {
+    if (b.consejos.isEmpty()) return 0
+    var r = kotlin.random.Random.nextInt(100)
+    var guia = repartoGuias.first().first
+    for ((g, peso) in repartoGuias) {
+        if (r < peso) { guia = g; break }
+        r -= peso
+    }
+    val suyos = b.consejos.indices.filter { b.consejos[it].guia == guia && it != actual.mod(b.consejos.size) }
+    return if (suyos.isNotEmpty()) suyos.random() else kotlin.random.Random.nextInt(b.consejos.size)
+}
+
+private fun TrJuegos(n: Int): String = if (n == 1) t("1 juego") else n.toString() + " " + t("juegos")
+
 private fun mostrarConsejo(b: Biblioteca, i: Int) {
     if (b.consejos.isEmpty()) return
     val c = b.consejos[i.mod(b.consejos.size)]
@@ -317,7 +359,7 @@ private fun MenuFiltro(abierto: Boolean, vista: Vista, cerrar: () -> Unit) {
         }
         opcion(t("Cuadrícula"), vista.modo == 0) { vista.modo = 0 }
         opcion(t("Cuadrícula compacta"), vista.modo == 1) { vista.modo = 1 }
-        opcion(t("Lista"), vista.modo == 2) { vista.modo = 2 }
+        opcion(t("En lista"), vista.modo == 2) { vista.modo = 2 }
         HorizontalDivider()
         opcion(t("Alfabético"), vista.orden == 0) { vista.orden = 0 }
         opcion(t("Jugados hace poco"), vista.orden == 1) { vista.orden = 1 }

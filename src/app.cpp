@@ -724,7 +724,7 @@ void App::Frame() {
     if ((in_game_ && !menu_open_ && confirm_ == 0) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    if (in_game_ && !paused_ && !menu_open_ && !native_menu_ && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0 && !(touch_mode_ && bar_open_)) EmulateTick(dt);
+    if (in_game_ && !paused_ && !menu_open_ && !native_menu_ && native_page_.empty() && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0 && !(touch_mode_ && bar_open_)) EmulateTick(dt);
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) {
         if (gl_) video_gl_.Upload(core_);

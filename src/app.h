@@ -3,6 +3,7 @@
 #pragma once
 
 #include <atomic>
+#include <functional>
 #include <deque>
 #include <thread>
 #include <map>
@@ -32,6 +33,8 @@
 #include "util/json.h"
 
 namespace Satronho {
+
+class NPage;
 
 enum class Page { Library, Controls, Suggested, News, Settings, About, Guides, Tools };
 enum class SettingsTab { Video, Audio, Controls, Performance, Meter, Core, Library, Guides, Appearance, Count };
@@ -565,6 +568,20 @@ private:
     int native_touch_w_ = 0, native_touch_h_ = 0;
     std::string native_touch_sys_;
     uint32_t native_touch_prev_ = 0;
+    // Ajustes nativos (app_native_pages.cpp): la pantalla abierta y qué hace cada elemento.
+    std::string native_page_, native_page_arg_, native_page_json_;
+    double native_page_t_ = -10;
+    std::map<std::string, std::function<void(const std::string&)>> native_setters_;
+    std::string NativeSettingsJson();
+    void NativePageControls(NPage& p);
+    void NativePageGraphics(NPage& p);  // app_graphics.cpp
+    void NativePageCore(NPage& p);      // app_graphics.cpp
+    void NativePageTools(NPage& p);     // app_tools.cpp
+    std::string NativeChatJson();
+    std::string NativeExtrasJson();
+    std::string NativeImportJson();     // app_import.cpp
+    void NativeMeterJson(std::string& s);
+    bool NativeCommandExtra(const std::vector<std::string>& a);
 
     friend void FolderDialogCallback(void*, const char* const*, int);
     friend void FileDialogCallback(void*, const char* const*, int);

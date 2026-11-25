@@ -67,6 +67,8 @@ public class SatronhoActivity extends SDLActivity {
     /** «Atrás»: lo atiende primero lo nativo; si no lo usa, sigue a SDL (C++). */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // Mando físico fuera del juego (o con el cajón/Ajustes abiertos): mueve lo nativo.
+        if (event.getKeyCode() != KeyEvent.KEYCODE_BACK && SatronhoUi.INSTANCE.getActiva() && SatronhoUi.INSTANCE.teclaMando(event)) return true;
         if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && SatronhoUi.INSTANCE.getActiva()) {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
                 if (event.getRepeatCount() == 0) mAtrasNativo = !SatronhoUi.INSTANCE.getEstado().getImgui();

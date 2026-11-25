@@ -671,6 +671,11 @@ void App::DrawTouchEditor(const std::vector<TouchButton>& layout, float sx, floa
 
 void App::OpenBrowser(bool folders) {
     browser_for_root_ = false;
+    if (NativeMode()) {
+        // En el celular el explorador es nativo (Kotlin).
+        NativeUi::Emit(std::string("{\"t\":\"explorador\",\"raiz\":false,\"carpetas\":") + (folders ? "true" : "false") + "}");
+        return;
+    }
     browser_open_ = true;
     browser_folders_ = folders;
     if (browser_dir_.empty()) {
@@ -975,8 +980,12 @@ void App::DrawBottomNav(float height) {
         for (const auto& m : more) {
             FontScope f(GetFonts().medium, 15);
             const ImVec2 p = ImGui::GetCursorScreenPos();
-            if (ImGui::Selectable((std::string("      ") + Tr(m.label)).c_str(), page_ == m.page, 0, {S(240), S(40)})) page_ = m.page;
-            DrawIcon(pdl, m.icon, {p.x + S(12), p.y + S(20)}, S(16), U32(Color::Muted));
+            // El texto va aparte, después del ícono (antes se dibujaba con espacios y el ícono tapaba la
+            // primera letra: «✂ools»).
+            if (ImGui::Selectable((std::string("##mas_") + m.label).c_str(), page_ == m.page, 0, {S(240), S(40)})) page_ = m.page;
+            DrawIcon(pdl, m.icon, {p.x + S(14), p.y + S(20)}, S(16), U32(Color::Muted));
+            const char* txt = Tr(m.label);
+            pdl->AddText({p.x + S(36), p.y + (S(40) - ImGui::GetFontSize()) * 0.5f}, U32(Color::Text), txt);
         }
         ImGui::EndPopup();
     }

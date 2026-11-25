@@ -600,6 +600,7 @@ void App::DrawConfirm() {
         return;
     }
     if (confirm_ == 0) return;
+    if (NativeMode()) return; // la pregunta la muestra Android
     const bool app = confirm_ == 1;
     auto close = [&](bool accept) {
         if (confirm_dont_ask_) {

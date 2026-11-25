@@ -32,8 +32,21 @@ data class BotonTactil(val id: Int, val etiqueta: String, val grupo: String, val
 
 data class Tactil(
     val visible: Boolean = false, val modo: Int = 0, val opacidad: Float = 0.6f, val vibrar: Boolean = true,
-    val solo4: Boolean = false, val botones: List<BotonTactil> = emptyList(),
+    val solo4: Boolean = false, val botones: List<BotonTactil> = emptyList(), val editar: Boolean = false,
 )
+
+/** Una pantalla de Ajustes armada por C++ (NativeSettingsJson). Los elementos quedan en JSON. */
+data class Seccion(val titulo: String, val descripcion: String, val items: List<JSONObject>)
+data class Pagina(val pagina: String, val titulo: String, val subtitulo: String, val icono: String, val secciones: List<Seccion>)
+
+data class Confirmar(val tipo: Int, val guia: String, val titulo: String, val texto: String, val si: String, val no: String, val noPreguntar: String)
+data class Bienvenida(val paso: Int, val guia: String, val titulo: String, val texto: String)
+data class Progreso(
+    val id: String, val guia: String, val texto: String, val avance: Float, val trabajando: Boolean,
+    val detalles: List<String>, val botones: List<Pair<String, String>>, val nota: String,
+)
+data class Zip(val titulo: String, val opciones: List<Pair<String, String>>)
+data class Medidor(val texto: String, val esquina: Int, val color: Color, val lento: Boolean)
 
 data class Estado(
     val modo: String = "biblioteca",
@@ -45,6 +58,15 @@ data class Estado(
     val cargando: Cargando? = null,
     val juego: JuegoActual? = null,
     val tactil: Tactil = Tactil(),
+    val ajustes: Pagina? = null,
+    val confirmar: Confirmar? = null,
+    val bienvenida: Bienvenida? = null,
+    val novedad: String = "",
+    val zip: Zip? = null,
+    val progreso: Progreso? = null,
+    val capturando: Boolean = false,
+    val medidor: Medidor? = null,
+    val chip: String = "",
 ) {
     val enJuego get() = modo == "juego"
 }
@@ -119,10 +141,48 @@ object Leer {
                     b.optDouble("x").toFloat(), b.optDouble("y").toFloat(), b.optDouble("r").toFloat()))
             }
             Tactil(tc.optBoolean("visible"), tc.optInt("modo"), tc.optDouble("opacidad", 0.6).toFloat(),
-                tc.optBoolean("vibrar", true), tc.optBoolean("solo4"), lista)
+                tc.optBoolean("vibrar", true), tc.optBoolean("solo4"), lista, tc.optBoolean("editar"))
+        }
+        val aj = o.optJSONObject("ajustes")
+        val pagina = aj?.let { a ->
+            val secs = ArrayList<Seccion>()
+            val sa = a.optJSONArray("secciones") ?: JSONArray()
+            for (i in 0 until sa.length()) {
+                val so = sa.getJSONObject(i)
+                val items = ArrayList<JSONObject>()
+                val ia = so.optJSONArray("items") ?: JSONArray()
+                for (k in 0 until ia.length()) items.add(ia.getJSONObject(k))
+                secs.add(Seccion(so.optString("titulo"), so.optString("descripcion"), items))
+            }
+            Pagina(a.optString("pagina"), a.optString("titulo"), a.optString("subtitulo"), a.optString("icono"), secs)
+        }
+        val cf = o.optJSONObject("confirmar")?.let {
+            Confirmar(it.optInt("tipo"), it.optString("guia"), it.optString("titulo"), it.optString("texto"), it.optString("si"),
+                it.optString("no"), it.optString("no_preguntar"))
+        }
+        val bv = o.optJSONObject("bienvenida")?.let { Bienvenida(it.optInt("paso"), it.optString("guia"), it.optString("titulo"), it.optString("texto")) }
+        val zp = o.optJSONObject("zip")?.let { z ->
+            val ops = ArrayList<Pair<String, String>>()
+            val arr = z.optJSONArray("opciones") ?: JSONArray()
+            for (i in 0 until arr.length()) { val p = arr.getJSONArray(i); ops.add(p.getString(0) to p.getString(1)) }
+            Zip(z.optString("titulo"), ops)
+        }
+        val pr = o.optJSONObject("progreso")?.let { g ->
+            val det = ArrayList<String>()
+            val da = g.optJSONArray("detalles") ?: JSONArray()
+            for (i in 0 until da.length()) det.add(da.getString(i))
+            val bs = ArrayList<Pair<String, String>>()
+            val ba = g.optJSONArray("botones") ?: JSONArray()
+            for (i in 0 until ba.length()) { val b = ba.getJSONArray(i); bs.add(b.getString(0) to b.getString(1)) }
+            Progreso(g.optString("id"), g.optString("guia"), g.optString("texto"), g.optDouble("avance", -1.0).toFloat(),
+                g.optBoolean("trabajando", true), det, bs, g.optString("nota"))
+        }
+        val md = o.optJSONObject("medidor")?.let {
+            Medidor(it.optString("texto"), it.optInt("esquina", 1), color(it.optString("color"), Color(0xFF4FD1C5)), it.optBoolean("lento"))
         }
         return Estado(o.optString("modo", "biblioteca"), o.optBoolean("imgui"), o.optInt("build"), o.optBoolean("guias", true),
-            o.optString("idioma"), tema, cargando, juego, tactil)
+            o.optString("idioma"), tema, cargando, juego, tactil, pagina, cf, bv, o.optString("novedad"), zp, pr,
+            o.optBoolean("capturando"), md, o.optString("chip"))
     }
 
     fun biblioteca(texto: String): Biblioteca {
@@ -168,7 +228,17 @@ object Leer {
                 }
                 Tarjeta(o.optString("id"), o.optString("guia"), o.optString("titulo"), o.optString("texto"), bs)
             }
+            "explorador" -> Explorar(o.optBoolean("raiz"))
+            "ir" -> Ir(o.optString("pagina"))
+            "consola" -> VerConsola(o.optString("id"))
             else -> null
         }
     }
 }
+
+/** C++ pide abrir el explorador de carpetas (para juegos o para mover «Satronho Games»). */
+data class Explorar(val raiz: Boolean)
+/** Un guía llevó a otra pantalla de Ajustes («ir»). */
+data class Ir(val pagina: String)
+/** Un guía llevó a una consola de la biblioteca. */
+data class VerConsola(val id: String)

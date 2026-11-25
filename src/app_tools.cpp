@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "app.h"
+#include "native_page.h"
 #include "util/i18n.h"
 #include "imgui.h"
 #include "ui/kit.h"
@@ -325,6 +326,80 @@ void App::DrawTools() {
     PanelBegin("##t_chd", {compact_ ? avail : col_w * 2 + S(18), 0}, Color::Surface, 16, {20, 18});
     DrawChdPanel();
     PanelEnd();
+}
+
+
+// ---------------------------------------------------------------- interfaz nativa (Android)
+
+void App::NativePageTools(NPage& p) {
+    p.Section("");
+    p.Guide("nono", "Aquí tienes lo que no es jugar: probar tus mandos, mirar las partidas de tus Memory Cards y abrir las carpetas de Satronho.");
+
+    // Prueba de mandos (en vivo).
+    p.Section("Prueba de mandos");
+    const auto pads = input_.Gamepads();
+    if (pads.empty()) p.Info("No hay mandos conectados. Conecta uno y aparece aquí al momento.", "", "mando");
+    for (const auto& pd : pads) {
+        SDL_Gamepad* gp = SDL_GetGamepadFromID(pd.id);
+        std::string down;
+        if (gp)
+            for (int b = 0; b < SDL_GAMEPAD_BUTTON_COUNT; ++b)
+                if (SDL_GetGamepadButton(gp, static_cast<SDL_GamepadButton>(b))) down += (down.empty() ? "" : "  ") + Input::PadCodeLabel(b, pd.family);
+        const int slot = pd.slot;
+        p.Action("vibrar" + std::to_string(slot), Fmt("Mando %d · %s", pd.slot + 1, pd.name.c_str()),
+                 down.empty() ? Tr("Presiona botones para verlos aquí.") : down, "mando", [gp] {
+                     if (gp) SDL_RumbleGamepad(gp, 0xA000, 0xA000, 400);
+                 }, "", "", "Vibrar");
+    }
+
+    // Memory Cards de PS1.
+    p.Section("Memory Cards de PS1", "Cada juego de Satronho CD tiene su propia Memory Card. Aquí ves qué partidas guarda y puedes borrar las que ya no quieras.");
+    const fs::path dir = Paths::Saves() / "cd";
+    std::error_code ec;
+    std::vector<fs::path> cards;
+    for (fs::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec))
+        if (it->path().extension() == ".srm" && it->file_size(ec) == kCardSize) cards.push_back(it->path());
+    std::sort(cards.begin(), cards.end());
+    if (cards.empty()) p.Info("Todavía no hay Memory Cards: aparecen cuando guardes en un juego de PS1.", "", "guardar");
+    for (const auto& c : cards) {
+        std::vector<uint8_t> d(kCardSize);
+        {
+            std::ifstream f(c, std::ios::binary);
+            f.read(reinterpret_cast<char*>(d.data()), static_cast<std::streamsize>(d.size()));
+        }
+        const auto saves = ReadCard(d);
+        int used = 0;
+        for (const auto& s : saves) used += s.blocks;
+        p.Info(Paths::ToUtf8(c.stem()), saves.empty() ? Tr("Vacía.") : TrFmt("%d de 15 bloques", used), "guardar");
+        for (const auto& s : saves) {
+            const int block = s.block;
+            const std::string title = s.title;
+            p.Action("mc_" + Paths::ToUtf8(c.filename()) + "_" + std::to_string(block), "   " + s.title,
+                     s.blocks == 1 ? Tr("(1 bloque)") : TrFmt("(%d bloques)", s.blocks), "", [this, c, block, title] {
+                         std::error_code e2;
+                         std::vector<uint8_t> data(kCardSize);
+                         {
+                             std::ifstream f(c, std::ios::binary);
+                             f.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(data.size()));
+                         }
+                         fs::copy_file(c, fs::path(c).concat(".bak"), fs::copy_options::overwrite_existing, e2);
+                         DeleteSave(data, block);
+                         std::ofstream o(c, std::ios::binary | std::ios::trunc);
+                         o.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
+                         Log::Info("Memory Card %s: borrada «%s»", Paths::ToUtf8(c.filename()).c_str(), title.c_str());
+                         Toast("Partida borrada (queda una copia .bak por si acaso).", GuideId::Samy, 4);
+                     }, "peligro", TrFmt("¿Borrar «%s»? No se puede deshacer.", s.title.c_str()), "Borrar");
+        }
+    }
+
+    // Carátulas.
+    p.Section("Carátulas", "Se descargan solas de libretro-thumbnails cuando hay internet.");
+    p.Action("caratulas", "Buscar carátulas ahora", covers_.Downloading() ? TrFmt("Buscando… faltan %d", covers_.Remaining()) : "", "imagen", [this] {
+        settings_.covers = true;
+        SaveConfig();
+        covers_.QueueDownloads(library_.Snapshot());
+        Toast("Buscando carátulas…", GuideId::Troya, 3);
+    });
 }
 
 } // namespace Satronho

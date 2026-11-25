@@ -682,3 +682,201 @@ Enviar el registro|Send the log|Envoyer le journal|Enviar o registro|Invia il re
 Elige WhatsApp (o donde quieras) y mándaselo a Ridds. También quedó como «satronho-registro.txt» en tu carpeta de Satronho.|Choose WhatsApp (or wherever you like) and send it to Ridds. It was also saved as "satronho-registro.txt" in your Satronho folder.|Choisis WhatsApp (ou autre) et envoie-le à Ridds. Il est aussi enregistré sous « satronho-registro.txt » dans ton dossier Satronho.|Escolha o WhatsApp (ou onde quiser) e mande para o Ridds. Também ficou como «satronho-registro.txt» na sua pasta do Satronho.|Scegli WhatsApp (o dove vuoi) e mandalo a Ridds. È anche salvato come «satronho-registro.txt» nella tua cartella Satronho.
 Copié el registro: pégalo en un mensaje para Ridds. También quedó como «satronho-registro.txt» en la carpeta de datos.|I copied the log: paste it into a message for Ridds. It was also saved as "satronho-registro.txt" in the data folder.|J'ai copié le journal : colle-le dans un message pour Ridds. Il est aussi enregistré sous « satronho-registro.txt » dans le dossier de données.|Copiei o registro: cole numa mensagem para o Ridds. Também ficou como «satronho-registro.txt» na pasta de dados.|Ho copiato il registro: incollalo in un messaggio per Ridds. È anche salvato come «satronho-registro.txt» nella cartella dei dati.
 En el celular, la automática llega como mucho a 2× para que los juegos 3D vayan fluidos. Si tu teléfono puede más, súbela tú; si un juego va lento, Ñoño te ofrece bajarla.|On phones, automatic goes up to 2× at most so 3D games run smoothly. If your phone can do more, raise it yourself; if a game runs slowly, Ñoño will offer to lower it.|Sur téléphone, l'automatique monte au plus à 2× pour que les jeux 3D soient fluides. Si ton téléphone peut plus, monte-la toi-même ; si un jeu est lent, Ñoño te proposera de la baisser.|No celular, a automática vai no máximo a 2× para os jogos 3D ficarem fluidos. Se seu celular aguenta mais, aumente você; se um jogo ficar lento, o Ñoño oferece baixar.|Sul telefono, l'automatica arriva al massimo a 2× perché i giochi 3D vadano fluidi. Se il tuo telefono può di più, alzala tu; se un gioco va lento, Ñoño ti propone di abbassarla.
+%d de 15 bloques|%d of 15 blocks|%d sur 15 blocs|%d de 15 blocos|%d di 15 blocchi
+%d juegos|%d games|%d jeux|%d jogos|%d giochi
+juegos|games|jeux|jogos|giochi
+%d tirones/min|%d stutters/min|%d saccades/min|%d engasgos/min|%d scatti/min
+1 juego|1 game|1 jeu|1 jogo|1 gioco
+Agregar a favoritos|Add to favorites|Ajouter aux favoris|Adicionar aos favoritos|Aggiungi ai preferiti
+Quitar de favoritos|Remove from favorites|Retirer des favoris|Remover dos favoritos|Rimuovi dai preferiti
+Ahora: %s.|Now: %s.|Actuellement : %s.|Agora: %s.|Ora: %s.
+el procesador|the processor|le processeur|o processador|il processore
+Ajustar: lo más grande posible con su forma. Entero: píxeles parejos. Estirar: toda la pantalla.|Fit: as big as possible keeping its shape. Integer: even pixels. Stretch: the whole screen.|Ajuster : le plus grand possible en gardant sa forme. Entier : pixels réguliers. Étirer : tout l'écran.|Ajustar: o maior possível mantendo a forma. Inteiro: pixels iguais. Esticar: a tela toda.|Adatta: il più grande possibile mantenendo la forma. Intero: pixel uniformi. Allunga: tutto lo schermo.
+Al copiar o descomprimir juegos, para que al celular no le falte espacio.|When copying or unpacking games, so your phone never runs out of space.|En copiant ou décompressant des jeux, pour que le téléphone ne manque pas d'espace.|Ao copiar ou descompactar jogos, para o celular não ficar sem espaço.|Quando copi o decomprimi giochi, così al telefono non manca spazio.
+Alfabético|Alphabetical|Alphabétique|Alfabético|Alfabetico
+Jugados hace poco|Recently played|Joués récemment|Jogados recentemente|Giocati di recente
+Más jugados|Most played|Les plus joués|Mais jogados|Più giocati
+Solo favoritos|Favorites only|Favoris seulement|Só favoritos|Solo preferiti
+Cuadrícula compacta|Compact grid|Grille compacte|Grade compacta|Griglia compatta
+Vista y orden|View and sort|Affichage et tri|Visualização e ordem|Vista e ordine
+Apagado de fábrica: el gatillo choca con botones de varias consolas.|Off by default: the trigger clashes with buttons on several consoles.|Désactivé par défaut : la gâchette entre en conflit avec des boutons de plusieurs consoles.|Desligado de fábrica: o gatilho conflita com botões de vários consoles.|Spento di fabbrica: il grilletto si scontra con i tasti di varie console.
+Aplicar la configuración «%s»|Apply the "%s" setup|Appliquer la configuration « %s »|Aplicar a configuração «%s»|Applica la configurazione «%s»
+Aprieta cualquier botón para verlo en vivo.|Press any button to see it live.|Appuie sur n'importe quel bouton pour le voir en direct.|Aperte qualquer botão para ver ao vivo.|Premi un tasto qualsiasi per vederlo dal vivo.
+Aprieta un botón…|Press a button…|Appuie sur un bouton…|Aperte um botão…|Premi un tasto…
+Aprieta…|Press…|Appuie…|Aperte…|Premi…
+Arrastra cada grupo de botones|Drag each group of buttons|Fais glisser chaque groupe de boutons|Arraste cada grupo de botões|Trascina ogni gruppo di tasti
+Asigna los botones de cada consola a tu mando.|Assign each console's buttons to your controller.|Attribue les boutons de chaque console à ta manette.|Atribua os botões de cada console ao seu controle.|Assegna i tasti di ogni console al tuo controller.
+Asignar automáticamente|Assign automatically|Attribuer automatiquement|Atribuir automaticamente|Assegna automaticamente
+Así Satronho puede leer tus juegos y guardar en «Satronho Games».|So Satronho can read your games and save in "Satronho Games".|Ainsi Satronho peut lire tes jeux et enregistrer dans « Satronho Games ».|Assim o Satronho pode ler seus jogos e salvar em «Satronho Games».|Così Satronho può leggere i tuoi giochi e salvare in «Satronho Games».
+Así un toque de más en «atrás» no te saca de golpe.|So an extra tap on "back" doesn't kick you out.|Ainsi un appui de trop sur « retour » ne te fait pas sortir d'un coup.|Assim um toque a mais em «voltar» não te tira de repente.|Così un tocco di troppo su «indietro» non ti fa uscire di colpo.
+Auto: CRT en las de TV, LCD en portátiles y limpio en las 3D.|Auto: CRT on TV consoles, LCD on handhelds and clean on 3D ones.|Auto : CRT sur les consoles de salon, LCD sur les portables et net sur les 3D.|Auto: CRT nos de TV, LCD nos portáteis e limpo nos 3D.|Auto: CRT su quelle da TV, LCD sulle portatili e pulito sulle 3D.
+Automática · %s|Automatic · %s|Automatique · %s|Automática · %s|Automatica · %s
+Automático: se esconde cuando conectas un mando.|Automatic: it hides when you connect a controller.|Automatique : il se cache quand tu connectes une manette.|Automático: some quando você conecta um controle.|Automatico: si nasconde quando colleghi un controller.
+BIOS de %s|%s BIOS|BIOS de %s|BIOS do %s|BIOS di %s
+Borrar el tiempo de juego|Clear play time|Effacer le temps de jeu|Apagar o tempo de jogo|Cancella il tempo di gioco
+¿Borrar el tiempo de juego de este juego?|Clear this game's play time?|Effacer le temps de jeu de ce jeu ?|Apagar o tempo de jogo deste jogo?|Cancellare il tempo di gioco di questo gioco?
+Build %d|Build %d|Build %d|Build %d|Build %d
+Buscando tus juegos…|Looking for your games…|Je cherche tes jeux…|Procurando seus jogos…|Cerco i tuoi giochi…
+Buscando… faltan %d|Searching… %d to go|Recherche… il en reste %d|Procurando… faltam %d|Cerco… ne mancano %d
+Buscar juegos|Search games|Rechercher des jeux|Buscar jogos|Cerca giochi
+CPU %.0f %%|CPU %.0f %%|CPU %.0f %%|CPU %.0f %%|CPU %.0f %%
+Cargar partida|Load save|Charger la partie|Carregar partida|Carica partita
+Guardar partida|Save game|Sauvegarder la partie|Salvar partida|Salva partita
+ranura|slot|emplacement|slot|slot
+Carpeta|Folder|Dossier|Pasta|Cartella
+Carpetas de juegos, carátulas, juegos ocultos y «Satronho Games».|Game folders, covers, hidden games and "Satronho Games".|Dossiers de jeux, jaquettes, jeux masqués et « Satronho Games ».|Pastas de jogos, capas, jogos ocultos e «Satronho Games».|Cartelle dei giochi, copertine, giochi nascosti e «Satronho Games».
+Colores, idioma y logo|Colors, language and logo|Couleurs, langue et logo|Cores, idioma e logo|Colori, lingua e logo
+Como el celular|Same as the phone|Comme le téléphone|Como o celular|Come il telefono
+Como en Satronho NX: encima del juego|Like Satronho NX: on top of the game|Comme dans Satronho NX : par-dessus le jeu|Como no Satronho NX: em cima do jogo|Come in Satronho NX: sopra il gioco
+Compacto: una línea fina arriba. Detallado: también los tirones y el uso del procesador.|Compact: a thin line at the top. Detailed: also stutters and processor use.|Compact : une fine ligne en haut. Détaillé : aussi les saccades et l'utilisation du processeur.|Compacto: uma linha fina em cima. Detalhado: também os engasgos e o uso do processador.|Compatto: una linea sottile in alto. Dettagliato: anche gli scatti e l'uso del processore.
+Compártela desde WhatsApp, Drive o Archivos con «Abrir con» Satronho Emulation, o ponla en una carpeta de juegos: la reconozco sola.|Share it from WhatsApp, Drive or Files with "Open with" Satronho Emulation, or put it in a game folder: I'll recognize it.|Partage-le depuis WhatsApp, Drive ou Fichiers avec « Ouvrir avec » Satronho Emulation, ou mets-le dans un dossier de jeux : je le reconnais tout seul.|Compartilhe pelo WhatsApp, Drive ou Arquivos com «Abrir com» Satronho Emulation, ou coloque numa pasta de jogos: eu reconheço sozinho.|Condividila da WhatsApp, Drive o File con «Apri con» Satronho Emulation, o mettila in una cartella di giochi: la riconosco da solo.
+Conecta uno por Bluetooth o USB y aparece aquí al momento.|Connect one via Bluetooth or USB and it shows up here right away.|Connecte-en une en Bluetooth ou USB et elle apparaît ici tout de suite.|Conecte um por Bluetooth ou USB e ele aparece aqui na hora.|Collegane uno via Bluetooth o USB e compare qui subito.
+Consejos en la biblioteca|Tips in the library|Conseils dans la bibliothèque|Dicas na biblioteca|Consigli nella libreria
+Continuar el juego|Resume the game|Reprendre le jeu|Continuar o jogo|Riprendi il gioco
+Pausar|Pause|Pause|Pausar|Pausa
+Control en pantalla|On-screen controls|Commandes à l'écran|Controle na tela|Comandi a schermo
+Control en pantalla: automático|On-screen controls: automatic|Commandes à l'écran : automatique|Controle na tela: automático|Comandi a schermo: automatico
+Control en pantalla: nunca|On-screen controls: never|Commandes à l'écran : jamais|Controle na tela: nunca|Comandi a schermo: mai
+Control en pantalla: siempre|On-screen controls: always|Commandes à l'écran : toujours|Controle na tela: sempre|Comandi a schermo: sempre
+Créditos|Credits|Crédits|Créditos|Crediti
+Cuadros por segundo, velocidad y tirones, arriba del juego.|Frames per second, speed and stutters, on top of the game.|Images par seconde, vitesse et saccades, au-dessus du jeu.|Quadros por segundo, velocidade e engasgos, em cima do jogo.|Fotogrammi al secondo, velocità e scatti, sopra il gioco.
+Cuándo se muestra, tamaño, transparencia, vibración y cruceta.|When it shows, size, transparency, vibration and D-pad.|Quand elles s'affichent, taille, transparence, vibration et croix directionnelle.|Quando aparece, tamanho, transparência, vibração e direcional.|Quando si mostrano, dimensione, trasparenza, vibrazione e croce direzionale.
+Cuánto hay que mover la palanca para que cuente.|How far you have to move the stick for it to count.|De combien il faut bouger le stick pour que ça compte.|Quanto é preciso mover o analógico para contar.|Quanto bisogna muovere la levetta perché conti.
+Cómo agregarla|How to add it|Comment l'ajouter|Como adicionar|Come aggiungerla
+Cómo va cada consola en tu celular|How each console runs on your phone|Comment chaque console tourne sur ton téléphone|Como cada console roda no seu celular|Come va ogni console sul tuo telefono
+Dar permiso de archivos|Grant file permission|Donner l'accès aux fichiers|Dar permissão de arquivos|Concedi il permesso dei file
+Dentro de un juego: menú del juego » «Mover los botones». Arrastra cada grupo a donde te quede cómodo.|Inside a game: game menu » "Move the buttons". Drag each group wherever it's comfortable.|Dans un jeu : menu du jeu » « Déplacer les boutons ». Fais glisser chaque groupe où c'est confortable.|Dentro de um jogo: menu do jogo » «Mover os botões». Arraste cada grupo para onde for confortável.|Dentro un gioco: menu del gioco » «Sposta i tasti». Trascina ogni gruppo dove ti è comodo.
+Mover los botones|Move the buttons|Déplacer les boutons|Mover os botões|Sposta i tasti
+Dime en qué carpeta tienes tus juegos y los acomodo en la biblioteca, cada uno en su consola. En el juego, «atrás» abre el menú. Al salir guardo dónde quedaste.|Tell me which folder has your games and I'll sort them into the library, each in its console. In a game, "back" opens the menu. When you exit, I save where you left off.|Dis-moi dans quel dossier sont tes jeux et je les range dans la bibliothèque, chacun dans sa console. En jeu, « retour » ouvre le menu. En sortant, j'enregistre où tu en étais.|Me diga em que pasta estão seus jogos e eu organizo na biblioteca, cada um no seu console. No jogo, «voltar» abre o menu. Ao sair eu salvo onde você parou.|Dimmi in che cartella hai i tuoi giochi e li sistemo nella libreria, ognuno nella sua console. Nel gioco, «indietro» apre il menu. Quando esci salvo dove eri rimasto.
+El corazón de %s es %s %s. Estas opciones son suyas; la mayoría se nota al momento y otras al reiniciar el juego.|The heart of %s is %s %s. These options are its own; most take effect right away and others when the game restarts.|Le cœur de %s est %s %s. Ces options sont les siennes ; la plupart s'appliquent tout de suite et d'autres au redémarrage du jeu.|O coração do %s é o %s %s. Essas opções são dele; a maioria vale na hora e outras ao reiniciar o jogo.|Il cuore di %s è %s %s. Queste opzioni sono sue; la maggior parte si nota subito e altre al riavvio del gioco.
+Elige dónde guardas tus juegos.|Choose where you keep your games.|Choisis où tu ranges tes jeux.|Escolha onde você guarda seus jogos.|Scegli dove tieni i tuoi giochi.
+Emuladores|Emulators|Émulateurs|Emuladores|Emulatori
+En consolas sin palancas, la izquierda sirve de cruceta.|On consoles without sticks, the left one works as a D-pad.|Sur les consoles sans sticks, celui de gauche sert de croix directionnelle.|Em consoles sem analógicos, o esquerdo serve de direcional.|Sulle console senza levette, quella sinistra fa da croce direzionale.
+La palanca también mueve la cruceta|The stick also moves the D-pad|Le stick bouge aussi la croix|O analógico também move o direcional|La levetta muove anche la croce
+En el celular la automática llega como mucho a 2× para que los juegos 3D vayan fluidos. Si un juego va lento, Ñoño te ofrece bajarla y la recuerda solo para ese juego.|On phones, automatic goes up to 2× at most so 3D games run smoothly. If a game runs slowly, Ñoño offers to lower it and remembers it just for that game.|Sur téléphone, l'automatique monte au plus à 2× pour que les jeux 3D soient fluides. Si un jeu est lent, Ñoño propose de la baisser et s'en souvient pour ce jeu seulement.|No celular a automática vai no máximo a 2× para os jogos 3D ficarem fluidos. Se um jogo ficar lento, o Ñoño oferece baixar e lembra só para esse jogo.|Sul telefono l'automatica arriva al massimo a 2× perché i giochi 3D vadano fluidi. Se un gioco va lento, Ñoño propone di abbassarla e la ricorda solo per quel gioco.
+La automática elige la que va fluida en tu equipo. Si un juego va lento, Ñoño te ofrece bajarla y la recuerda solo para ese juego.|Automatic picks the one that runs smoothly on your device. If a game runs slowly, Ñoño offers to lower it and remembers it just for that game.|L'automatique choisit celle qui est fluide sur ton appareil. Si un jeu est lent, Ñoño propose de la baisser et s'en souvient pour ce jeu seulement.|A automática escolhe a que roda fluida no seu aparelho. Se um jogo ficar lento, o Ñoño oferece baixar e lembra só para esse jogo.|L'automatica sceglie quella che va fluida sul tuo dispositivo. Se un gioco va lento, Ñoño propone di abbassarla e la ricorda solo per quel gioco.
+Encendido|On|Activé|Ligado|Acceso
+Enviar|Send|Envoyer|Enviar|Invia
+Esconder los juegos ocultos|Hide the hidden games|Cacher les jeux masqués|Esconder os jogos ocultos|Nascondi i giochi nascosti
+Mostrar los juegos ocultos|Show hidden games|Afficher les jeux masqués|Mostrar os jogos ocultos|Mostra i giochi nascosti
+Escribe tu duda y te responde el que más sabe.|Type your question and the one who knows best answers.|Écris ta question et celui qui en sait le plus te répond.|Escreva sua dúvida e quem mais sabe responde.|Scrivi la tua domanda e risponde chi ne sa di più.
+Escribe tu pregunta…|Type your question…|Écris ta question…|Escreva sua pergunta…|Scrivi la tua domanda…
+Este juego va lento en tu celular (%.0f cuadros por segundo; la consola hace %.0f). Si bajo la resolución de %s a %s, sigue justo donde vas y debería ir fluido. Lo recuerdo solo para este juego.|This game is running slowly on your phone (%.0f frames per second; the console does %.0f). If I lower the resolution from %s to %s, it continues right where you are and should run smoothly. I'll remember it just for this game.|Ce jeu est lent sur ton téléphone (%.0f images par seconde ; la console en fait %.0f). Si je baisse la résolution de %s à %s, il reprend exactement où tu es et devrait être fluide. Je m'en souviens pour ce jeu seulement.|Este jogo está lento no seu celular (%.0f quadros por segundo; o console faz %.0f). Se eu baixar a resolução de %s para %s, ele continua exatamente onde você está e deve ficar fluido. Lembro só para este jogo.|Questo gioco va lento sul tuo telefono (%.0f fotogrammi al secondo; la console ne fa %.0f). Se abbasso la risoluzione da %s a %s, riprende esattamente dove sei e dovrebbe andare fluido. Lo ricordo solo per questo gioco.
+Ñoño tiene una idea|Ñoño has an idea|Ñoño a une idée|O Ñoño tem uma ideia|Ñoño ha un'idea
+Evita el sonido acelerado durante el avance rápido.|Avoids sped-up sound during fast forward.|Évite le son accéléré pendant l'avance rapide.|Evita o som acelerado durante o avanço rápido.|Evita il suono accelerato durante l'avanzamento veloce.
+Funciones de Satronho con un botón del mando. Toca uno y aprieta el botón que quieras.|Satronho functions on a controller button. Tap one and press the button you want.|Fonctions de Satronho sur un bouton de la manette. Touches-en une et appuie sur le bouton voulu.|Funções do Satronho num botão do controle. Toque numa e aperte o botão que quiser.|Funzioni di Satronho su un tasto del controller. Toccane una e premi il tasto che vuoi.
+Imagen, motor y resolución por consola|Image, engine and resolution per console|Image, moteur et résolution par console|Imagem, motor e resolução por console|Immagine, motore e risoluzione per console
+Juego reiniciado.|Game restarted.|Jeu redémarré.|Jogo reiniciado.|Gioco riavviato.
+Juegos ocultos|Hidden games|Jeux masqués|Jogos ocultos|Giochi nascosti
+La carita del guía abajo a la derecha: tócala para un consejo.|The guide's face at the bottom right: tap it for a tip.|Le visage du guide en bas à droite : touche-le pour un conseil.|O rostinho do guia embaixo à direita: toque para uma dica.|Il faccino della guida in basso a destra: toccalo per un consiglio.
+La casa de los emuladores de la familia Satronho. Por Ridds.|The home of the Satronho family of emulators. By Ridds.|La maison des émulateurs de la famille Satronho. Par Ridds.|A casa dos emuladores da família Satronho. Por Ridds.|La casa degli emulatori della famiglia Satronho. Di Ridds.
+La cruceta no marca diagonales: útil en juegos de laberintos, menús y peleas.|The D-pad won't register diagonals: handy for maze games, menus and fighters.|La croix ne marque pas de diagonales : utile pour les labyrinthes, les menus et les jeux de combat.|O direcional não marca diagonais: útil em jogos de labirinto, menus e luta.|La croce non segna diagonali: utile nei labirinti, nei menu e nei picchiaduro.
+Solo 4 direcciones|Only 4 directions|4 directions seulement|Só 4 direções|Solo 4 direzioni
+Las opciones propias de cada emulador|Each emulator's own options|Les options propres à chaque émulateur|As opções próprias de cada emulador|Le opzioni proprie di ogni emulatore
+Las opciones propias del emulador de cada consola.|The own options of each console's emulator.|Les options propres à l'émulateur de chaque console.|As opções próprias do emulador de cada console.|Le opzioni proprie dell'emulatore di ogni console.
+Listo|Done|Terminé|Pronto|Fatto
+Listo: los botones volvieron a su lugar.|Done: the buttons are back in place.|C'est fait : les boutons sont revenus à leur place.|Pronto: os botões voltaram ao lugar.|Fatto: i tasti sono tornati al loro posto.
+Lo demás sigue como la consola.|Everything else stays like the console.|Le reste suit la console.|O resto segue como o console.|Il resto resta come la console.
+Lo que pasa mientras juegas|What happens while you play|Ce qui se passe pendant que tu joues|O que acontece enquanto você joga|Cosa succede mentre giochi
+Lo que trae cada build|What each build brings|Ce qu'apporte chaque build|O que cada build traz|Cosa porta ogni build
+Lo que trae cada build de Satronho Emulation.|What each Satronho Emulation build brings.|Ce qu'apporte chaque build de Satronho Emulation.|O que cada build do Satronho Emulation traz.|Cosa porta ogni build di Satronho Emulation.
+Los juegos que vibran hacen vibrar tu mando.|Games that rumble make your controller vibrate.|Les jeux qui vibrent font vibrer ta manette.|Jogos que vibram fazem seu controle vibrar.|I giochi che vibrano fanno vibrare il tuo controller.
+Mando normal (sin palancas)|Standard controller (no sticks)|Manette normale (sans sticks)|Controle normal (sem analógicos)|Controller normale (senza levette)
+Mandos|Controllers|Manettes|Controles|Controller
+Mantén apretado un juego en la biblioteca para ocultarlo.|Long-press a game in the library to hide it.|Appuie longuement sur un jeu dans la bibliothèque pour le masquer.|Segure um jogo na biblioteca para ocultá-lo.|Tieni premuto un gioco nella libreria per nasconderlo.
+MechaRidds junta lo que pasó (esta vez y la anterior) para mandarlo por WhatsApp o correo.|MechaRidds gathers what happened (this time and the last) to send by WhatsApp or email.|MechaRidds rassemble ce qui s'est passé (cette fois et la précédente) pour l'envoyer par WhatsApp ou e-mail.|O MechaRidds junta o que aconteceu (desta vez e da anterior) para mandar por WhatsApp ou e-mail.|MechaRidds raccoglie cosa è successo (questa volta e la precedente) per mandarlo via WhatsApp o email.
+Memoria del celular|Phone storage|Mémoire du téléphone|Memória do celular|Memoria del telefono
+Tarjeta SD|SD card|Carte SD|Cartão SD|Scheda SD
+Mostrar a los guías y sus consejos.|Show the guides and their tips.|Afficher les guides et leurs conseils.|Mostrar os guias e suas dicas.|Mostra le guide e i loro consigli.
+Mostrar en la biblioteca|Show in the library|Afficher dans la bibliothèque|Mostrar na biblioteca|Mostra nella libreria
+Nestopia UE, bsnes, Genesis Plus GX, mGBA, Beetle PSX HW, Mupen64Plus-Next, melonDS DS, Beetle Saturn, Flycast y PPSSPP, con sus licencias (GPL). Gracias a sus autores.|Nestopia UE, bsnes, Genesis Plus GX, mGBA, Beetle PSX HW, Mupen64Plus-Next, melonDS DS, Beetle Saturn, Flycast and PPSSPP, under their licenses (GPL). Thanks to their authors.|Nestopia UE, bsnes, Genesis Plus GX, mGBA, Beetle PSX HW, Mupen64Plus-Next, melonDS DS, Beetle Saturn, Flycast et PPSSPP, sous leurs licences (GPL). Merci à leurs auteurs.|Nestopia UE, bsnes, Genesis Plus GX, mGBA, Beetle PSX HW, Mupen64Plus-Next, melonDS DS, Beetle Saturn, Flycast e PPSSPP, com suas licenças (GPL). Obrigado aos autores.|Nestopia UE, bsnes, Genesis Plus GX, mGBA, Beetle PSX HW, Mupen64Plus-Next, melonDS DS, Beetle Saturn, Flycast e PPSSPP, con le loro licenze (GPL). Grazie ai loro autori.
+No encontré una salida de sonido. Revisa que el celular no esté en silencio o conectado a otro aparato.|I couldn't find a sound output. Check that the phone isn't muted or connected to another device.|Je n'ai pas trouvé de sortie audio. Vérifie que le téléphone n'est pas en silencieux ou connecté à un autre appareil.|Não encontrei uma saída de som. Veja se o celular não está no silencioso ou conectado a outro aparelho.|Non ho trovato un'uscita audio. Controlla che il telefono non sia in silenzioso o collegato a un altro dispositivo.
+No hay juegos ocultos|No hidden games|Aucun jeu masqué|Não há jogos ocultos|Nessun gioco nascosto
+No hay juegos que coincidan.|No games match.|Aucun jeu ne correspond.|Nenhum jogo corresponde.|Nessun gioco corrisponde.
+No hay mandos conectados|No controllers connected|Aucune manette connectée|Nenhum controle conectado|Nessun controller collegato
+No hay carpetas aquí.|No folders here.|Aucun dossier ici.|Não há pastas aqui.|Nessuna cartella qui.
+Nombres que reconoce: |Names it recognizes: |Noms reconnus : |Nomes que reconhece: |Nomi che riconosce: 
+Novedades, la configuración para tu celular y los guías, en un solo lugar.|News, the setup for your phone and the guides, all in one place.|Nouveautés, la configuration pour ton téléphone et les guides, au même endroit.|Novidades, a configuração para seu celular e os guias, num só lugar.|Novità, la configurazione per il tuo telefono e le guide, in un solo posto.
+Opciones|Options|Options|Opções|Opzioni
+PS1, DS, Saturn y 64. Usa más memoria y procesador.|PS1, DS, Saturn and 64. Uses more memory and processor.|PS1, DS, Saturn et 64. Utilise plus de mémoire et de processeur.|PS1, DS, Saturn e 64. Usa mais memória e processador.|PS1, DS, Saturn e 64. Usa più memoria e processore.
+Para juegos viejos de PS1 que no aceptan el DualShock.|For old PS1 games that don't accept the DualShock.|Pour les vieux jeux PS1 qui n'acceptent pas la DualShock.|Para jogos antigos de PS1 que não aceitam o DualShock.|Per i vecchi giochi PS1 che non accettano il DualShock.
+Para todas las consolas.|For all consoles.|Pour toutes les consoles.|Para todos os consoles.|Per tutte le console.
+Para ver tus carpetas necesito el permiso de «acceso a todos los archivos». Lo das en la pantalla que se abre y vuelves aquí.|To see your folders I need the "all files access" permission. Grant it on the screen that opens and come back here.|Pour voir tes dossiers, j'ai besoin de l'autorisation « accès à tous les fichiers ». Donne-la sur l'écran qui s'ouvre et reviens ici.|Para ver suas pastas preciso da permissão de «acesso a todos os arquivos». Dê na tela que abrir e volte aqui.|Per vedere le tue cartelle mi serve il permesso di «accesso a tutti i file». Concedilo nella schermata che si apre e torna qui.
+Pone los botones de tu mando en su lugar de siempre.|Puts your controller's buttons in their usual place.|Met les boutons de ta manette à leur place habituelle.|Coloca os botões do seu controle no lugar de sempre.|Mette i tasti del tuo controller al loro solito posto.
+Por Ridds|By Ridds|Par Ridds|Por Ridds|Di Ridds
+Preguntar|Ask|Demander|Perguntar|Chiedi
+Preguntas|Questions|Questions|Perguntas|Domande
+Pregúntales lo que quieras|Ask them anything|Demande-leur ce que tu veux|Pergunte o que quiser|Chiedi loro quello che vuoi
+Pregúntale a los guías|Ask the guides|Demande aux guides|Pergunte aos guias|Chiedi alle guide
+Prueba de mandos, Memory Cards de PS1 y carátulas.|Controller test, PS1 Memory Cards and covers.|Test des manettes, Memory Cards PS1 et jaquettes.|Teste de controles, Memory Cards de PS1 e capas.|Test dei controller, Memory Card PS1 e copertine.
+Puede ir justo|May be tight|Ça peut être juste|Pode ficar no limite|Potrebbe essere al limite
+Puede ir lento|May run slowly|Ça peut être lent|Pode ficar lento|Potrebbe andare lento
+Va bien|Runs well|Ça tourne bien|Roda bem|Va bene
+Va perfecto|Runs perfectly|Ça tourne parfaitement|Roda perfeito|Va alla perfezione
+Quedarme|Stay|Rester|Ficar|Resto
+Quitar|Remove|Retirer|Remover|Rimuovi
+Qué cambia|What changes|Ce qui change|O que muda|Cosa cambia
+Rebobinar, avance rápido y más|Rewind, fast forward and more|Retour en arrière, avance rapide et plus|Voltar no tempo, avanço rápido e mais|Riavvolgi, avanzamento veloce e altro
+Rebobinar, avance rápido, guardar al salir y el registro.|Rewind, fast forward, save on exit and the log.|Retour en arrière, avance rapide, sauvegarde en sortant et le journal.|Voltar no tempo, avanço rápido, salvar ao sair e o registro.|Riavvolgi, avanzamento veloce, salva all'uscita e il registro.
+Reiniciar el juego|Restart the game|Redémarrer le jeu|Reiniciar o jogo|Riavvia il gioco
+Restablecer los atajos|Reset shortcuts|Réinitialiser les raccourcis|Restaurar os atalhos|Ripristina le scorciatoie
+¿Restablecer los atajos?|Reset the shortcuts?|Réinitialiser les raccourcis ?|Restaurar os atalhos?|Ripristinare le scorciatoie?
+Revisa las carpetas otra vez.|Checks the folders again.|Vérifie à nouveau les dossiers.|Verifica as pastas de novo.|Ricontrolla le cartelle.
+Salir|Exit|Quitter|Sair|Esci
+Salir del juego|Exit game|Quitter le jeu|Sair do jogo|Esci dal gioco
+Samy, Troya, Ñoño y Juana son los perros de Ridds. MechaRidds es Ridds.|Samy, Troya, Ñoño and Juana are Ridds's dogs. MechaRidds is Ridds.|Samy, Troya, Ñoño et Juana sont les chiens de Ridds. MechaRidds, c'est Ridds.|Samy, Troya, Ñoño e Juana são os cachorros do Ridds. MechaRidds é o Ridds.|Samy, Troya, Ñoño e Juana sono i cani di Ridds. MechaRidds è Ridds.
+Samy, Troya, Ñoño, Juana y MechaRidds|Samy, Troya, Ñoño, Juana and MechaRidds|Samy, Troya, Ñoño, Juana et MechaRidds|Samy, Troya, Ñoño, Juana e MechaRidds|Samy, Troya, Ñoño, Juana e MechaRidds
+Samy, Troya, Ñoño, Juana y MechaRidds responden sobre funciones y ajustes.|Samy, Troya, Ñoño, Juana and MechaRidds answer about features and settings.|Samy, Troya, Ñoño, Juana et MechaRidds répondent sur les fonctions et les réglages.|Samy, Troya, Ñoño, Juana e MechaRidds respondem sobre funções e ajustes.|Samy, Troya, Ñoño, Juana e MechaRidds rispondono su funzioni e impostazioni.
+Satronho Emulation · build %d|Satronho Emulation · build %d|Satronho Emulation · build %d|Satronho Emulation · build %d|Satronho Emulation · build %d
+Satronho busca juegos en estas carpetas y los acomoda en su consola.|Satronho looks for games in these folders and puts each in its console.|Satronho cherche des jeux dans ces dossiers et les range dans leur console.|O Satronho procura jogos nessas pastas e coloca cada um no seu console.|Satronho cerca giochi in queste cartelle e li sistema nella loro console.
+Se aplica la próxima vez que abras un juego de esta consola.|Applies the next time you open a game for this console.|S'applique la prochaine fois que tu ouvres un jeu de cette console.|Vale na próxima vez que você abrir um jogo deste console.|Si applica la prossima volta che apri un gioco di questa console.
+Se aplican al momento o al volver a abrir el juego.|They apply right away or when you reopen the game.|Elles s'appliquent tout de suite ou en rouvrant le jeu.|Valem na hora ou ao abrir o jogo de novo.|Si applicano subito o riaprendo il gioco.
+Se descargan solas de libretro-thumbnails (las de RetroArch).|They download on their own from libretro-thumbnails (RetroArch's).|Elles se téléchargent toutes seules depuis libretro-thumbnails (celles de RetroArch).|São baixadas sozinhas do libretro-thumbnails (as do RetroArch).|Si scaricano da sole da libretro-thumbnails (quelle di RetroArch).
+Se descargan solas de libretro-thumbnails cuando hay internet.|They download on their own from libretro-thumbnails when there's internet.|Elles se téléchargent toutes seules depuis libretro-thumbnails quand il y a internet.|São baixadas sozinhas do libretro-thumbnails quando há internet.|Si scaricano da sole da libretro-thumbnails quando c'è internet.
+Si está apagado, usa la imagen general (la de todas las consolas).|When off, it uses the general image settings (for all consoles).|Désactivé, il utilise l'image générale (celle de toutes les consoles).|Desligado, usa a imagem geral (a de todos os consoles).|Se spento, usa l'immagine generale (quella di tutte le console).
+Si Ñoño la bajó porque iba lento, aquí la ves y la puedes cambiar.|If Ñoño lowered it because it was slow, you'll see it here and can change it.|Si Ñoño l'a baissée parce que c'était lent, tu la vois ici et tu peux la changer.|Se o Ñoño baixou porque estava lento, aqui você vê e pode mudar.|Se Ñoño l'ha abbassata perché andava lento, la vedi qui e puoi cambiarla.
+Sin asignar|Unassigned|Non attribué|Sem atribuição|Non assegnato
+Solo para este juego|Just for this game|Pour ce jeu seulement|Só para este jogo|Solo per questo gioco
+Su mando está desconectado.|Their controller is disconnected.|Sa manette est déconnectée.|O controle dele está desconectado.|Il suo controller è scollegato.
+Tamaño, filtro, efectos, motor y resolución de cada consola.|Size, filter, effects, engine and resolution for each console.|Taille, filtre, effets, moteur et résolution de chaque console.|Tamanho, filtro, efeitos, motor e resolução de cada console.|Dimensione, filtro, effetti, motore e risoluzione di ogni console.
+Te pido cada botón y tú lo aprietas.|I ask for each button and you press it.|Je te demande chaque bouton et tu appuies.|Eu peço cada botão e você aperta.|Ti chiedo ogni tasto e tu lo premi.
+Tema de colores|Color theme|Thème de couleurs|Tema de cores|Tema di colori
+Tema de colores, idioma y el logo de fondo.|Color theme, language and the background logo.|Thème de couleurs, langue et logo de fond.|Tema de cores, idioma e o logo de fundo.|Tema di colori, lingua e il logo di sfondo.
+Toca otra vez para salir|Tap again to exit|Touche encore pour quitter|Toque de novo para sair|Tocca di nuovo per uscire
+Toca para cancelar la búsqueda.|Tap to cancel the search.|Touche pour annuler la recherche.|Toque para cancelar a busca.|Tocca per annullare la ricerca.
+Toca para moverla a otra carpeta o a la tarjeta SD.|Tap to move it to another folder or the SD card.|Touche pour le déplacer vers un autre dossier ou la carte SD.|Toque para mover para outra pasta ou para o cartão SD.|Tocca per spostarla in un'altra cartella o sulla scheda SD.
+Toca «Carpeta» y elige dónde guardas tus juegos. También puedes abrirlos desde WhatsApp, Drive o Archivos con «Abrir con».|Tap "Folder" and choose where you keep your games. You can also open them from WhatsApp, Drive or Files with "Open with".|Touche « Dossier » et choisis où tu ranges tes jeux. Tu peux aussi les ouvrir depuis WhatsApp, Drive ou Fichiers avec « Ouvrir avec ».|Toque em «Pasta» e escolha onde guarda seus jogos. Também dá para abrir pelo WhatsApp, Drive ou Arquivos com «Abrir com».|Tocca «Cartella» e scegli dove tieni i tuoi giochi. Puoi anche aprirli da WhatsApp, Drive o File con «Apri con».
+Todas|All|Toutes|Todos|Tutte
+Todavía no hay juegos|No games yet|Pas encore de jeux|Ainda não há jogos|Ancora nessun gioco
+Tus juegos, partidas y estados quedan en la memoria del celular: no se borran si desinstalas la app.|Your games, saves and states stay in the phone's storage: they aren't deleted if you uninstall the app.|Tes jeux, parties et états restent dans la mémoire du téléphone : ils ne sont pas effacés si tu désinstalles l'app.|Seus jogos, partidas e estados ficam na memória do celular: não são apagados se você desinstalar o app.|I tuoi giochi, partite e stati restano nella memoria del telefono: non si cancellano se disinstalli l'app.
+Vacía.|Empty.|Vide.|Vazia.|Vuota.
+Velocidad|Speed|Vitesse|Velocidade|Velocità
+Versión, actualizaciones y créditos.|Version, updates and credits.|Version, mises à jour et crédits.|Versão, atualizações e créditos.|Versione, aggiornamenti e crediti.
+Vibrar|Vibrate|Vibrer|Vibrar|Vibra
+Volumen y latencia|Volume and latency|Volume et latence|Volume e latência|Volume e latenza
+Volumen y latencia.|Volume and latency.|Volume et latence.|Volume e latência.|Volume e latenza.
+Volver|Back|Retour|Voltar|Indietro
+Subir|Up|Remonter|Subir|Su
+Volver a poner los botones en su lugar|Put the buttons back in place|Remettre les boutons à leur place|Colocar os botões de volta no lugar|Rimetti i tasti al loro posto
+¿Volver a poner todos los botones en su lugar?|Put all the buttons back in place?|Remettre tous les boutons à leur place ?|Colocar todos os botões de volta no lugar?|Rimettere tutti i tasti al loro posto?
+Vuelve atrás en el tiempo (con el atajo del mando).|Goes back in time (with the controller shortcut).|Revient en arrière dans le temps (avec le raccourci de la manette).|Volta no tempo (com o atalho do controle).|Torna indietro nel tempo (con la scorciatoia del controller).
+Zona muerta de las palancas|Stick dead zone|Zone morte des sticks|Zona morta dos analógicos|Zona morta delle levette
+¡Hasta pronto! Tus juegos y ajustes quedan guardados.|See you soon! Your games and settings are saved.|À bientôt ! Tes jeux et réglages sont enregistrés.|Até logo! Seus jogos e ajustes ficam salvos.|A presto! I tuoi giochi e le impostazioni restano salvati.
+¡Ya llegó la build %d! Mira lo nuevo.|Build %d is here! See what's new.|La build %d est là ! Découvre les nouveautés.|Chegou a build %d! Veja as novidades.|È arrivata la build %d! Guarda le novità.
+Ver novedades|See what's new|Voir les nouveautés|Ver novidades|Vedi le novità
+«%s» trae varios juegos adentro. ¿Cuál abrimos?|"%s" has several games inside. Which one should we open?|« %s » contient plusieurs jeux. Lequel on ouvre ?|«%s» tem vários jogos dentro. Qual abrimos?|«%s» contiene vari giochi. Quale apriamo?
+¿Borrar todas las asignaciones de esta consola?|Clear all of this console's assignments?|Effacer toutes les attributions de cette console ?|Apagar todas as atribuições deste console?|Cancellare tutte le assegnazioni di questa console?
+¿Quitar esta carpeta? Los juegos no se borran del celular.|Remove this folder? The games aren't deleted from the phone.|Retirer ce dossier ? Les jeux ne sont pas effacés du téléphone.|Remover esta pasta? Os jogos não são apagados do celular.|Rimuovere questa cartella? I giochi non vengono cancellati dal telefono.
+¿Salir de «%s»?|Exit "%s"?|Quitter « %s » ?|Sair de «%s»?|Uscire da «%s»?
+¿Vaciar la caché de discos descomprimidos?|Empty the cache of unpacked discs?|Vider le cache des disques décompressés ?|Esvaziar o cache de discos descompactados?|Svuotare la cache dei dischi decompressi?
+¿Volver a las opciones de fábrica de este emulador?|Go back to this emulator's factory options?|Revenir aux options d'usine de cet émulateur ?|Voltar às opções de fábrica deste emulador?|Tornare alle opzioni di fabbrica di questo emulatore?
+¿Volver a los botones de fábrica de esta consola?|Go back to this console's factory buttons?|Revenir aux boutons d'usine de cette console ?|Voltar aos botões de fábrica deste console?|Tornare ai tasti di fabbrica di questa console?
+Ñoño revisa tu celular|Ñoño checks your phone|Ñoño vérifie ton téléphone|O Ñoño verifica seu celular|Ñoño controlla il tuo telefono
+Ñoño revisa tu celular y deja todo listo con un toque.|Ñoño checks your phone and sets everything up with one tap.|Ñoño vérifie ton téléphone et règle tout en une touche.|O Ñoño verifica seu celular e deixa tudo pronto com um toque.|Ñoño controlla il tuo telefono e prepara tutto con un tocco.
+Último botón|Last button|Dernier bouton|Último botão|Ultimo tasto
+Elige dónde va «Satronho Games»|Choose where "Satronho Games" goes|Choisis où va « Satronho Games »|Escolha onde fica «Satronho Games»|Scegli dove va «Satronho Games»
+Elige la carpeta de tus juegos|Choose your games folder|Choisis le dossier de tes jeux|Escolha a pasta dos seus jogos|Scegli la cartella dei tuoi giochi
+Otro consejo|Another tip|Un autre conseil|Outra dica|Un altro consiglio
+Continuar donde quedé|Continue where I left off|Reprendre où j'en étais|Continuar de onde parei|Continua da dove ero rimasto
+Mostrar a los guías|Show the guides|Afficher les guides|Mostrar os guias|Mostra le guide
+General|General|Général|Geral|Generale
