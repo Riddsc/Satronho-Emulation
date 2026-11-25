@@ -24,8 +24,19 @@ el «build 25 = NX» de abajo. Plan aprobado: tres APK de prueba antes de public
 - `TouchReserve` vale 0 en modo nativo (el control va encima y la imagen conserva su forma); sin barra de menús.
 - Cruceta nativa: cardinales 72°, diagonales 18°, centro muerto 30 %, histéresis 6°; `tactil.solo4` en el ini.
 - Ñoño (juego lento): ahora guarda la resolución **por juego** (`SlowLower`), tarjeta nativa en la esquina.
-- Pendiente prueba 2: Ajustes nativos en tarjetas (como NX), novedades, sugerida, guías; etiqueta de la
-  resolución automática. Prueba 3: cajón completo, editor de controles, importar, mudanza, chat.
+- **Prueba 2 (subida, junta la 2 y la 3 que había planeado; Ridds pidió ir rápido)**: todo nativo en el
+  celular. Ajustes: C++ describe cada pantalla con `NPage` (`src/native_page.h`, páginas en
+  `app_native_pages.cpp`; Gráficos/Núcleo en `app_graphics.cpp`, Herramientas en `app_tools.cpp`) y Kotlin la
+  dibuja (`Ajustes.kt`). Kotlin abre con `ajustes|página|arg`, cambia con `ajuste|id|valor` (los «setters» se
+  guardan en `native_setters_` cada vez que se arma la página, cada 0,25 s). Nativo también: explorador
+  (`Ventanas.kt`), bienvenida, confirmar salir, recibir juegos y mudanza (`progreso`), .zip con varios juegos,
+  chat con los guías, ajustes de un juego, editor del control (arrastrar grupos → `tactil_mover`), medidor y
+  estado del juego. `NativeNeedsImGui()` ya devuelve false en el celular. Mando físico: `SatronhoUi.teclaMando`.
+- Arreglos tras la prueba 1 (video de Ridds): letras negras (faltaba LocalContentColor), textos nuevos sin
+  traducir (agregados a `scripts/idiomas/traducciones/extra.txt` + `armar.py`), «Lista» = «Ready» (ahora
+  «En lista»), guías con nombre en su color y reparto (Samy 32, Troya 26, Ñoño 16, Juana 14, MechaRidds 12, cada
+  20 s), menú «Más» de PC con el ícono encima del texto. Logo de Satronho Emulation al frente (presentación,
+  encabezado, Ajustes, cajón, carga).
 - Pendiente: navegar la biblioteca nativa con un mando (hoy las teclas del mando van a SDL); el medidor sigue
   siendo el de ImGui; el APK pesa ~41,7 MB (24: 35,2 MB) por Compose sin minificar.
 
