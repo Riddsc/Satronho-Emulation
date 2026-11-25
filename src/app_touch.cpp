@@ -42,6 +42,148 @@ const char* ButtonName(const SystemDef& sys, int id) {
         if (b == id) return name;
     return "";
 }
+
+// ---------------------------------------------------------------- dibujo del control en pantalla
+
+// Color 0xRRGGBB aclarado (k > 1) u oscurecido (k < 1), con transparencia.
+ImU32 Shade(unsigned rgb, float k, float alpha) {
+    auto ch = [&](int shift) {
+        const float v = static_cast<float>((rgb >> shift) & 0xFF);
+        const float out = k >= 1.0f ? v + (255.0f - v) * (k - 1.0f) : v * k;
+        return static_cast<int>(std::clamp(out, 0.0f, 255.0f));
+    };
+    return IM_COL32(ch(16), ch(8), ch(0), static_cast<int>(std::clamp(alpha, 0.0f, 1.0f) * 255));
+}
+
+// Lo que va dibujado en cada botón de acción según la consola: su color y su letra o figura.
+struct FaceLook {
+    unsigned base = 0x2A2B35;  // color del botón
+    unsigned glyph = 0xF4F2FA; // color de la letra o figura
+    enum Kind { Letter, Triangle, Circle, Cross, Square, Arrow } kind = Letter;
+    float dx = 0, dy = 0;      // flecha de los botones C (64)
+};
+
+FaceLook LookFor(const std::string& sys, const std::string& name) {
+    FaceLook l;
+    // PlayStation y PSP: botones grafito con las cuatro figuras de colores.
+    if (sys == "cd" || sys == "portatil") {
+        l.base = 0x2B2C36;
+        if (name == "Triángulo") { l.kind = FaceLook::Triangle; l.glyph = 0x3FD9A2; }
+        else if (name == "Círculo") { l.kind = FaceLook::Circle; l.glyph = 0xFF5D70; }
+        else if (name == "Cruz") { l.kind = FaceLook::Cross; l.glyph = 0x79A6FF; }
+        else if (name == "Cuadrado") { l.kind = FaceLook::Square; l.glyph = 0xF78AD2; }
+        return l;
+    }
+    auto color4 = [&](unsigned a, unsigned b, unsigned x, unsigned y) {
+        if (name == "A") l.base = a;
+        else if (name == "B") l.base = b;
+        else if (name == "X") l.base = x;
+        else if (name == "Y") l.base = y;
+    };
+    if (sys == "hexa") color4(0xD3313B, 0xF0BE2C, 0x3B52C4, 0x2C9A50);       // Super: rojo, amarillo, azul, verde
+    else if (sys == "sueno") color4(0xDC3838, 0x3A6EDC, 0xF0BE2C, 0x33B055); // Dreamcast: rojo, azul, amarillo, verde
+    else if (sys == "octa") l.base = 0xC8212B;                              // NES: botones rojos
+    else if (sys == "bolsillo") l.base = 0x9A1E58;                          // Game Boy: magenta
+    else if (sys == "bolsillo_plus") l.base = 0x4C4F6E;                     // GBA: pizarra
+    else if (sys == "dual") { l.base = 0xD8D9E0; l.glyph = 0x2B2B33; }      // DS: grises claros
+    else if (sys == "mega") { l.base = 0x232329; l.glyph = 0xD9D9E2; }      // Genesis: negros
+    else if (sys == "anillo") { l.base = 0x34343F; l.glyph = 0xE6E6EF; }    // Saturn
+    else if (sys == "n64") {
+        if (name == "A") l.base = 0x2D53D4;
+        else if (name == "B") l.base = 0x2CA14F;
+        else if (name.rfind("C ", 0) == 0) {
+            l.base = 0xF0BE2C;
+            l.glyph = 0x4A3500;
+            l.kind = FaceLook::Arrow;
+            if (name == "C arriba") l.dy = -1;
+            else if (name == "C abajo") l.dy = 1;
+            else if (name == "C izquierda") l.dx = -1;
+            else l.dx = 1;
+        }
+    }
+    // Sobre amarillo, la letra va oscura para que se lea.
+    if (l.base == 0xF0BE2C && l.kind == FaceLook::Letter) l.glyph = 0x4A3500;
+    return l;
+}
+
+// Botón redondo con relieve: sombra, cuerpo, brillo arriba y borde. Al apretarlo se hunde y brilla.
+void DrawDisc(ImDrawList* dl, ImVec2 c, float r, unsigned base, float a, bool on, unsigned glow) {
+    const float body = on ? 1.0f : a;
+    if (!on) dl->AddCircleFilled({c.x, c.y + r * 0.10f}, r * 1.02f, IM_COL32(0, 0, 0, static_cast<int>(90 * a)));
+    dl->AddCircleFilled(c, r, Shade(base, on ? 0.95f : 0.62f, 0.94f * body));
+    dl->AddCircleFilled({c.x, c.y - r * 0.06f}, r * 0.90f, Shade(base, on ? 1.35f : 1.0f, 0.94f * body));
+    dl->AddEllipseFilled({c.x, c.y - r * 0.50f}, {r * 0.46f, r * 0.20f}, IM_COL32(255, 255, 255, static_cast<int>(20 * body)));
+    dl->AddCircle(c, r, IM_COL32(255, 255, 255, static_cast<int>(46 * body)), 0, std::max(1.0f, r * 0.035f));
+    if (on) dl->AddCircle(c, r + r * 0.12f, Shade(glow, 1.2f, 0.75f), 0, std::max(2.0f, r * 0.09f));
+}
+
+// Píldora (gatillos, Select, Start) con el mismo relieve.
+void DrawPill(ImDrawList* dl, ImVec2 c, float hw, float hh, unsigned base, float a, bool on, unsigned glow) {
+    const float body = on ? 1.0f : a;
+    const ImVec2 p0(c.x - hw, c.y - hh), p1(c.x + hw, c.y + hh);
+    if (!on) dl->AddRectFilled({p0.x, p0.y + hh * 0.22f}, {p1.x, p1.y + hh * 0.22f}, IM_COL32(0, 0, 0, static_cast<int>(90 * a)), hh);
+    dl->AddRectFilled(p0, p1, Shade(base, on ? 0.95f : 0.62f, 0.94f * body), hh);
+    dl->AddRectFilled({p0.x + hh * 0.12f, p0.y}, {p1.x - hh * 0.12f, p1.y - hh * 0.22f}, Shade(base, on ? 1.35f : 1.0f, 0.94f * body), hh * 0.9f);
+    dl->AddRectFilled({p0.x + hh * 0.7f, p0.y + hh * 0.18f}, {p1.x - hh * 0.7f, p0.y + hh * 0.62f}, IM_COL32(255, 255, 255, static_cast<int>(16 * body)), hh * 0.3f);
+    dl->AddRect(p0, p1, on ? Shade(glow, 1.2f, 0.85f) : IM_COL32(255, 255, 255, static_cast<int>(46 * body)), hh, std::max(1.0f, hh * (on ? 0.12f : 0.06f)));
+}
+
+void DrawLabel(ImDrawList* dl, ImVec2 c, float size, float maxw, ImU32 col, ImU32 shadow, const char* text) {
+    ImFont* f = GetFonts().bold;
+    ImVec2 ts = f->CalcTextSizeA(size, FLT_MAX, 0, text);
+    if (ts.x > maxw) {
+        size *= maxw / ts.x;
+        ts = f->CalcTextSizeA(size, FLT_MAX, 0, text);
+    }
+    const ImVec2 p(c.x - ts.x * 0.5f, c.y - ts.y * 0.5f);
+    dl->AddText(f, size, {p.x, p.y + size * 0.06f}, shadow, text);
+    dl->AddText(f, size, p, col, text);
+}
+
+// La figura o letra de un botón de acción.
+void DrawGlyph(ImDrawList* dl, ImVec2 c, float r, const FaceLook& l, const char* label, float a, bool on) {
+    const float vis = on ? 1.0f : std::max(a, 0.6f);
+    const ImU32 col = Shade(l.glyph, on ? 1.25f : 1.0f, vis);
+    const ImU32 shadow = IM_COL32(0, 0, 0, static_cast<int>(70 * vis));
+    const float t = r * 0.15f; // grosor de las figuras
+    const float q = r * 0.42f;
+    switch (l.kind) {
+    case FaceLook::Triangle: {
+        const ImVec2 p1(c.x, c.y - q * 1.02f), p2(c.x + q * 1.0f, c.y + q * 0.72f), p3(c.x - q * 1.0f, c.y + q * 0.72f);
+        dl->AddTriangle({p1.x, p1.y + t * 0.4f}, {p2.x, p2.y + t * 0.4f}, {p3.x, p3.y + t * 0.4f}, shadow, t);
+        dl->AddTriangle(p1, p2, p3, col, t);
+        break;
+    }
+    case FaceLook::Circle:
+        dl->AddCircle({c.x, c.y + t * 0.4f}, q * 0.86f, shadow, 0, t);
+        dl->AddCircle(c, q * 0.86f, col, 0, t);
+        break;
+    case FaceLook::Cross:
+        for (int s = 0; s < 2; ++s) {
+            const ImU32 cc = s == 0 ? shadow : col;
+            const float oy = s == 0 ? t * 0.4f : 0;
+            dl->AddLine({c.x - q * 0.78f, c.y - q * 0.78f + oy}, {c.x + q * 0.78f, c.y + q * 0.78f + oy}, cc, t);
+            dl->AddLine({c.x + q * 0.78f, c.y - q * 0.78f + oy}, {c.x - q * 0.78f, c.y + q * 0.78f + oy}, cc, t);
+        }
+        break;
+    case FaceLook::Square:
+        dl->AddRect({c.x - q * 0.74f, c.y - q * 0.74f + t * 0.4f}, {c.x + q * 0.74f, c.y + q * 0.74f + t * 0.4f}, shadow, 0, t);
+        dl->AddRect({c.x - q * 0.74f, c.y - q * 0.74f}, {c.x + q * 0.74f, c.y + q * 0.74f}, col, 0, t);
+        break;
+    case FaceLook::Arrow: {
+        // Triángulo relleno que apunta hacia donde mira el botón C.
+        const float dx = l.dx, dy = l.dy, k = q * 0.95f;
+        const ImVec2 tip(c.x + dx * k, c.y + dy * k);
+        const ImVec2 b1(c.x - dx * k * 0.55f - dy * k * 0.85f, c.y - dy * k * 0.55f + dx * k * 0.85f);
+        const ImVec2 b2(c.x - dx * k * 0.55f + dy * k * 0.85f, c.y - dy * k * 0.55f - dx * k * 0.85f);
+        dl->AddTriangleFilled(tip, b1, b2, col);
+        break;
+    }
+    default:
+        DrawLabel(dl, c, std::min(r * 0.95f, S(30)), r * 1.5f, col, shadow, Tr(label));
+        break;
+    }
+}
 } // namespace
 
 // ---------------------------------------------------------------- modo táctil y compacto
@@ -371,82 +513,75 @@ void App::DrawTouchPad() {
             continue;
         }
         if (b.id == -2) {
-            // Cruceta: cruz con brazos redondeados y la dirección apretada iluminada.
-            const float arm = r * 0.36f;
-            dl->AddCircleFilled(c, r, IM_COL32(10, 8, 18, static_cast<int>(90 * a)));
-            dl->AddCircle(c, r, U32(col, 0.35f * a), 0, S(1.5f));
-            dl->AddRectFilled({c.x - arm, c.y - r * 0.92f}, {c.x + arm, c.y + r * 0.92f}, U32(0xEBE8F5, 0.28f * a), arm * 0.5f);
-            dl->AddRectFilled({c.x - r * 0.92f, c.y - arm}, {c.x + r * 0.92f, c.y + arm}, U32(0xEBE8F5, 0.28f * a), arm * 0.5f);
+            // Cruceta: una cruz sólida con relieve, como la de un mando; el brazo apretado se ilumina.
+            const float arm = r * 0.34f, len = r * 0.96f, rad = arm * 0.32f;
+            const unsigned body = 0x272833;
+            dl->AddCircleFilled(c, r, IM_COL32(10, 8, 18, static_cast<int>(45 * a)));
+            for (int pass = 0; pass < 3; ++pass) {
+                // 0: sombra; 1: cuerpo; 2: brillo de arriba.
+                const float oy = pass == 0 ? r * 0.07f : pass == 2 ? -r * 0.03f : 0;
+                const float in = pass == 2 ? arm * 0.16f : 0;
+                const ImU32 cc = pass == 0 ? IM_COL32(0, 0, 0, static_cast<int>(95 * a)) : pass == 1 ? Shade(body, 0.75f, 0.92f * a) : Shade(body, 1.08f, 0.92f * a);
+                dl->AddRectFilled({c.x - arm + in, c.y - len + in + oy}, {c.x + arm - in, c.y + len - in + oy}, cc, rad);
+                dl->AddRectFilled({c.x - len + in, c.y - arm + in + oy}, {c.x + len - in, c.y + arm - in + oy}, cc, rad);
+            }
             struct D {
                 int bit;
                 float dx, dy;
             } dirs[] = {{RETRO_DEVICE_ID_JOYPAD_UP, 0, -1}, {RETRO_DEVICE_ID_JOYPAD_DOWN, 0, 1}, {RETRO_DEVICE_ID_JOYPAD_LEFT, -1, 0}, {RETRO_DEVICE_ID_JOYPAD_RIGHT, 1, 0}};
             for (const auto& d : dirs) {
                 const bool on = touch_buttons_ & (1u << d.bit);
-                const ImVec2 t(c.x + d.dx * r * 0.62f, c.y + d.dy * r * 0.62f);
-                if (on) dl->AddCircleFilled(t, arm * 1.05f, U32(col, 0.75f));
-                // Flechita.
-                const ImVec2 tip(t.x + d.dx * arm * 0.45f, t.y + d.dy * arm * 0.45f);
-                const ImVec2 l(t.x - d.dy * arm * 0.4f - d.dx * arm * 0.15f, t.y + d.dx * arm * 0.4f - d.dy * arm * 0.15f);
-                const ImVec2 rr(t.x + d.dy * arm * 0.4f - d.dx * arm * 0.15f, t.y - d.dx * arm * 0.4f - d.dy * arm * 0.15f);
-                dl->AddTriangleFilled(tip, l, rr, U32(0xFFFFFF, (on ? 0.95f : 0.55f) * a));
+                if (on) {
+                    // El brazo apretado: color de la consola y un poco hundido.
+                    const ImVec2 q0(c.x + (d.dx != 0 ? (d.dx > 0 ? arm * 0.9f : -len) : -arm), c.y + (d.dy != 0 ? (d.dy > 0 ? arm * 0.9f : -len) : -arm));
+                    const ImVec2 q1(c.x + (d.dx != 0 ? (d.dx > 0 ? len : -arm * 0.9f) : arm), c.y + (d.dy != 0 ? (d.dy > 0 ? len : -arm * 0.9f) : arm));
+                    dl->AddRectFilled(q0, q1, Shade(col, 1.0f, 0.85f), rad);
+                }
+                // Flechita grabada en cada brazo.
+                const ImVec2 t(c.x + d.dx * len * 0.66f, c.y + d.dy * len * 0.66f);
+                const float k = arm * 0.42f;
+                const ImVec2 tip(t.x + d.dx * k, t.y + d.dy * k);
+                const ImVec2 l(t.x - d.dy * k - d.dx * k * 0.4f, t.y + d.dx * k - d.dy * k * 0.4f);
+                const ImVec2 rr(t.x + d.dy * k - d.dx * k * 0.4f, t.y - d.dx * k - d.dy * k * 0.4f);
+                dl->AddTriangleFilled(tip, l, rr, IM_COL32(255, 255, 255, static_cast<int>((on ? 240 : 90) * (on ? 1.0f : a))));
             }
+            // Hundido del centro.
+            dl->AddCircleFilled(c, arm * 0.62f, Shade(body, 0.55f, 0.9f * a));
+            dl->AddCircle(c, arm * 0.62f, IM_COL32(255, 255, 255, static_cast<int>(28 * a)), 0, std::max(1.0f, arm * 0.06f));
             continue;
         }
         if (b.id == -3) {
-            // Stick: base y cabeza que sigue al dedo.
-            dl->AddCircleFilled(c, r, IM_COL32(10, 8, 18, static_cast<int>(90 * a)));
-            dl->AddCircle(c, r, U32(col, 0.4f * a), 0, S(1.5f));
-            const ImVec2 h(c.x + touch_stick_[0] * r * 0.55f, c.y + touch_stick_[1] * r * 0.55f);
+            // Palanca: base hundida con su aro y una cabeza con relieve que sigue al dedo.
             const bool on = touch_stick_[0] != 0 || touch_stick_[1] != 0;
-            dl->AddCircleFilled(h, r * 0.48f, U32(on ? col : 0xEBE8F5, (on ? 0.75f : 0.32f) * (on ? 1.0f : a)));
-            dl->AddCircle(h, r * 0.48f, U32(0xFFFFFF, 0.4f * a), 0, S(1.5f));
+            dl->AddCircleFilled({c.x, c.y + r * 0.06f}, r * 1.02f, IM_COL32(0, 0, 0, static_cast<int>(70 * a)));
+            dl->AddCircleFilled(c, r, Shade(0x1E1F28, 1.0f, 0.82f * a));
+            dl->AddCircle(c, r, on ? Shade(col, 1.1f, 0.7f) : IM_COL32(255, 255, 255, static_cast<int>(40 * a)), 0, std::max(1.5f, r * 0.04f));
+            dl->AddCircle(c, r * 0.72f, IM_COL32(0, 0, 0, static_cast<int>(70 * a)), 0, std::max(1.5f, r * 0.05f));
+            const ImVec2 h(c.x + touch_stick_[0] * r * 0.55f, c.y + touch_stick_[1] * r * 0.55f);
+            DrawDisc(dl, h, r * 0.5f, on ? col : 0x3B3C4A, a, false, col);
+            dl->AddCircle({h.x, h.y - r * 0.02f}, r * 0.33f, IM_COL32(0, 0, 0, static_cast<int>(60 * (on ? 1.0f : a))), 0, std::max(1.0f, r * 0.04f));
             continue;
         }
         const bool on = touch_buttons_ & (1u << b.id);
-        const bool pill = std::string(b.group).rfind("gat", 0) == 0 || std::string(b.group) == "centro";
+        const std::string group = b.group;
+        const bool pill = group.rfind("gat", 0) == 0 || group == "centro";
         if (pill) {
-            const ImVec2 p0(c.x - r * 1.45f, c.y - r * 0.62f), p1(c.x + r * 1.45f, c.y + r * 0.62f);
-            dl->AddRectFilled(p0, p1, on ? U32(col, 0.8f) : IM_COL32(10, 8, 18, static_cast<int>(110 * a)), r);
-            dl->AddRect(p0, p1, U32(on ? 0xFFFFFF : col, (on ? 0.8f : 0.45f) * a), r, S(1.5f));
-        } else {
-            dl->AddCircleFilled({c.x, c.y + S(2)}, r, IM_COL32(0, 0, 0, static_cast<int>(50 * a)));
-            dl->AddCircleFilled(c, r, on ? U32(col, 0.85f) : IM_COL32(10, 8, 18, static_cast<int>(110 * a)));
-            dl->AddCircle(c, r, U32(on ? 0xFFFFFF : col, (on ? 0.85f : 0.5f) * a), 0, S(2));
-        }
-        // En CD, los botones de acción llevan sus figuras (triángulo, cuadrado, círculo y cruz).
-        if (sys_->id == "cd" && std::string(b.group) == "der") {
-            const float q = r * 0.42f;
-            const ImU32 fc = U32(0xFFFFFF, (on ? 1.0f : 0.85f) * std::max(a, 0.6f));
-            const float t = S(2.6f);
-            switch (b.id) {
-            case RETRO_DEVICE_ID_JOYPAD_X:
-                dl->AddTriangle({c.x, c.y - q}, {c.x + q * 0.95f, c.y + q * 0.68f}, {c.x - q * 0.95f, c.y + q * 0.68f}, on ? fc : U32(0x4FD1A5, a + 0.2f), t);
-                break;
-            case RETRO_DEVICE_ID_JOYPAD_Y:
-                dl->AddRect({c.x - q * 0.75f, c.y - q * 0.75f}, {c.x + q * 0.75f, c.y + q * 0.75f}, on ? fc : U32(0xFF8FC8, a + 0.2f), 0, t);
-                break;
-            case RETRO_DEVICE_ID_JOYPAD_A:
-                dl->AddCircle(c, q * 0.85f, on ? fc : U32(0xFF6B7A, a + 0.2f), 0, t);
-                break;
-            default:
-                dl->AddLine({c.x - q * 0.75f, c.y - q * 0.75f}, {c.x + q * 0.75f, c.y + q * 0.75f}, on ? fc : U32(0x7FA8FF, a + 0.2f), t);
-                dl->AddLine({c.x + q * 0.75f, c.y - q * 0.75f}, {c.x - q * 0.75f, c.y + q * 0.75f}, on ? fc : U32(0x7FA8FF, a + 0.2f), t);
-                break;
-            }
+            const float hw = r * 1.45f, hh = r * 0.62f;
+            const ImVec2 cc(c.x, c.y + (on ? hh * 0.08f : 0));
+            DrawPill(dl, cc, hw, hh, 0x2C2D38, a, on, col);
+            if (*b.label)
+                DrawLabel(dl, cc, std::min(hh * 1.05f, S(22)), hw * 1.6f, IM_COL32(244, 242, 250, static_cast<int>(255 * (on ? 1.0f : std::max(a, 0.6f)))),
+                          IM_COL32(0, 0, 0, static_cast<int>(70 * (on ? 1.0f : a))), Tr(b.label));
             continue;
         }
-        if (*b.label) {
-            ImFont* f = GetFonts().bold;
-            float fs = std::min(r * (pill ? 0.62f : 0.72f), S(22));
-            ImVec2 ts = f->CalcTextSizeA(fs, FLT_MAX, 0, Tr(b.label));
-            const float maxw = r * (pill ? 2.5f : 1.6f);
-            if (ts.x > maxw) {
-                fs *= maxw / ts.x;
-                ts = f->CalcTextSizeA(fs, FLT_MAX, 0, Tr(b.label));
-            }
-            dl->AddText(f, fs, {c.x - ts.x * 0.5f, c.y - ts.y * 0.5f}, U32(0xFFFFFF, (on ? 1.0f : 0.8f) * std::max(a, 0.55f)), Tr(b.label));
-        }
+        // Botones de acción con el color y la figura de cada consola.
+        const FaceLook look = LookFor(sys_->id, b.label);
+        const ImVec2 cc(c.x, c.y + (on ? r * 0.06f : 0));
+        // El brillo al apretar: el color del botón, o el de su figura/consola si el botón es oscuro.
+        const unsigned lum = ((look.base >> 16) & 0xFF) + ((look.base >> 8) & 0xFF) + (look.base & 0xFF);
+        const unsigned glow = look.kind != FaceLook::Letter ? look.glyph : lum < 200 ? col : look.base;
+        DrawDisc(dl, cc, r, look.base, a, on, glow);
+        DrawGlyph(dl, cc, r, look, b.label, a, on);
     }
     if (touch_edit_) DrawTouchEditor(layout, sx, sy);
 }
