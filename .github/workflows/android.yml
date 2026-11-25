@@ -160,5 +160,6 @@ jobs:
             gh release create prueba-25 --prerelease --target build-25 --title "Build 25 · APK de prueba" \
               --notes "APK de prueba de la build 25 (pantallas nativas). No es la versión final: la app no lo ofrece como actualización."
           fi
-          gh release upload prueba-25 "$APK" --clobber
+          # GitHub a veces responde 500 al reemplazar el archivo: se intenta hasta tres veces.
+          for i in 1 2 3; do gh release upload prueba-25 "$APK" --clobber && break; sleep 10; done
           echo "Prueba subida: $(git rev-parse --short HEAD)"
