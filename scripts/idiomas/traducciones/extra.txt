@@ -880,3 +880,4 @@ Otro consejo|Another tip|Un autre conseil|Outra dica|Un altro consiglio
 Continuar donde quedé|Continue where I left off|Reprendre où j'en étais|Continuar de onde parei|Continua da dove ero rimasto
 Mostrar a los guías|Show the guides|Afficher les guides|Mostrar os guias|Mostra le guide
 General|General|Général|Geral|Generale
+Cargando…|Loading…|Chargement…|Carregando…|Caricamento…
