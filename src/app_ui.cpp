@@ -111,6 +111,7 @@ void App::DrawUi() {
         DrawGameLayer();
         DrawGameOverlay();
         DrawGameSettings();
+        DrawSlowPrompt();
         DrawToasts();
         if (!pending_start_.empty()) DrawLoading();
         if (overlay_page_ < 0) DrawTouchPad(); // con una pantalla de Satronho encima, el control táctil se esconde
@@ -1514,6 +1515,15 @@ void App::DrawSettingsPerformance() {
     RowBegin("Pausar al cambiar de ventana", "Si haces clic en otro programa, el juego se detiene hasta que vuelvas.");
     changed |= Toggle("##foco", &settings_.pause_on_focus_loss);
     RowEnd();
+
+    ImGui::Dummy({0, S(8)});
+    Heading("Si algo falla", 16);
+    ImGui::Dummy({0, S(4)});
+    GuideSays(GuideId::MechaRidds,
+              "Si un juego se traba, se cierra o va raro, mándale el registro a Ridds: ahí anoto lo que pasó, también de la vez "
+              "anterior si la app se cerró de golpe. Lleva lo que anoto (como los nombres de los juegos que abriste), no los juegos.");
+    ImGui::Dummy({0, S(10)});
+    if (Button("Enviar el registro", ButtonKind::Primary, {0, S(44)}, Icon::File, true)) SendLog();
     if (changed) SaveConfig();
 }
 

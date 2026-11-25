@@ -350,6 +350,23 @@ public class SatronhoActivity extends SDLActivity {
         v.vibrate(VibrationEffect.createOneShot(Math.max(1, ms), Math.max(1, Math.min(255, fuerza))));
     }
 
+    /** Abre el menú «Compartir» de Android con un texto (el registro, para mandárselo a Ridds). */
+    public static void compartirTexto(String asunto, String texto) {
+        final SatronhoActivity a = sInstance;
+        if (a == null) return;
+        a.runOnUiThread(() -> {
+            try {
+                Intent i = new Intent(Intent.ACTION_SEND);
+                i.setType("text/plain");
+                i.putExtra(Intent.EXTRA_SUBJECT, asunto);
+                i.putExtra(Intent.EXTRA_TEXT, texto);
+                a.startActivity(Intent.createChooser(i, asunto));
+            } catch (Exception e) {
+                Log.e(TAG, "No se pudo compartir", e);
+            }
+        });
+    }
+
     /** Instala una build nueva: Android muestra su ventana de confirmación. */
     public static boolean instalarApk(String path) {
         final SatronhoActivity a = sInstance;

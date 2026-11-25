@@ -134,7 +134,13 @@ std::vector<SystemDef> Build() {
     cd.core_defaults = {{"beetle_psx_hw_internal_resolution", "2x"},
                         {"beetle_psx_hw_dither_mode", "disabled"},
                         {"beetle_psx_hw_deinterlacer", "fastmad"},
-                        {"beetle_psx_hw_filter", "nearest"}};
+                        {"beetle_psx_hw_filter", "nearest"},
+                        // El DualShock arranca en digital, como el de verdad: los juegos viejos (DBZ, Twisted
+                        // Metal) solo aceptan ese modo y los que usan palancas lo pasan a analógico solos.
+                        {"beetle_psx_hw_analog_toggle", "enabled"},
+                        {"beetle_psx_hw_analog_toggle_combo", "l1+r1+select"},
+                        // Algunos juegos dejan basura en las primeras líneas (la tele la escondía).
+                        {"beetle_psx_hw_initial_scanline", "2"}};
     v.push_back(cd);
 
     // Nintendo 64 con los botones C independientes (opción alt-map del núcleo).

@@ -1181,6 +1181,12 @@ int App::GpuResFor(const SystemDef& sys, int api) const {
                             (hw_.vram_mb > 0 && hw_.vram_mb < 1500);
     if (integrated) cap = 2 * 240;
     else if (hw_.vram_mb > 0 && hw_.vram_mb < 4000) cap = 4 * 240;
+#ifdef __ANDROID__
+    // En el celular la automática no pasa de 2×: las pantallas son muy altas (1440 píxeles o más) y
+    // con eso pedía 8×, demasiado para un teléfono en juegos 3D (Vigilante 8 se congelaba). Quien
+    // quiera más la sube a mano.
+    cap = sys.id == "sueno" ? 960 : sys.id == "portatil" ? 544 : 2 * 240;
+#endif
     const int nearest = NearestResStep(sys, api);
     if (ResHeight(nearest) <= cap) return nearest;
     int best = steps.front();
@@ -1719,6 +1725,140 @@ void App::DrawChdPanel() {
         Muted("Borrar los originales al terminar", 13);
     }
     RowEnd();
+}
+
+// ---------------------------------------------------------------- juego lento
+
+// Si un juego de una consola con resolución propia (CD, 64, Sueño, Portátil) pasa varios segundos muy
+// por debajo de su velocidad, Ñoño ofrece bajar la resolución. Se pregunta una vez por juego.
+void App::WatchSlowGame(double dt, double target_fps) {
+    if (slow_asked_ || !sys_ || !sys_->gpu || paused_ || menu_open_ || overlay_page_ >= 0 || fast_forward_ || rewinding_ ||
+        !pending_start_.empty() || !game_settings_.key.empty()) {
+        slow_s_ = 0;
+        return;
+    }
+    // Los primeros segundos no cuentan: al arrancar casi todos los juegos van a tirones.
+    if (ImGui::GetTime() - game_enter_t_ < 12.0) return;
+    const bool slow = perf_.fps < std::max(20.0, target_fps * 0.66);
+    slow_s_ = slow ? slow_s_ + dt : std::max(0.0, slow_s_ - dt * 2);
+    if (slow_s_ < 6.0) return;
+    slow_asked_ = true;
+    const int api = GpuApiFor(*sys_);
+    const std::vector<int> steps = GpuResSteps(*sys_, api);
+    const int now = GpuResFor(*sys_, api);
+    Log::Warn("Juego lento: %.0f cuadros por segundo de %.0f (%s, resolución %d)", perf_.fps, target_fps, sys_->id.c_str(), now);
+    if (steps.empty() || ResHeight(now) <= ResHeight(steps.front())) {
+        Toast("Este juego va lento incluso en la resolución más baja. Cierra otras apps o prueba otro motor en Ajustes » Gráficos.", GuideId::Nono, 8);
+        return;
+    }
+    slow_prompt_ = true;
+    slow_was_paused_ = paused_;
+    paused_ = true;
+}
+
+void App::DrawSlowPrompt() {
+    if (!slow_prompt_ || !in_game_ || !sys_) return;
+    const int api = GpuApiFor(*sys_);
+    const std::vector<int> steps = GpuResSteps(*sys_, api);
+    const int now = GpuResFor(*sys_, api);
+    // Un escalón más abajo (o la original si se pasa).
+    int lower = steps.front();
+    for (int k : steps)
+        if (ResHeight(k) < ResHeight(now)) lower = k;
+
+    ImGui::OpenPopup("##juego_lento");
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    const float w = std::min(S(560), vp->Size.x - S(32));
+    ImGui::SetNextWindowPos({vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f}, ImGuiCond_Always, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({w, 0});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {S(24), S(22)});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(22));
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, V4(Color::Bg));
+    ImGui::PushStyleColor(ImGuiCol_Border, V4(Guide(GuideId::Nono).color, 0.5f));
+    if (ImGui::BeginPopupModal("##juego_lento", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
+        const float inner = w - S(48);
+        const std::string text = Fmt("Este juego va lento en tu equipo (%.0f cuadros por segundo; la consola hace %.0f). Está en %s. "
+                                     "Si la bajo a %s, el juego se reinicia justo donde vas y debería ir fluido.",
+                                     perf_.fps, core_.Fps(), ResLabel(now, sys_).c_str(), ResLabel(lower, sys_).c_str());
+        GuideSays(GuideId::Nono, text.c_str(), inner);
+        ImGui::Dummy({0, S(14)});
+        const float bw = (inner - S(12)) * 0.5f;
+        bool close = false;
+        if (Button("Bajar la resolución", ButtonKind::Primary, {bw, S(48)})) {
+            // Se guarda para la consola (o para el juego, si tenía la suya) y se vuelve a abrir donde iba.
+            if (game_res_ > 0) {
+                library_.SetGameOption(current_.key, "res", std::to_string(lower));
+                game_res_ = lower;
+            } else {
+                settings_.gpu_res[sys_->id] = lower;
+            }
+            SaveConfig();
+            Log::Info("Ñoño bajó la resolución de %s a %d", sys_->id.c_str(), lower);
+            if (emu_frames_ > 30) SaveSlot(0, true);
+            start_entry_ = current_.entry;
+            RequestStart(current_.path, true);
+            close = true;
+        }
+        ImGui::SameLine(0, S(12));
+        if (Button("Seguir así", ButtonKind::Secondary, {bw, S(48)})) {
+            paused_ = slow_was_paused_;
+            close = true;
+        }
+        if (close) {
+            slow_prompt_ = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
+}
+
+// ---------------------------------------------------------------- enviar el registro
+
+namespace {
+// El final de un archivo de texto (desde un salto de línea, para no cortar una letra a la mitad).
+std::string TailOf(const fs::path& file, size_t max_bytes) {
+    std::ifstream in(file, std::ios::binary);
+    if (!in) return {};
+    in.seekg(0, std::ios::end);
+    const auto size = static_cast<size_t>(std::max<std::streamoff>(0, in.tellg()));
+    const size_t from = size > max_bytes ? size - max_bytes : 0;
+    in.seekg(static_cast<std::streamoff>(from));
+    std::string s(size - from, '\0');
+    in.read(s.data(), static_cast<std::streamsize>(s.size()));
+    if (from > 0) {
+        const size_t nl = s.find('\n');
+        if (nl != std::string::npos) s.erase(0, nl + 1);
+    }
+    // Solo texto que Android acepta: se cambian los caracteres de control raros.
+    for (auto& c : s)
+        if (static_cast<unsigned char>(c) < 32 && c != '\n' && c != '\t') c = ' ';
+    return s;
+}
+} // namespace
+
+void App::SendLog() {
+    Log::Flush();
+    fs::path prev = Paths::LogFile();
+    prev.replace_filename("satronho.anterior.log");
+    std::string text = Fmt("Registro de Satronho Emulation · build %d\n\n", build_);
+    const std::string before = TailOf(prev, 60 * 1024);
+    if (!before.empty()) text += "=== Sesión anterior (si la app se cerró o se trabó, está aquí) ===\n" + before + "\n";
+    text += "=== Esta sesión ===\n" + TailOf(Paths::LogFile(), 60 * 1024);
+    // Copia como archivo en «Satronho Games» (o en la carpeta de datos), por si se prefiere adjuntarlo.
+    const fs::path dir = Paths::PublicRoot().empty() ? Paths::User() : Paths::PublicRoot();
+    {
+        std::ofstream out(dir / "satronho-registro.txt", std::ios::binary);
+        out << text;
+    }
+#ifdef __ANDROID__
+    Android::ShareText("Registro de Satronho Emulation", text);
+    Toast("Elige WhatsApp (o donde quieras) y mándaselo a Ridds. También quedó como «satronho-registro.txt» en tu carpeta de Satronho.", GuideId::MechaRidds, 7);
+#else
+    SDL_SetClipboardText(text.c_str());
+    Toast("Copié el registro: pégalo en un mensaje para Ridds. También quedó como «satronho-registro.txt» en la carpeta de datos.", GuideId::MechaRidds, 7);
+#endif
 }
 
 } // namespace Satronho

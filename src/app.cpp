@@ -1234,6 +1234,10 @@ bool App::StartGame(const fs::path& rom) {
     core_.port_device = sys->port_device;
     // Ajustes de este juego (si tiene): tipo de mando, motor gráfico y resolución.
     if (library_.GameOption(probe.key, "mando") == "normal") core_.port_device = RETRO_DEVICE_JOYPAD;
+    slow_s_ = 0;
+    slow_asked_ = slow_prompt_ = false;
+    analog_pulse_ = 0;
+    audio_full_s_ = 0;
     game_api_ = std::atoi(library_.GameOption(probe.key, "motor").c_str());
     game_res_ = std::atoi(library_.GameOption(probe.key, "res").c_str());
     // Cada consola guarda sus partidas en su propia carpeta (partidas/<consola>).
@@ -1406,6 +1410,15 @@ void App::EmulateTick(double dt) {
                 acc_ += period;
             }
         }
+        // Si la tarjeta de sonido deja de sacar sonido (Android a veces la pausa), el búfer queda lleno y
+        // el juego se frenaría para siempre esperándola (0 cuadros por segundo). Se vacía y se sigue.
+        audio_full_s_ = frames == 0 && !fast_forward_ ? audio_full_s_ + dt : 0;
+        if (audio_full_s_ > 0.4) {
+            Log::Warn("El sonido no avanzaba (salida en pausa: %s): se vacía para que el juego siga", audio_.DevicePaused() ? "sí" : "no");
+            audio_.Clear();
+            audio_full_s_ = 0;
+            frames = 1;
+        }
     }
     if (fast_forward_) frames *= settings_.fast_forward;
     core_.audio_enabled = !(fast_forward_ && settings_.mute_fast_forward);
@@ -1435,6 +1448,7 @@ void App::EmulateTick(double dt) {
     }
     while (!perf_.emu_times.empty() && now - perf_.emu_times.front() > 1.0) perf_.emu_times.pop_front();
     perf_.fps = static_cast<double>(perf_.emu_times.size());
+    WatchSlowGame(dt, fps);
 
     // Cada minuto se anota en el registro cómo va el sonido, para revisar cortes.
     audio_report_s_ += dt;
@@ -1463,6 +1477,10 @@ void App::EmulateTick(double dt) {
 void App::Step(bool rewinding, bool fast_forward) {
     input_.Update(core_, *sys_, !ImGui::GetIO().WantTextInput);
     ApplyTouchPad();
+    if (analog_pulse_ > 0) {
+        core_.pads[0].buttons |= (1u << RETRO_DEVICE_ID_JOYPAD_L) | (1u << RETRO_DEVICE_ID_JOYPAD_R) | (1u << RETRO_DEVICE_ID_JOYPAD_SELECT);
+        --analog_pulse_;
+    }
     if (screens_pulse_ > 0) {
         core_.pads[0].buttons |= 1u << RETRO_DEVICE_ID_JOYPAD_R3;
         --screens_pulse_;

@@ -193,6 +193,12 @@ void App::DrawGameBar() {
                 bar_open_ = false;
                 game_settings_ = current_;
             }
+            // El botón Analog del DualShock: arranca en digital y algunos juegos piden cambiarlo a mano.
+            if (sys_->id == "cd" && core_.port_device != RETRO_DEVICE_JOYPAD && item("Botón Analog del DualShock")) {
+                bar_open_ = false;
+                analog_pulse_ = static_cast<int>(core_.Fps() * 1.3);
+                Toast("Apreté Analog: el DualShock cambia entre digital y analógico.", GuideId::Samy, 4);
+            }
             ImGui::Separator();
             if (item("Salir a la biblioteca")) {
                 bar_open_ = false;

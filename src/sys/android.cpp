@@ -86,6 +86,16 @@ bool InstallApk(const std::string& path) {
     return ok;
 }
 
+void ShareText(const std::string& subject, const std::string& text) {
+    Call c;
+    jmethodID m = c.M("compartirTexto", "(Ljava/lang/String;Ljava/lang/String;)V");
+    if (!m) return;
+    jstring a = c.S(subject), b = c.S(text);
+    c.env->CallStaticVoidMethod(c.cls, m, a, b);
+    c.env->DeleteLocalRef(a);
+    c.env->DeleteLocalRef(b);
+}
+
 std::string CoresDir() {
     const char* base = SDL_GetAndroidInternalStoragePath();
     if (!base) return {};

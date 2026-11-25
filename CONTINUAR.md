@@ -3,6 +3,41 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 24 de noviembre de 2026 (build 23)
+
+Ridds probó la build 22 en el celular (pantalla de 1440 px de alto, app en inglés): Vigilante 8 iba a 6–23
+cuadros por segundo en los menús y se congelaba en la pantalla de carga (0 cuadros). Twisted Metal no
+respondía a los controles, igual que DBZ. En Ajustes la resolución automática de CD decía **8×**.
+
+- **Resolución automática en Android** (`GpuResFor`): tope 2× (CD 480 de alto, 64 480, Sueño 960, Portátil
+  544). El tope de PC solo reconocía tarjetas de PC (Intel/NVIDIA…), y en el celular elegía la más parecida
+  a 1440 px: 8×. Nota en Gráficos solo en Android.
+- **DualShock en digital** (`cd.core_defaults`): `beetle_psx_hw_analog_toggle=enabled` (antes «disabled» =
+  siempre analógico, y los juegos viejos no lo aceptan) y combo `l1+r1+select`. Menú Juego » «Botón Analog
+  del DualShock» aprieta el combo 1,3 s (`analog_pulse_`). «Mando normal» por juego sigue.
+- **Ñoño y el juego lento** (`WatchSlowGame`/`DrawSlowPrompt` en `app_extra.cpp`): consolas con `gpu`,
+  pasados 12 s, si va por debajo de 2/3 de su velocidad durante 6 s se pausa y ofrece bajar un escalón:
+  guarda en la consola (o en el juego si tenía la suya), guarda la ranura 0 y reabre con «Continuar». Una
+  vez por juego. Ya en la más baja: aviso.
+- **Sonido que frenaba el juego**: el ajuste de cuadros según el búfer de sonido podía dejar el juego en 0
+  cuadros para siempre si la salida no consumía. Si pasan 0,4 s sin correr cuadros, se vacía y se sigue
+  (log «El sonido no avanzaba…»). Puede haber sido parte del congelamiento.
+- **Recortar arriba** (`beetle_psx_hw_initial_scanline`, 2 de fábrica): la rayita de basura de Vigilante 8.
+- **Enviar el registro** (Ajustes » Rendimiento, MechaRidds): junta el final de `satronho.anterior.log` y
+  `satronho.log` (60 KB cada uno), lo guarda como `satronho-registro.txt` en «Satronho Games» y abre
+  Compartir de Android (`compartirTexto` en `SatronhoActivity`); en PC lo copia al portapapeles.
+  `Log::Flush()` nuevo.
+- Modo de revisión: las ventanas emergentes (`BeginPopupModal`: salir, ajustes del juego, juego lento) no
+  salen en las capturas aunque se dibujan; no es de esta build.
+
+### Falta probar (pedírselo a Ridds)
+
+- Vigilante 8 en el celular: que diga 2× en automática, que vaya fluido y cargue el nivel.
+- Twisted Metal y DBZ con el DualShock (sin cambiar a «Mando normal»).
+- Que Ñoño ofrezca bajar la resolución si se sube a mano a 8× y el juego va lento.
+- «Enviar el registro» por WhatsApp.
+- Sigue pendiente lo de la build 22: un juego de Dreamcast y uno de PSP.
+
 ## Estado al 24 de noviembre de 2026 (build 22)
 
 Ridds probó la build 21: lo de WhatsApp, el permiso y la mudanza de carpeta funcionan. Reportó sonido

@@ -21,6 +21,7 @@ std::string Received();               // «ok|ruta», «error|nombre|motivo», �
 std::string ReceiveStatus();          // «nombre|copiados|total|pendientes» mientras copia, o ""
 void SetOrientation(int mode);        // 0 horizontal, 1 girar sola, 2 vertical
 int KeyboardHeight();                 // alto del teclado en pantalla (píxeles), 0 si no está
+void ShareText(const std::string& subject, const std::string& text); // menú «Compartir» de Android
 #else
 inline bool HasFileAccess() { return true; }
 inline void RequestFileAccess() {}
@@ -33,6 +34,7 @@ inline std::string Received() { return {}; }
 inline std::string ReceiveStatus() { return {}; }
 inline void SetOrientation(int) {}
 inline int KeyboardHeight() { return 0; }
+inline void ShareText(const std::string&, const std::string&) {}
 #endif
 
 } // namespace Satronho::Android

@@ -222,7 +222,12 @@ const std::vector<OptionInfo>& KnownOptions(const std::string& sys) {
           {"beetle_psx_hw_crop_overscan", "Recortar los bordes", "Quita los bordes negros que dejaba la consola.",
            {{"disabled", "No", "Imagen completa, con bordes."},
             {"static", "A los lados", "Quita los bordes laterales."},
-            {"smart", "A los lados y arriba/abajo", "Quita todos los bordes negros."}}}}},
+            {"smart", "A los lados y arriba/abajo", "Quita todos los bordes negros."}}},
+          {"beetle_psx_hw_initial_scanline", "Recortar arriba", "Algunos juegos dejan una rayita de colores en el borde de arriba; en la tele no se veía.",
+           {{"0", "Nada", "La imagen completa, con la rayita si el juego la tiene."},
+            {"2", "2 líneas", "Esconde la rayita sin que se note el recorte."},
+            {"4", "4 líneas", "Para juegos con más basura arriba."},
+            {"8", "8 líneas", "Recorte grande."}}}}},
         {"n64",
          {{"mupen64plus-aspect", "Proporción", "La forma de la imagen.",
            {{"4:3", "Original (4:3)", "Como la consola."},
@@ -591,6 +596,10 @@ void App::DrawSettingsVideo() {
                         : "Con Vulkan la 64 sube de 2 en 2 (1×, 2×, 4× y 8×). Si quieres una resolución exacta, usa OpenGL.");
                 else
                     ChoiceNote("Con OpenGL la 64 dibuja exactamente a la resolución que elijas. La marcada «como tu pantalla» es la ideal.");
+#ifdef __ANDROID__
+                ChoiceNote("En el celular, la automática llega como mucho a 2× para que los juegos 3D vayan fluidos. Si tu teléfono puede "
+                           "más, súbela tú; si un juego va lento, Ñoño te ofrece bajarla.");
+#endif
             }
             RowEnd();
         }
