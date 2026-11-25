@@ -382,6 +382,7 @@ private fun Elemento(o: JSONObject) {
             }
         }
         "control" -> ControlGrande(o)
+        "grafica" -> Grafica(o)
         else -> {}
     }
 }
@@ -579,6 +580,41 @@ private fun Chat(o: JSONObject) {
                 )
             }
             IconButton(onClick = enviar) { Icon(Icons.Filled.Send, t("Enviar"), tint = cs.primary) }
+        }
+    }
+}
+
+/** La gráfica de la ficha del juego: minutos de cada sesión (como en Satronho NX). */
+@Composable
+private fun Grafica(o: JSONObject) {
+    val cs = MaterialTheme.colorScheme
+    val color = Leer.color(o.optString("color"), cs.primary)
+    val arr = o.optJSONArray("barras") ?: JSONArray()
+    val barras = List(arr.length()) { arr.getJSONObject(it) }
+    if (barras.isEmpty()) return
+    val max = barras.maxOf { it.optInt("valor") }.coerceAtLeast(1)
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text(o.optString("titulo"), style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth().height(120.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
+            barras.forEachIndexed { i, b ->
+                val v = b.optInt("valor")
+                val ultima = i == barras.lastIndex
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
+                    if (ultima || barras.size <= 8) Text(v.toString(), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        color = cs.onSurfaceVariant, maxLines = 1)
+                    Box(
+                        Modifier.fillMaxWidth().height((96f * v / max).coerceAtLeast(3f).dp)
+                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                            .background(if (ultima) color else color.copy(alpha = 0.45f)),
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(barras.first().optString("etiqueta"), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+            Text(barras.last().optString("etiqueta"), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
         }
     }
 }

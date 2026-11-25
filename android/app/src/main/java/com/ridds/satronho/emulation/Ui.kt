@@ -126,7 +126,14 @@ object SatronhoUi {
         if (vb != verBiblioteca) {
             verBiblioteca = vb
             biblioteca = Leer.biblioteca(Puente.biblioteca())
-            actividad?.let { Nx.revisarJuegos(it, biblioteca) }
+            actividad?.let {
+                Nx.revisarJuegos(it, biblioteca)
+                try { ContinuarWidget.actualizar(it, biblioteca) } catch (e: Throwable) { Log.e(TAG, "Widget", e) }
+            }
+            if (continuarPendiente.isNotEmpty() && biblioteca.juegos.any { it.clave == continuarPendiente } && !estado.enJuego) {
+                orden("continuar|$continuarPendiente")
+                continuarPendiente = ""
+            }
         }
         val sueltos = Puente.avisos()
         if (sueltos.isNotEmpty()) {
@@ -140,7 +147,7 @@ object SatronhoUi {
                     is Tarjeta -> tarjeta = a
                     is Explorar -> explorador = a
                     is Ir -> if (a.pagina.isEmpty()) pilaAjustes.clear()
-                        else if (pilaAjustes.lastOrNull()?.first != a.pagina) pilaAjustes.add(a.pagina to "")
+                        else if (pilaAjustes.lastOrNull()?.first != a.pagina) pilaAjustes.add(a.pagina to a.arg)
                     is VerConsola -> { pilaAjustes.clear(); consolaPedida = a.id }
                     is PedidoRespaldo -> actividad?.let { Respaldo.terminar(it, a) }
                     is PedidoRestaurar -> Respaldo.pedirArchivo = true
@@ -172,6 +179,9 @@ object SatronhoUi {
         modoAnterior = modo
         imguiAnterior = imgui
     }
+
+    /** Juego que pidió el widget «Continuar» (se abre cuando la biblioteca esté lista). */
+    @Volatile var continuarPendiente = ""
 
     /** La actividad volvió al frente (por ejemplo, al salir de un juego de Satronho NX). */
     fun alVolver() {
@@ -305,6 +315,7 @@ private fun Raiz() {
                 SatronhoUi.tarjeta?.let { TarjetaGuia(it, e.enJuego) }
                 if (!e.enJuego) Nx.asistente?.let { AsistenteNx(it) }
                 SelectorRespaldo()
+                VigilaCalor(e.enJuego && e.avisoCalor)
                 if (SatronhoUi.presentacion && !e.enJuego) Presentacion()
             }
         }

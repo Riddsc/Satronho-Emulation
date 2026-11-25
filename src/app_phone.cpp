@@ -6,6 +6,9 @@
 #include "app.h"
 
 #include <algorithm>
+#include <cstdarg>
+#include <cstdio>
+#include <ctime>
 #include <fstream>
 
 #include "native_page.h"
@@ -17,6 +20,15 @@
 namespace Satronho {
 
 namespace {
+
+std::string Fmt(const char* fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    std::vsnprintf(buf, sizeof buf, fmt, args);
+    va_end(args);
+    return buf;
+}
 
 std::string Join(const std::vector<std::string>& v) {
     std::string s;
@@ -430,6 +442,119 @@ bool App::NativeCommandPhone(const std::vector<std::string>& a) {
         return true;
     }
     return false;
+}
+
+// ---------------------------------------------------------------- sesiones (como Satronho NX)
+
+// Al salir de un juego: cuánto se jugó y cómo fue (FPS y tirones). Queda en su ficha (las últimas 20)
+// y un guía lo cuenta en una tarjeta.
+void App::RecordSession() {
+    if (!sys_ || session_s_ < 30 || current_.key.empty()) return;
+    const double avg = ses_fps_n_ > 0 ? ses_fps_sum_ / ses_fps_n_ : 0;
+    const double low = ses_fps_n_ > 0 ? ses_fps_low_ : 0;
+    const int stutters = std::max(0, perf_.stutters - ses_stutters0_);
+    const long long secs = static_cast<long long>(session_s_);
+    std::vector<std::string> list = [&] {
+        std::vector<std::string> v;
+        const std::string old = library_.GameOption(current_.key, "sesiones");
+        size_t a = 0;
+        while (a < old.size()) {
+            const size_t b = old.find(';', a);
+            v.push_back(old.substr(a, b == std::string::npos ? std::string::npos : b - a));
+            if (b == std::string::npos) break;
+            a = b + 1;
+        }
+        return v;
+    }();
+    list.push_back(Fmt("%lld,%lld,%.0f,%.0f,%d", static_cast<long long>(std::time(nullptr)), secs, avg, low, stutters));
+    while (list.size() > 20) list.erase(list.begin());
+    std::string joined;
+    for (const auto& x : list) joined += (joined.empty() ? "" : ";") + x;
+    library_.SetGameOption(current_.key, "sesiones", joined);
+
+    const double target = core_.GameLoaded() ? core_.Fps() : 60.0;
+    const bool smooth = avg >= target * 0.95 && stutters <= std::max(2, static_cast<int>(secs / 300));
+    const std::string played = FormatPlaytime(secs);
+    std::string text = TrFmt("Jugaste %s a «%s». Promedio %.0f FPS (lo más bajo %.0f) y %d tirones.", played.c_str(), current_.title.c_str(), avg, low, stutters);
+    text += " " + std::string(Tr(smooth ? "¡Fue fluido de principio a fin!" : "Hubo partes lentas: si se repite, prueba bajar la resolución en sus ajustes."));
+    const char* guide = smooth ? "samy" : "nono";
+    if (NativeMode())
+        NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"resumen:" + current_.key + "\",\"guia\":\"" + guide + "\",\"titulo\":" +
+                       NativeUi::Quote(Tr("Resumen de la sesión")) + ",\"texto\":" + NativeUi::Quote(text) + ",\"botones\":[[\"ok\"," +
+                       NativeUi::Quote(Tr("Cerrar")) + "],[\"ficha\"," + NativeUi::Quote(Tr("Ver su ficha")) + "]]}");
+    else
+        Toast(text, smooth ? GuideId::Samy : GuideId::Nono, 8);
+    Log::Info("Sesión: %s, %lld s, %.1f FPS de promedio, %.0f lo más bajo, %d tirones", current_.title.c_str(), secs, avg, low, stutters);
+}
+
+// «60 fps» de la última sesión, para el sello de su tarjeta en la biblioteca.
+std::string App::LastSessionBadge(const std::string& key) const {
+    const std::string s = library_.GameOption(key, "sesiones");
+    if (s.empty()) return {};
+    const std::string last = s.substr(s.rfind(';') == std::string::npos ? 0 : s.rfind(';') + 1);
+    int f = 0;
+    size_t a = 0;
+    for (int i = 0; i < 2 && a != std::string::npos; ++i) a = last.find(',', a + (i ? 1 : 0));
+    if (a == std::string::npos) return {};
+    f = std::atoi(last.c_str() + a + 1);
+    return f > 0 ? Fmt("%d fps", f) : std::string{};
+}
+
+// La ficha del juego (como en Satronho NX): tiempo jugado, sesiones y una gráfica de las últimas.
+void App::NativeGameRecord(NPage& p, const Game& g) {
+    p.Section("Ficha");
+    struct Ses {
+        long long when = 0, secs = 0;
+        int fps = 0, low = 0, stutters = 0;
+    };
+    std::vector<Ses> ses;
+    const std::string raw = library_.GameOption(g.key, "sesiones");
+    size_t a = 0;
+    while (a < raw.size()) {
+        const size_t b = raw.find(';', a);
+        const std::string one = raw.substr(a, b == std::string::npos ? std::string::npos : b - a);
+        Ses x;
+        long long w = 0, sc = 0;
+        double f = 0, l = 0;
+        int st = 0;
+        if (std::sscanf(one.c_str(), "%lld,%lld,%lf,%lf,%d", &w, &sc, &f, &l, &st) >= 2) {
+            x.when = w;
+            x.secs = sc;
+            x.fps = static_cast<int>(f + 0.5);
+            x.low = static_cast<int>(l + 0.5);
+            x.stutters = st;
+            ses.push_back(x);
+        }
+        if (b == std::string::npos) break;
+        a = b + 1;
+    }
+    if (ses.empty()) {
+        p.Info(g.playtime_s > 0 ? TrFmt("Llevas %s jugando.", FormatPlaytime(g.playtime_s).c_str()) : Tr("Todavía no lo has jugado."),
+               "Cuando juegues, aquí aparece cada sesión: cuánto duró y cómo fue.", "reloj");
+        return;
+    }
+    const SystemDef* sd = SystemById(g.system);
+    std::string bars = "[";
+    for (size_t i = 0; i < ses.size(); ++i) {
+        char day[16] = "";
+        const std::time_t t = static_cast<std::time_t>(ses[i].when);
+        std::strftime(day, sizeof day, "%d/%m", std::localtime(&t));
+        bars += (i ? "," : "") + std::string("{\"valor\":") + std::to_string(ses[i].secs / 60) + ",\"etiqueta\":" + NativeUi::Quote(day) +
+                ",\"nota\":" + NativeUi::Quote(ses[i].fps > 0 ? Fmt("%d fps", ses[i].fps) : std::string()) + "}";
+    }
+    bars += "]";
+    p.Raw("{\"tipo\":\"grafica\",\"titulo\":" + NativeUi::Quote(Tr("Minutos por sesión")) + ",\"color\":" +
+          NativeUi::Quote(Fmt("#%06X", sd ? sd->color : 0x9B8CFFu)) + ",\"barras\":" + bars + "}");
+    long long total = 0;
+    for (const auto& x : ses) total += x.secs;
+    const Ses& last = ses.back();
+    p.Info(TrFmt("Tiempo jugado: %s", FormatPlaytime(g.playtime_s > 0 ? g.playtime_s : total).c_str()),
+           TrFmt("%d sesiones · la más larga, %s", static_cast<int>(ses.size()),
+                 FormatPlaytime(std::max_element(ses.begin(), ses.end(), [](const Ses& x, const Ses& y) { return x.secs < y.secs; })->secs).c_str()),
+           "reloj");
+    if (last.fps > 0)
+        p.Info(TrFmt("La última: %d FPS de promedio", last.fps), TrFmt("Lo más bajo, %d · %d tirones", last.low, last.stutters), "medidor",
+               last.stutters > 3 ? "#FF9F5A" : "#3DDC97");
 }
 
 } // namespace Satronho

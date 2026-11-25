@@ -162,6 +162,11 @@ void App::NativeCommand(const std::string& line) {
         if (arg(1) == "lento") {
             if (arg(2) == "bajar") SlowLower();
             else SlowKeep();
+        } else if (arg(1).rfind("resumen:", 0) == 0 && arg(2) == "ficha") {
+            native_page_ = "juego";
+            native_page_arg_ = arg(1).substr(8);
+            native_page_t_ = -10;
+            NativeUi::Emit("{\"t\":\"ir\",\"pagina\":\"juego\",\"arg\":" + NativeUi::Quote(native_page_arg_) + "}");
         } else if (arg(1) == "escaneo" && arg(2) == "ver") {
             native_page_ = "escaneo";
             native_page_arg_.clear();
@@ -241,6 +246,7 @@ std::string App::NativeStateJson() {
              ",\"modo\":" + std::to_string(settings_.touch_show) +
              ",\"opacidad\":" + F(settings_.touch_opacity) + ",\"vibrar\":" + B(settings_.touch_haptics) +
              ",\"solo4\":" + B(settings_.touch_dpad4) + ",\"botones\":" + NativeTouchJson() + "}";
+        s += ",\"aviso_calor\":" + std::string(B(settings_.battery_warn));
     }
     // Ajustes nativos abiertos (se arman cada cuarto de segundo: hay cosas en vivo, como los mandos).
     if (!native_page_.empty()) {
@@ -283,7 +289,7 @@ std::string App::NativeLibraryJson() {
                   ",\"portada\":" + Quote(has_cover ? Paths::ToUtf8(cover) : "") + ",\"favorito\":" + B(g.favorite) + ",\"oculto\":" + B(g.hidden) +
                   ",\"tiempo\":" + std::to_string(g.playtime_s) + ",\"tiempo_texto\":" + Quote(g.playtime_s > 0 ? FormatPlaytime(g.playtime_s) : "") +
                   ",\"ultima\":" + std::to_string(g.last_played) + ",\"ultima_texto\":" + Quote(g.last_played > 0 ? FormatLastPlayed(g.last_played) : "") +
-                  ",\"continuar\":" + B(HasAutoState(g)) + ",\"tono\":" + std::to_string(g.hue) + "}";
+                  ",\"continuar\":" + B(HasAutoState(g)) + ",\"tono\":" + std::to_string(g.hue) + ",\"sello\":" + Quote(LastSessionBadge(g.key)) + "}";
     }
     g_json += "]";
 

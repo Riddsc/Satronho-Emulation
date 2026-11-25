@@ -100,6 +100,12 @@ public class SatronhoActivity extends SDLActivity {
 
     private void recibir(Intent intent) {
         if (intent == null) return;
+        // El widget «Continuar»: se sigue el último juego en cuanto la biblioteca esté lista.
+        if (ContinuarWidget.ACCION.equals(intent.getAction())) {
+            String clave = intent.getStringExtra("clave");
+            if (clave != null && !clave.isEmpty()) SatronhoUi.INSTANCE.setContinuarPendiente(clave);
+            return;
+        }
         final ArrayList<Uri> uris = new ArrayList<>();
         final String action = intent.getAction();
         try {
