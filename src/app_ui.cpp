@@ -109,6 +109,15 @@ void App::GuideSays(GuideId id, const char* text, float width) {
 void App::DrawUi() {
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     const bool native = NativeMode();
+    if (in_game_ && native) {
+        // Celular: el juego solo. Medidor, cajón, control y tarjetas los dibuja Android.
+        const ImGuiViewport* gv = ImGui::GetMainViewport();
+        if (const float f = 1.0f - static_cast<float>((ImGui::GetTime() - game_enter_t_) / 0.6); f > 0)
+            ImGui::GetBackgroundDrawList()->AddRectFilled(gv->Pos, {gv->Pos.x + gv->Size.x, gv->Pos.y + gv->Size.y}, IM_COL32(0, 0, 0, static_cast<int>(255 * f * f)));
+        DrawSlowPrompt();
+        DrawConfirm();
+        return;
+    }
     if (in_game_) {
         DrawGameLayer();
         DrawGameOverlay();
@@ -124,16 +133,7 @@ void App::DrawUi() {
         // Celular: la biblioteca es nativa (Kotlin). Aquí solo lo que todavía es de la interfaz de
         // siempre y aparece encima: bienvenida, novedades, explorador, preguntas…
         splash_done_ = true;
-        if (show_welcome_) DrawWelcome();
-        else if (show_whats_new_) DrawWhatsNew();
-        DrawArchivePicker();
-        DrawGameSettings();
-        DrawUnpack();
-        DrawDataMove();
-        DrawBrowser();
-        DrawImport();
         DrawConfirm();
-        DrawToasts();
         return;
     }
 

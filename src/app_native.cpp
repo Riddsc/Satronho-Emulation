@@ -58,11 +58,10 @@ bool App::NativeMode() const {
 }
 
 bool App::NativeNeedsImGui() const {
+    // Desde la prueba 2 todo es nativo en el celular. Solo una página vieja pedida a propósito
+    // (no debería pasar) haría volver la interfaz de siempre.
     if (!NativeMode()) return true;
-    if (confirm_ != 0 || !game_settings_.key.empty() || touch_edit_ || browser_open_) return true;
-    if (in_game_) return menu_open_ || overlay_page_ >= 0;
-    return legacy_page_ >= 0 || show_welcome_ || show_whats_new_ || archive_pick_.Archived() || unpack_state_ == 1 ||
-           move_state_ == 1 || import_.active;
+    return legacy_page_ >= 0;
 }
 
 const Game* App::FindGame(const std::string& key) {
@@ -87,7 +86,8 @@ void App::NativeCommand(const std::string& line) {
     const auto a = Split(line, '|');
     const std::string& cmd = a[0];
     auto arg = [&](size_t i) -> std::string { return i < a.size() ? a[i] : std::string(); };
-    Log::Info("Interfaz nativa: %s", line.c_str());
+    if (cmd != "ajuste" && cmd != "preguntar") Log::Info("Interfaz nativa: %s", line.c_str());
+    if (NativeCommandExtra(a)) return;
 
     if (cmd == "jugar" || cmd == "continuar") {
         if (const Game* g = FindGame(arg(1))) {
@@ -103,24 +103,19 @@ void App::NativeCommand(const std::string& line) {
         games_dirty_ = true;
         native_lib_t_ = -10;
     } else if (cmd == "ajustes_juego") {
-        if (const Game* g = FindGame(arg(1))) game_settings_ = *g;
+        native_page_ = "juego";
+        native_page_arg_ = arg(1);
+        native_page_t_ = -10;
     } else if (cmd == "carpeta") {
         OpenBrowser(true);
     } else if (cmd == "buscar") {
         Rescan();
     } else if (cmd == "pagina") {
-        // Pantalla de siempre (mientras no sea nativa). «atrás» vuelve a la nativa.
-        const std::string p = arg(1);
-        const Page pg = p == "controles" ? Page::Controls : p == "sugerida" ? Page::Suggested : p == "novedades" ? Page::News
-                      : p == "acerca" ? Page::About : p == "guias" ? Page::Guides : p == "herramientas" ? Page::Tools : Page::Settings;
-        if (in_game_) {
-            OpenOverlay(pg);
-        } else {
-            page_ = pg;
-            legacy_page_ = static_cast<int>(pg);
-        }
-        if (pg == Page::Settings && !arg(2).empty())
-            tab_ = static_cast<SettingsTab>(std::clamp(std::atoi(arg(2).c_str()), 0, static_cast<int>(SettingsTab::Count) - 1));
+        // Compatibilidad con la prueba 1: ahora todas las pantallas son nativas.
+        native_page_ = arg(1) == "ajustes" || arg(1).empty() ? "inicio" : arg(1) == "guias" ? "chat" : arg(1);
+        native_page_arg_.clear();
+        native_page_t_ = -10;
+        if (native_page_ == "chat" && chat_.empty()) AskGuides("hola");
     } else if (cmd == "volver") {
         legacy_page_ = -1;
         page_ = Page::Library;
@@ -150,7 +145,8 @@ void App::NativeCommand(const std::string& line) {
     } else if (cmd == "tactil_editar") {
         if (in_game_) {
             SetNativeMenu(false);
-            touch_edit_ = true;
+            touch_edit_ = true; // el juego espera mientras se mueven los botones (Kotlin)
+            native_touch_cache_.clear();
         }
     } else if (cmd == "tarjeta") {
         if (arg(1) == "lento") {
@@ -219,10 +215,24 @@ std::string App::NativeStateJson() {
         s += ",\"juego\":{\"titulo\":" + Quote(current_.title) + ",\"clave\":" + Quote(current_.key) + ",\"consola\":" + Quote(Tr(sys_->full)) +
              ",\"sistema\":" + Quote(sys_->id) + ",\"color\":" + Hex(sys_->color) + ",\"pausa\":" + B(paused_) + ",\"menu\":" + B(native_menu_) +
              ",\"nucleo\":" + Quote(core_name_) + ",\"ranura\":" + std::to_string(slot_) + "}";
-        s += ",\"tactil\":{\"visible\":" + std::string(B(touch && !touch_edit_)) + ",\"modo\":" + std::to_string(settings_.touch_show) +
+        s += ",\"tactil\":{\"visible\":" + std::string(B(touch || touch_edit_)) + ",\"editar\":" + B(touch_edit_) +
+             ",\"modo\":" + std::to_string(settings_.touch_show) +
              ",\"opacidad\":" + F(settings_.touch_opacity) + ",\"vibrar\":" + B(settings_.touch_haptics) +
              ",\"solo4\":" + B(settings_.touch_dpad4) + ",\"botones\":" + NativeTouchJson() + "}";
     }
+    // Ajustes nativos abiertos (se arman cada cuarto de segundo: hay cosas en vivo, como los mandos).
+    if (!native_page_.empty()) {
+        const double now = SDL_GetTicks() / 1000.0;
+        if (now - native_page_t_ > 0.25 || native_page_json_.empty()) {
+            native_page_t_ = now;
+            native_page_json_ = NativeSettingsJson();
+        }
+        if (!native_page_.empty()) s += ",\"ajustes\":" + native_page_json_;
+    } else {
+        native_page_json_.clear();
+    }
+    s += NativeExtrasJson();
+    NativeMeterJson(s);
     s += "}";
     return s;
 }

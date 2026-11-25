@@ -127,6 +127,38 @@ private fun icono(nombre: String, d: String): ImageVector =
         .build()
 
 object Iconos {
+    val monitor by lazy {
+        icono("monitor", "M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z")
+    }
+    val sonido by lazy {
+        icono("sonido", "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z")
+    }
+    val rapido by lazy { icono("rapido", "M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z") }
+    val medidor by lazy { icono("medidor", "M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z") }
+    val chip by lazy {
+        icono("chip", "M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z")
+    }
+    val paleta by lazy {
+        icono("paleta", "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z")
+    }
+    val tactil by lazy {
+        icono("tactil", "M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z")
+    }
+    val chat by lazy {
+        icono("chat", "M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z")
+    }
+    val imagen by lazy {
+        icono("imagen", "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z")
+    }
+    val idioma by lazy {
+        icono("idioma", "M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z")
+    }
+    val memoria by lazy {
+        icono("memoria", "M18 2h-8L4.02 8 4 20c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-6 6h-2V4h2v4zm3 0h-2V4h2v4zm3 0h-2V4h2v4z")
+    }
+    val carpetaArriba by lazy {
+        icono("carpeta_arriba", "M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 3l4 4h-3v4h-2v-4H8l4-4z")
+    }
     val ojo by lazy {
         icono("ojo", "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z")
     }
@@ -151,6 +183,48 @@ object Iconos {
     val patita by lazy {
         icono("patita", "M4.5 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm4.5-4a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm6 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm4.5 4a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm-2.83 2.86c-.87-1.02-1.6-1.89-2.48-2.91-.46-.54-1.05-1.08-1.75-1.32-.11-.04-.22-.07-.33-.09-.25-.04-.52-.04-.78-.04s-.53 0-.79.05c-.11.02-.22.05-.33.09-.7.24-1.28.78-1.75 1.32-.87 1.02-1.6 1.89-2.48 2.91-1.31 1.31-2.92 2.76-2.62 4.79.29 1.02 1.02 2.03 2.33 2.32.73.15 3.06-.44 5.54-.44h.18c2.48 0 4.81.58 5.54.44 1.31-.29 2.04-1.31 2.33-2.32.31-2.04-1.3-3.49-2.61-4.8z")
     }
+}
+
+/** Ícono por nombre (los que manda C++ en los Ajustes). */
+fun iconoPorNombre(n: String): ImageVector? = when (n) {
+    "ajustes" -> androidx.compose.material.icons.Icons.Filled.Settings
+    "novedades" -> androidx.compose.material.icons.Icons.Filled.Notifications
+    "sugerida", "estrella" -> androidx.compose.material.icons.Icons.Filled.Star
+    "chat" -> Iconos.chat
+    "medidor" -> Iconos.medidor
+    "graficos", "resolucion" -> Iconos.monitor
+    "sonido" -> Iconos.sonido
+    "mando" -> Iconos.mando
+    "tactil" -> Iconos.tactil
+    "rendimiento" -> Iconos.rapido
+    "nucleo", "chip" -> Iconos.chip
+    "carpeta" -> Iconos.carpeta
+    "patita" -> Iconos.patita
+    "paleta" -> Iconos.paleta
+    "herramientas" -> androidx.compose.material.icons.Icons.Filled.Build
+    "info" -> androidx.compose.material.icons.Icons.Filled.Info
+    "compartir" -> androidx.compose.material.icons.Icons.Filled.Share
+    "refrescar" -> androidx.compose.material.icons.Icons.Filled.Refresh
+    "agregar" -> androidx.compose.material.icons.Icons.Filled.Add
+    "borrar" -> androidx.compose.material.icons.Icons.Filled.Delete
+    "imagen" -> Iconos.imagen
+    "ojo" -> Iconos.ojo
+    "candado" -> androidx.compose.material.icons.Icons.Filled.Lock
+    "cargar" -> Iconos.cargar
+    "guardar" -> Iconos.memoria
+    "check" -> androidx.compose.material.icons.Icons.Filled.Check
+    "flecha" -> androidx.compose.material.icons.Icons.Filled.KeyboardArrowRight
+    "idioma" -> Iconos.idioma
+    "ajustes_juego" -> Iconos.ajustesJuego
+    else -> null
+}
+
+/** El logo de Satronho Emulation (planeta con los guías). */
+@Composable
+fun Logo(tam: Dp, modifier: Modifier = Modifier) {
+    val img = Imagenes.cargar("asset:logo.png", 512)
+    if (img != null) Image(img, contentDescription = "Satronho Emulation", modifier = modifier.size(tam))
+    else Box(modifier.size(tam))
 }
 
 // ------------------------------------------------------------------ imágenes
