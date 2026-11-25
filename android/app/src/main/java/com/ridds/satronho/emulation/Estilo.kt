@@ -10,6 +10,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -187,9 +200,9 @@ object Iconos {
 
 /** Ícono por nombre (los que manda C++ en los Ajustes). */
 fun iconoPorNombre(n: String): ImageVector? = when (n) {
-    "ajustes" -> androidx.compose.material.icons.Icons.Filled.Settings
-    "novedades" -> androidx.compose.material.icons.Icons.Filled.Notifications
-    "sugerida", "estrella" -> androidx.compose.material.icons.Icons.Filled.Star
+    "ajustes" -> Icons.Filled.Settings
+    "novedades" -> Icons.Filled.Notifications
+    "sugerida", "estrella" -> Icons.Filled.Star
     "chat" -> Iconos.chat
     "medidor" -> Iconos.medidor
     "graficos", "resolucion" -> Iconos.monitor
@@ -201,19 +214,19 @@ fun iconoPorNombre(n: String): ImageVector? = when (n) {
     "carpeta" -> Iconos.carpeta
     "patita" -> Iconos.patita
     "paleta" -> Iconos.paleta
-    "herramientas" -> androidx.compose.material.icons.Icons.Filled.Build
-    "info" -> androidx.compose.material.icons.Icons.Filled.Info
-    "compartir" -> androidx.compose.material.icons.Icons.Filled.Share
-    "refrescar" -> androidx.compose.material.icons.Icons.Filled.Refresh
-    "agregar" -> androidx.compose.material.icons.Icons.Filled.Add
-    "borrar" -> androidx.compose.material.icons.Icons.Filled.Delete
+    "herramientas" -> Icons.Filled.Build
+    "info" -> Icons.Filled.Info
+    "compartir" -> Icons.Filled.Share
+    "refrescar" -> Icons.Filled.Refresh
+    "agregar" -> Icons.Filled.Add
+    "borrar" -> Icons.Filled.Delete
     "imagen" -> Iconos.imagen
     "ojo" -> Iconos.ojo
-    "candado" -> androidx.compose.material.icons.Icons.Filled.Lock
+    "candado" -> Icons.Filled.Lock
     "cargar" -> Iconos.cargar
     "guardar" -> Iconos.memoria
-    "check" -> androidx.compose.material.icons.Icons.Filled.Check
-    "flecha" -> androidx.compose.material.icons.Icons.Filled.KeyboardArrowRight
+    "check" -> Icons.Filled.Check
+    "flecha" -> Icons.Filled.KeyboardArrowRight
     "idioma" -> Iconos.idioma
     "ajustes_juego" -> Iconos.ajustesJuego
     else -> null
