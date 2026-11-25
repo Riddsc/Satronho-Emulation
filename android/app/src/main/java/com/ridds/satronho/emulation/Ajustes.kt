@@ -2,7 +2,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package com.ridds.satronho.emulation
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +76,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -83,10 +96,23 @@ private fun JSONObject.lista(clave: String): List<String> {
     return List(a.length()) { a.optString(it) }
 }
 
+/** Qué guía acompaña cada pantalla de Ajustes. */
+fun guiaDePagina(p: String): String = when (p) {
+    "graficos", "apariencia", "medidor" -> "troya"
+    "sugerida", "rendimiento", "nucleo", "herramientas" -> "nono"
+    "novedades" -> "juana"
+    "acerca", "inicio" -> "mecharidds"
+    else -> "samy"
+}
+
 @Composable
 fun PantallaAjustes(p: Pagina, e: Estado) {
     val cs = MaterialTheme.colorScheme
     Surface(color = cs.background, modifier = Modifier.fillMaxSize()) {
+        // El logo de Satronho de fondo, suave (con la opacidad de Apariencia).
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Logo(280.dp, Modifier.alpha((e.tema.marca * 0.45f).coerceIn(0.04f, 0.5f)))
+        }
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             // Encabezado: flecha atrás y el título (como «← Settings» de NX).
             Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 6.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -94,8 +120,13 @@ fun PantallaAjustes(p: Pagina, e: Estado) {
                 Column(Modifier.weight(1f)) {
                     Text(p.titulo, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (p.subtitulo.isNotEmpty() && p.pagina != "inicio") {
-                        Text(p.subtitulo, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1,
-                            overflow = TextOverflow.Ellipsis)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // El guía que sabe de esta pantalla.
+                            Avatar(guiaDePagina(p.pagina), 18.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text(p.subtitulo, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1,
+                                overflow = TextOverflow.Ellipsis)
+                        }
                     }
                 }
                 if (p.pagina != "inicio") Logo(30.dp)
@@ -402,11 +433,35 @@ private fun ControlGrande(o: JSONObject) {
                     zona("gatillo_der").forEach { Asignacion(it, color) }
                 }
             }
+            Spacer(Modifier.height(6.dp))
+            // El control de la consola, grande y al centro (el mismo dibujo de PC). Tocar un botón lo asigna.
+            val forma = o.optString("forma", "nes")
+            val (dw, dh) = disenoControl(forma)
+            val medidor = rememberTextMeasurer()
+            val fuente = letras(LocalContext.current.assets)
+            val pulso by rememberInfiniteTransition(label = "pulso").animateFloat(
+                0f, 1f, infiniteRepeatable(tween(450), RepeatMode.Reverse), label = "pulso",
+            )
+            // Dónde quedó cada botón en el último dibujo (no es estado: no hace volver a dibujar).
+            val zonas = remember { arrayOf<List<FloatArray>>(emptyList()) }
+            val apretados = o.optInt("apretados")
+            val capturando = o.optInt("capturando", -1)
+            val acento = cs.primary.toArgb()
+            Canvas(
+                Modifier.fillMaxWidth(if (dh > dw) 0.62f else 1f).aspectRatio(dw / dh).pointerInput(Unit) {
+                    detectTapGestures { t ->
+                        val z = zonas[0].filter { val dx = t.x - it[1]; val dy = t.y - it[2]; dx * dx + dy * dy <= it[3] * it[3] }
+                            .minByOrNull { val dx = t.x - it[1]; val dy = t.y - it[2]; dx * dx + dy * dy }
+                        if (z != null) SatronhoUi.orden("ajuste|boton${z[0].toInt()}|1")
+                    }
+                },
+            ) {
+                zonas[0] = dibujarControl(Lienzo(this, medidor, fuente), forma, 0f, 0f, size.width, size.height, apretados, capturando, pulso, acento)
+            }
             Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) { zona("cruceta").forEach { Asignacion(it, color) } }
-                // El control dibujado al centro.
-                DibujoControl(botones, color, Modifier.width(120.dp).height(86.dp))
+                Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.End) {
                     zona("accion").forEach { Asignacion(it, color) }
                 }
@@ -438,49 +493,7 @@ private fun Asignacion(b: JSONObject, color: Color) {
         Text(b.optString("nombre"), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
         Spacer(Modifier.width(6.dp))
         Text(b.optString("asignado"), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = if (capturando) cs.primary else cs.onSurface, maxLines = 1)
-    }
-}
-
-@Composable
-private fun DibujoControl(botones: List<JSONObject>, color: Color, modifier: Modifier) {
-    val apretados = botones.filter { it.optBoolean("apretado") }.map { it.optString("zona") }.toSet()
-    androidx.compose.foundation.Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        val cuerpo = androidx.compose.ui.geometry.Size(w, h * 0.78f)
-        drawRoundRect(color.copy(alpha = 0.22f), topLeft = androidx.compose.ui.geometry.Offset(0f, h * 0.12f), size = cuerpo,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.35f))
-        drawRoundRect(color.copy(alpha = 0.6f), topLeft = androidx.compose.ui.geometry.Offset(0f, h * 0.12f), size = cuerpo,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.35f),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f))
-        // Cruceta.
-        val cx = w * 0.25f
-        val cy = h * 0.5f
-        val a = h * 0.09f
-        val l = h * 0.26f
-        val cruz = if ("cruceta" in apretados) Color.White else color.copy(alpha = 0.9f)
-        drawRect(cruz, topLeft = androidx.compose.ui.geometry.Offset(cx - l, cy - a), size = androidx.compose.ui.geometry.Size(l * 2, a * 2))
-        drawRect(cruz, topLeft = androidx.compose.ui.geometry.Offset(cx - a, cy - l), size = androidx.compose.ui.geometry.Size(a * 2, l * 2))
-        // Botones de acción.
-        val bx = w * 0.75f
-        val r = h * 0.075f
-        val accion = if ("accion" in apretados) Color.White else color.copy(alpha = 0.9f)
-        drawCircle(accion, r, androidx.compose.ui.geometry.Offset(bx, cy - r * 2))
-        drawCircle(accion, r, androidx.compose.ui.geometry.Offset(bx, cy + r * 2))
-        drawCircle(accion, r, androidx.compose.ui.geometry.Offset(bx - r * 2, cy))
-        drawCircle(accion, r, androidx.compose.ui.geometry.Offset(bx + r * 2, cy))
-        // Select y Start.
-        val centro = if ("centro" in apretados) Color.White else color.copy(alpha = 0.7f)
-        drawRoundRect(centro, topLeft = androidx.compose.ui.geometry.Offset(w * 0.42f, h * 0.62f), size = androidx.compose.ui.geometry.Size(w * 0.07f, h * 0.05f))
-        drawRoundRect(centro, topLeft = androidx.compose.ui.geometry.Offset(w * 0.51f, h * 0.62f), size = androidx.compose.ui.geometry.Size(w * 0.07f, h * 0.05f))
-        // Gatillos.
-        val gi = if ("gatillo_izq" in apretados) Color.White else color.copy(alpha = 0.7f)
-        val gd = if ("gatillo_der" in apretados) Color.White else color.copy(alpha = 0.7f)
-        drawRoundRect(gi, topLeft = androidx.compose.ui.geometry.Offset(w * 0.1f, 0f), size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.1f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.05f))
-        drawRoundRect(gd, topLeft = androidx.compose.ui.geometry.Offset(w * 0.68f, 0f), size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.1f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.05f))
+            color = if (capturando) cs.primary else cs.onSurface, maxLines = 2)
     }
 }
 
@@ -524,6 +537,21 @@ private fun Chat(o: JSONObject) {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+        // Preguntas sugeridas (como en PC).
+        val sugerencias = o.lista("sugerencias")
+        if (sugerencias.isNotEmpty()) {
+            LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(sugerencias.size) { i ->
+                    Surface(
+                        shape = RoundedCornerShape(18.dp), color = cs.surfaceVariant,
+                        modifier = Modifier.clip(RoundedCornerShape(18.dp)).clickable { SatronhoUi.orden("sugerencia|$i") },
+                    ) {
+                        Text(sugerencias[i], color = cs.primary, style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
                     }
                 }
             }

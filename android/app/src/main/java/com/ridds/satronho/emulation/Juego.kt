@@ -64,7 +64,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -91,8 +93,8 @@ fun PantallaJuego(e: Estado) {
     Box(Modifier.fillMaxSize()) {
         e.medidor?.let { if (!ajustes) LineaMedidor(it) }
         if (e.chip.isNotEmpty() && !ajustes) ChipEstado(e.chip)
-        if (e.tactil.editar) EditorTactil(e.tactil)
-        else if (e.tactil.visible && !juego.menu && !ajustes) ControlTactil(e.tactil)
+        if (e.tactil.editar) EditorTactil(e.tactil, juego)
+        else if (e.tactil.visible && !juego.menu && !ajustes) ControlTactil(e.tactil, juego)
         CajonJuego(juego, e.tactil)
     }
 }
@@ -136,7 +138,8 @@ private fun ChipEstado(texto: String) {
 
 /** Editor del control: arrastra cada grupo (cruceta, botones, gatillos…) a donde te quede cómodo. */
 @Composable
-private fun EditorTactil(tc: Tactil) {
+private fun EditorTactil(tc: Tactil, j: JuegoActual) {
+    val fuente = letras(LocalContext.current.assets)
     val medidor = rememberTextMeasurer()
     val densidad = LocalDensity.current
     val tcActual by rememberUpdatedState(tc)
@@ -176,7 +179,8 @@ private fun EditorTactil(tc: Tactil) {
             for (b in tc.botones) {
                 val mover = if (b.grupo == grupo) corrido else Offset.Zero
                 val bm = b.copy(x = b.x + mover.x / size.width, y = b.y + mover.y / size.height)
-                dibujarBoton(bm, if (b.grupo == grupo) -1 else 0, Offset.Zero, op, medidor, densidad.density)
+                botonTactil(Lienzo(this, medidor, fuente), bm.id, bm.etiqueta, bm.grupo, V(bm.x * size.width, bm.y * size.height), bm.r * size.height,
+                    j.sistema, j.color.toArgb(), if (b.grupo == grupo) -1 else 0, 0f, 0f, op)
             }
         }
         Column(Modifier.align(Alignment.TopCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(top = 12.dp),
@@ -202,7 +206,8 @@ private class Dedo(var dueno: Int, var x: Float, var y: Float, var dir: Int = -1
  * lugar vienen de C++ (el mismo diseño de cada consola, con lo que la persona movió en el editor).
  */
 @Composable
-private fun ControlTactil(tc: Tactil) {
+private fun ControlTactil(tc: Tactil, j: JuegoActual) {
+    val fuente = letras(LocalContext.current.assets)
     val vista = LocalView.current
     val medidor = rememberTextMeasurer()
     val densidad = LocalDensity.current
@@ -298,7 +303,9 @@ private fun ControlTactil(tc: Tactil) {
     ) {
         val op = tc.opacidad.coerceIn(0.15f, 1f)
         tc.botones.forEachIndexed { i, b ->
-            dibujarBoton(b, apretados, if (palancaId == i) palanca else Offset.Zero, op, medidor, densidad.density)
+            val pal = if (palancaId == i) palanca else Offset.Zero
+            botonTactil(Lienzo(this, medidor, fuente), b.id, b.etiqueta, b.grupo, V(b.x * size.width, b.y * size.height), b.r * size.height,
+                j.sistema, j.color.toArgb(), apretados, pal.x, pal.y, op)
         }
     }
     // Al salir del juego o esconder el control, nada queda apretado.
@@ -343,95 +350,6 @@ private fun cruceta(d: Dedo, dx: Float, dy: Float, radio: Float, solo4: Boolean)
         5 -> (1 shl IZQUIERDA) or (1 shl ARRIBA)
         6 -> 1 shl ARRIBA
         else -> (1 shl ARRIBA) or (1 shl DERECHA)
-    }
-}
-
-/** Figuras de PlayStation y nombres largos en corto. */
-private fun rotulo(s: String): String = when (s) {
-    "Triángulo" -> "△"
-    "Círculo" -> "○"
-    "Cruz" -> "✕"
-    "Cuadrado" -> "□"
-    "Select" -> "SELECT"
-    "Start" -> "START"
-    "C arriba" -> "C▲"
-    "C abajo" -> "C▼"
-    "C izquierda" -> "C◀"
-    "C derecha" -> "C▶"
-    "A turbo" -> "A⚡"
-    "B turbo" -> "B⚡"
-    else -> s
-}
-
-private fun DrawScope.dibujarBoton(
-    b: BotonTactil, apretados: Int, palanca: Offset, op: Float,
-    medidor: androidx.compose.ui.text.TextMeasurer, dens: Float,
-) {
-    val W = size.width
-    val H = size.height
-    val c = Offset(b.x * W, b.y * H)
-    val r = b.r * H
-    val relleno = Color(0xFF1E1E24).copy(alpha = 0.42f * op)
-    val rellenoApretado = Color.White.copy(alpha = 0.30f * op)
-    val borde = Color.White.copy(alpha = 0.38f * op)
-    val textoColor = Color.White.copy(alpha = 0.85f * op)
-    val trazo = Stroke(width = 1.5f * dens)
-    fun texto(s: String, centro: Offset, alto: Float) {
-        if (s.isEmpty()) return
-        val estilo = TextStyle(color = textoColor, fontSize = (alto / dens / 1.25f).sp, fontWeight = FontWeight.SemiBold)
-        val m = medidor.measure(s, estilo, maxLines = 1, overflow = TextOverflow.Clip)
-        drawText(m, topLeft = Offset(centro.x - m.size.width / 2f, centro.y - m.size.height / 2f))
-    }
-    when {
-        b.id == -2 -> {
-            // Cruceta en forma de cruz (como NX), con el brazo apretado iluminado.
-            val brazo = r * 0.62f
-            val largo = r * 1.9f
-            val cr = CornerRadius(brazo * 0.25f)
-            drawRoundRect(relleno, Offset(c.x - largo / 2, c.y - brazo / 2), Size(largo, brazo), cr)
-            drawRoundRect(relleno, Offset(c.x - brazo / 2, c.y - largo / 2), Size(brazo, largo), cr)
-            drawRoundRect(borde, Offset(c.x - largo / 2, c.y - brazo / 2), Size(largo, brazo), cr, style = trazo)
-            drawRoundRect(borde, Offset(c.x - brazo / 2, c.y - largo / 2), Size(brazo, largo), cr, style = trazo)
-            fun luz(bit: Int, o: Offset, s: Size) {
-                if (apretados and (1 shl bit) != 0) drawRoundRect(rellenoApretado, o, s, cr)
-            }
-            luz(ARRIBA, Offset(c.x - brazo / 2, c.y - largo / 2), Size(brazo, largo / 2 - brazo / 2))
-            luz(ABAJO, Offset(c.x - brazo / 2, c.y + brazo / 2), Size(brazo, largo / 2 - brazo / 2))
-            luz(IZQUIERDA, Offset(c.x - largo / 2, c.y - brazo / 2), Size(largo / 2 - brazo / 2, brazo))
-            luz(DERECHA, Offset(c.x + brazo / 2, c.y - brazo / 2), Size(largo / 2 - brazo / 2, brazo))
-        }
-        b.id == -3 -> {
-            drawCircle(relleno, r, c)
-            drawCircle(borde, r, c, style = trazo)
-            val cabeza = Offset(c.x + palanca.x * r * 0.5f, c.y + palanca.y * r * 0.5f)
-            drawCircle(Color.White.copy(alpha = (if (palanca != Offset.Zero) 0.35f else 0.22f) * op), r * 0.55f, cabeza)
-            drawCircle(borde, r * 0.55f, cabeza, style = trazo)
-        }
-        b.id == -1 -> {
-            // Menú: tres rayitas.
-            drawCircle(relleno, r, c)
-            drawCircle(borde, r, c, style = trazo)
-            val w = r * 0.9f
-            for (k in -1..1) drawLine(textoColor, Offset(c.x - w / 2, c.y + k * r * 0.32f), Offset(c.x + w / 2, c.y + k * r * 0.32f), 2f * dens)
-        }
-        b.grupo.startsWith("gat") || b.grupo == "centro" -> {
-            // Gatillos y Select/Start: pastillas.
-            val ancho = r * (if (b.grupo == "centro") 2.4f else 2.8f)
-            val alto = r * (if (b.grupo == "centro") 1.1f else 1.35f)
-            val o = Offset(c.x - ancho / 2, c.y - alto / 2)
-            val cr = CornerRadius(alto / 2)
-            val on = b.id in 0..15 && (apretados and (1 shl b.id)) != 0
-            drawRoundRect(if (on) rellenoApretado else relleno, o, Size(ancho, alto), cr)
-            drawRoundRect(borde, o, Size(ancho, alto), cr, style = trazo)
-            texto(rotulo(b.etiqueta), c, alto * (if (b.grupo == "centro") 0.42f else 0.6f))
-        }
-        else -> {
-            val on = b.id in 0..15 && (apretados and (1 shl b.id)) != 0
-            drawCircle(if (on) rellenoApretado else relleno, r, c)
-            drawCircle(borde, r, c, style = trazo)
-            val s = rotulo(b.etiqueta)
-            texto(s, c, r * (if (s.length > 2) 0.62f else 0.95f))
-        }
     }
 }
 

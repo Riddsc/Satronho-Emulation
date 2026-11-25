@@ -464,7 +464,7 @@ void App::NativePageControls(NPage& p) {
         for (int h = 0; h < static_cast<int>(Hotkey::Count); ++h) {
             const bool cap = input_.capture.hotkey && input_.capture.button == h;
             const int code = input_.hk_pad[h];
-            const std::string val = cap ? Tr("Aprieta un botón…") : code == kPadNone ? Tr("Sin asignar") : Input::PadCodeLabel(code, fam);
+            const std::string val = cap ? Tr("Aprieta un botón…") : code == kPadNone ? Tr("Sin asignar") : Tr(Input::PadCodeLabel(code, fam));
             p.Action("atajo" + std::to_string(h), HotkeyInfo(static_cast<Hotkey>(h)).name, "", "mando",
                      [this, h] { input_.StartHotkeyCapture(static_cast<Hotkey>(h), true); }, cap ? "primario" : "", "", val);
         }
@@ -498,7 +498,7 @@ void App::NativePageControls(NPage& p) {
     auto add = [&](int b, const char* name, const char* zone) {
         const bool cap = !input_.capture.hotkey && input_.capture.button == b && input_.capture.player == player && input_.capture.sys == sys->id;
         const int code = m.pad[b];
-        const std::string val = cap ? Tr("Aprieta…") : code == kPadNone ? "—" : Input::PadCodeLabel(code, fam);
+        const std::string val = cap ? Tr("Aprieta…") : code == kPadNone ? "—" : Tr(Input::PadCodeLabel(code, fam));
         bs += (first ? "" : ",") + std::string("{\"id\":") + std::to_string(b) + ",\"nombre\":" + Quote(Tr(name)) + ",\"asignado\":" + Quote(val) +
               ",\"zona\":" + Quote(zone) + ",\"apretado\":" + ((live >> b) & 1 ? "true" : "false") + ",\"capturando\":" + (cap ? "true" : "false") + "}";
         first = false;
@@ -527,7 +527,10 @@ void App::NativePageControls(NPage& p) {
         add(b, n, "centro");
     }
     bs += "]";
-    p.Raw("{\"tipo\":\"control\",\"consola\":" + Quote(Tr(sys->full)) + ",\"color\":" + Quote(HexColor(sys->color)) + ",\"botones\":" + bs +
+    static const char* formas[] = {"nes", "gameboy", "gba", "genesis", "snes", "playstation", "n64", "ds", "saturn", "dreamcast", "psp"};
+    const int capturing = !input_.capture.hotkey && input_.capture.player == player && input_.capture.sys == sys->id ? input_.capture.button : -1;
+    p.Raw("{\"tipo\":\"control\",\"forma\":" + Quote(formas[static_cast<int>(sys->layout)]) + ",\"apretados\":" + std::to_string(live) +
+          ",\"capturando\":" + std::to_string(capturing) + ",\"consola\":" + Quote(Tr(sys->full)) + ",\"color\":" + Quote(HexColor(sys->color)) + ",\"botones\":" + bs +
           ",\"analogico\":" + (sys->analog ? "true" : "false") + ",\"ultimo\":" + Quote(input_.last_input) + "}");
     p.Section("");
     p.Action("auto", "Asignar automáticamente", "Pone los botones de tu mando en su lugar de siempre.", "estrella",
@@ -550,6 +553,9 @@ std::string App::NativeChatJson() {
         for (size_t j = 0; j < m.buttons.size(); ++j) s += (j ? "," : "") + Quote(Tr(m.buttons[j].label));
         s += "]}";
     }
+    s += "],\"sugerencias\":[";
+    const auto sugg = SuggestedQuestions(chat_guide_ >= 0 ? chat_guide_ : 0);
+    for (size_t i = 0; i < sugg.size(); ++i) s += (i ? "," : "") + Quote(Tr(sugg[i]));
     s += "]}";
     return s;
 }
@@ -655,6 +661,11 @@ bool App::NativeCommandExtra(const std::vector<std::string>& a) {
             (void)before;
             (void)tab_before;
         }
+        native_page_t_ = -10;
+    } else if (cmd == "sugerencia") {
+        const auto sugg = SuggestedQuestions(chat_guide_ >= 0 ? chat_guide_ : 0);
+        const size_t i = static_cast<size_t>(std::atoi(arg(1).c_str()));
+        if (i < sugg.size()) AskGuides(sugg[i]);
         native_page_t_ = -10;
     } else if (cmd == "preguntar") {
         AskGuides(arg(1));

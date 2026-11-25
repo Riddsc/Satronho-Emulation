@@ -1309,7 +1309,10 @@ bool App::StartGame(const fs::path& rom) {
     RefreshSlotThumbs();
     SDL_SetWindowTitle(window_, (current_.title + " — Satronho Emulation").c_str());
     // El aviso habla de lo que la persona tiene en la mano: el dedo, el mando o el teclado.
-    if (TouchPadVisible())
+    if (NativeMode())
+        Toast(input_.Gamepads().empty() ? "¡A jugar! «Atrás» o el botón de pausa abren el menú del juego."
+                                         : "¡A jugar! «Atrás» o Select + Start abren el menú del juego.", GuideId::Samy, 3.5);
+    else if (TouchPadVisible())
         Toast("¡A jugar! El botón de pausa (a la derecha) o deslizar desde arriba abren el menú.", GuideId::Samy, 3.5);
     else if (!input_.Gamepads().empty())
         Toast("¡A jugar! Select + Start (o el botón Guía) abren el menú.", GuideId::Samy, 3.0);
