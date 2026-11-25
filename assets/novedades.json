@@ -36,6 +36,10 @@
         {
           "tipo": "arreglo",
           "texto": "La vista carrusel ya no cierra la app al ocultar o mostrar juegos."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Los juegos de Switch ya abren a la primera: antes Satronho NX a veces se cerraba con «No bootable game present!» y había que tocar Jugar varias veces. Además, al volver de NX el carrusel sigue en el juego que estabas jugando."
         }
       ]
     },

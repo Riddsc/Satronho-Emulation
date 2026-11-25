@@ -107,6 +107,12 @@ object Nx {
     private var esperandoInstalacion = false
     private var revisoNueva = false
     private val consultados = HashSet<String>()
+    /**
+     * Hasta cuándo no se le pregunta nada a NX: mientras abre un juego y un momento después de volver.
+     * Las preguntas al HubProvider usan el núcleo de NX; si llegaban justo cuando NX revisaba el juego
+     * que le mandamos abrir, el juego parecía inválido y NX salía con «No bootable game present!».
+     */
+    @Volatile private var calmaHasta = 0L
 
     fun androidSirve() = Build.VERSION.SDK_INT >= 33
 
@@ -119,16 +125,48 @@ object Nx {
         false
     }
 
-    private fun llamar(ctx: Context, metodo: String, arg: String? = null): Bundle? = try {
-        ctx.contentResolver.call(Uri.parse("content://$PAQUETE.hub"), metodo, arg, null)
-    } catch (e: Throwable) {
-        Log.w(TAG, "NX no respondió a $metodo", e)
-        null
+    /** Mientras NX abre un juego (y un momento después de volver) no se le pregunta nada. */
+    private fun esperarCalma() {
+        while (true) {
+            val falta = calmaHasta - System.currentTimeMillis()
+            if (falta <= 0) return
+            Thread.sleep(minOf(falta, 500L))
+        }
+    }
+
+    /**
+     * Le pregunta algo a NX (en un hilo aparte, nunca en la pantalla). Si NX está ocupada
+     * (arrancando o con un juego abierto) o no contestó por un tropiezo, se vuelve a intentar
+     * unas veces antes de rendirse; así una NX que sí habla con el hub no pasa por «vieja».
+     */
+    internal fun llamar(ctx: Context, metodo: String, arg: String? = null): Bundle? =
+        llamarTal(ctx, metodo, arg)?.takeIf { !it.getBoolean("ocupado") }
+
+    /** Como [llamar], pero si NX siguió ocupada devuelve su respuesta «ocupado» en vez de null. */
+    private fun llamarTal(ctx: Context, metodo: String, arg: String? = null): Bundle? {
+        var ultima: Bundle? = null
+        repeat(6) { intento ->
+            esperarCalma()
+            val b = try {
+                ctx.contentResolver.call(Uri.parse("content://$PAQUETE.hub"), metodo, arg, null)
+            } catch (e: Throwable) {
+                Log.w(TAG, "NX no respondió a $metodo (intento ${intento + 1})", e)
+                null
+            }
+            if (b != null && !b.getBoolean("ocupado")) return b
+            // Una NX vieja (sin enlace) no tiene HubProvider: no tiene caso insistir tanto.
+            if (b == null && intento >= 1) return null
+            ultima = b
+            Thread.sleep(1000)
+        }
+        return ultima
     }
 
     private fun consultar(ctx: Context): EstadoNx {
         if (!instalado(ctx)) return EstadoNx()
-        val b = llamar(ctx, "estado") ?: return EstadoNx(instalado = true)
+        val b = llamarTal(ctx, "estado") ?: return EstadoNx(instalado = true)
+        // Ocupada (con un juego abierto): sí habla con el hub; se queda lo último que se supo.
+        if (b.getBoolean("ocupado")) return estadoNx.copy(instalado = true, responde = true)
         return EstadoNx(true, true, b.getBoolean("claves"), b.getString("firmware") ?: "", b.getString("version") ?: "")
     }
 
@@ -179,11 +217,14 @@ object Nx {
                 .setDataAndType(u, "application/octet-stream")
                 .setClassName(PAQUETE, EMULACION)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            // Mientras NX revisa y abre el juego, el hub no le pregunta nada (al volver se acorta).
+            calmaHasta = System.currentTimeMillis() + 30_000
             ctx.startActivity(i)
             lanzado = p.clave to System.currentTimeMillis()
             asistente = null
         } catch (e: Throwable) {
             Log.e(TAG, "No se pudo abrir NX", e)
+            calmaHasta = 0L
             problema = t("No pude abrir Satronho NX. Prueba instalarlo otra vez desde aquí.")
             asistente = Asistente(p)
         }
@@ -200,6 +241,8 @@ object Nx {
 
     /** La actividad volvió: si veníamos de un juego de NX, se anota su tiempo. */
     fun alVolver(ctx: Context) {
+        // De vuelta en el hub: se espera un momento antes de preguntarle algo a NX (que termine de cerrar el juego).
+        if (lanzado != null) calmaHasta = System.currentTimeMillis() + 2000
         lanzado?.let { (clave, desde) ->
             val s = (System.currentTimeMillis() - desde) / 1000
             if (s >= 5) SatronhoUi.orden("nx_volvio|$clave|$s")
@@ -401,6 +444,7 @@ object Nx {
         val faltan = b.juegos.filter { it.sistema == "nx" && it.programa.isEmpty() && it.ruta.isNotEmpty() && consultados.add(it.clave) }
         if (faltan.isEmpty() || !androidSirve()) return
         enHilo {
+            // Si mientras tanto se abrió un juego, esto espera a que vuelvas (esperarCalma en llamar).
             if (!instalado(ctx)) { faltan.forEach { consultados.remove(it.clave) }; return@enHilo }
             val e = consultar(ctx)
             if (!e.claves) { faltan.forEach { consultados.remove(it.clave) }; return@enHilo }
