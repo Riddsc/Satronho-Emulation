@@ -45,6 +45,8 @@ public:
     void RemoveCustom(const Game& g);
     bool HasCustom(const Game& g) const;
     bool HasCover(const Game& g) const;
+    // Archivo de la carátula (propia o descargada); puede no existir todavía. Para la interfaz nativa.
+    fs::path PathFor(const Game& g) const { return FileFor(g); }
     // Libera las texturas (al cambiar de motor gráfico).
     void DropTextures();
     size_t Count() const;

@@ -15,6 +15,7 @@
 #include "imgui_internal.h"
 #include "libretro.h"
 #include "sys/android.h"
+#include "sys/native_ui.h"
 #include "ui/controllers.h"
 #include "util/archive.h"
 #include "util/log.h"
@@ -387,6 +388,9 @@ std::vector<App::TouchButton> App::TouchLayout(float W, float H) const {
 // achica un poco si hace falta) para que ningún botón quede encima de la imagen.
 void App::TouchReserve(int W, int H, int* left, int* right) const {
     *left = *right = 0;
+    // Control nativo (Android): va encima del juego, semitransparente, como en Satronho NX. La
+    // imagen usa toda la pantalla con su forma y no se achica ni se corre.
+    if (NativeMode()) return;
     if (!TouchPadVisible() || bar_open_ || touch_edit_ || W <= H * 1.25f || sys_->touch) return;
     const auto layout = TouchLayout(static_cast<float>(W), static_cast<float>(H));
     float l = 0, r = 0;
@@ -405,6 +409,10 @@ void App::TouchReserve(int W, int H, int* left, int* right) const {
 void App::ApplyTouchPad() {
     touch_buttons_ = 0;
     touch_stick_[0] = touch_stick_[1] = 0;
+    if (NativeMode()) {
+        NativeApplyTouch();
+        return;
+    }
     if (!TouchPadVisible() || touch_edit_ || bar_open_) {
         touch_prev_ = 0;
         return;
@@ -492,6 +500,7 @@ void App::ApplyTouchPad() {
 }
 
 void App::DrawTouchPad() {
+    if (NativeMode() && !touch_edit_) return; // lo dibuja Android
     if ((!TouchPadVisible() && !touch_edit_) || (bar_open_ && !touch_edit_)) return;
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     // La interfaz va en puntos y los dedos en píxeles: se convierte.

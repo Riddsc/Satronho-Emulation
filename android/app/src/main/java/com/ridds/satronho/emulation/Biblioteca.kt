@@ -1,0 +1,451 @@
+// SPDX-FileCopyrightText: Copyright 2026 Ridds (Satronho Emulation)
+// SPDX-License-Identifier: GPL-3.0-or-later
+package com.ridds.satronho.emulation
+
+import android.content.Context
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+// Preferencias de la vista (solo del celular): cuadrícula/compacta/lista, orden y ocultos.
+private class Vista(context: Context) {
+    private val prefs = context.getSharedPreferences("satronho_biblioteca", Context.MODE_PRIVATE)
+    var modo by mutableIntStateOf(prefs.getInt("vista", 0))
+    var orden by mutableIntStateOf(prefs.getInt("orden", 0))
+    var ocultos by mutableStateOf(prefs.getBoolean("ocultos", false))
+    var favoritos by mutableStateOf(prefs.getBoolean("favoritos", false))
+    fun guardar() {
+        prefs.edit().putInt("vista", modo).putInt("orden", orden).putBoolean("ocultos", ocultos)
+            .putBoolean("favoritos", favoritos).apply()
+    }
+}
+
+@Composable
+fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
+    val context = LocalContext.current
+    val vista = remember { Vista(context) }
+    var busqueda by remember { mutableStateOf("") }
+    var consola by remember { mutableStateOf("") }
+    var menuFiltro by remember { mutableStateOf(false) }
+    var menuJuego by remember { mutableStateOf("") }
+    var consejo by remember { mutableIntStateOf(0) }
+    val bActual by rememberUpdatedState(b)
+
+    // «Atrás» cierra primero lo que esté abierto aquí.
+    DisposableEffect(Unit) {
+        SatronhoUi.cerrarAlgo = {
+            when {
+                menuFiltro -> { menuFiltro = false; true }
+                menuJuego.isNotEmpty() -> { menuJuego = ""; true }
+                busqueda.isNotEmpty() -> { busqueda = ""; true }
+                consola.isNotEmpty() -> { consola = ""; true }
+                else -> false
+            }
+        }
+        SatronhoUi.alTocarLocal = { id, boton ->
+            if (id == "local:consejo") when (boton) {
+                "otro" -> {
+                    consejo++
+                    mostrarConsejo(bActual, consejo)
+                }
+                "preguntar" -> SatronhoUi.orden("pagina|guias")
+            }
+        }
+        onDispose {
+            SatronhoUi.cerrarAlgo = null
+            SatronhoUi.alTocarLocal = null
+        }
+    }
+
+    val filtro = busqueda.trim().lowercase()
+    val lista = remember(b, filtro, consola, vista.orden, vista.ocultos, vista.favoritos) {
+        b.juegos.asSequence()
+            .filter { vista.ocultos || !it.oculto }
+            .filter { !vista.favoritos || it.favorito }
+            .filter { consola.isEmpty() || it.sistema == consola }
+            .filter { filtro.isEmpty() || it.titulo.lowercase().contains(filtro) }
+            .sortedWith(
+                compareByDescending<Juego> { it.favorito }.then(
+                    when (vista.orden) {
+                        1 -> compareByDescending<Juego> { it.ultima }.thenBy { it.titulo.lowercase() }
+                        2 -> compareByDescending<Juego> { it.tiempo }.thenBy { it.titulo.lowercase() }
+                        else -> compareBy { it.titulo.lowercase() }
+                    }
+                )
+            ).toList()
+    }
+    // «Seguir jugando»: el último juego con partida guardada al salir.
+    val seguir = remember(b, consola) {
+        b.juegos.filter { it.continuar && !it.oculto && (consola.isEmpty() || it.sistema == consola) }.maxByOrNull { it.ultima }
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        // Logo de Satronho de fondo, muy suave (como el planeta de NX).
+        val logo = Imagenes.cargar("asset:logo.png", 512)
+        if (logo != null) {
+            Image(logo, null, modifier = Modifier.align(Alignment.Center).size(260.dp).alpha(0.07f), contentScale = ContentScale.Fit)
+        }
+
+        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+            // Encabezado: nombre y los tres botones (ocultos, filtro, ajustes), como NX.
+            Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Satronho Emulation", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+                BotonRedondo(Iconos.ojo, t(if (vista.ocultos) "Esconder los juegos ocultos" else "Mostrar los juegos ocultos"),
+                    activo = vista.ocultos) {
+                    vista.ocultos = !vista.ocultos
+                    vista.guardar()
+                }
+                Box {
+                    BotonRedondo(Iconos.filtro, t("Vista y orden"), activo = menuFiltro) { menuFiltro = true }
+                    MenuFiltro(menuFiltro, vista) { menuFiltro = false }
+                }
+                BotonRedondo(Icons.Filled.Settings, t("Ajustes")) { SatronhoUi.orden("pagina|ajustes") }
+            }
+
+            // Búsqueda.
+            CampoBusqueda(busqueda, { busqueda = it }, Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+
+            // Consolas con juegos (Todas, Octa, CD…).
+            val conJuegos = b.consolas.filter { it.cuantos > 0 }
+            if (conJuegos.size > 1) {
+                LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        FilterChip(selected = consola.isEmpty(), onClick = { consola = "" }, label = { Text(t("Todas")) })
+                    }
+                    items(conJuegos, key = { it.id }) { c ->
+                        FilterChip(
+                            selected = consola == c.id,
+                            onClick = { consola = if (consola == c.id) "" else c.id },
+                            label = { Text(c.nombre) },
+                            leadingIcon = { Box(Modifier.size(8.dp).clip(CircleShape).background(c.color)) },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = c.color.copy(alpha = 0.22f)),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+            }
+
+            if (b.juegos.isEmpty()) {
+                SinJuegos(b)
+            } else if (lista.isEmpty()) {
+                Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.TopCenter) {
+                    Text(t("No hay juegos que coincidan."), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                val celdas = when (vista.modo) {
+                    1 -> GridCells.Adaptive(86.dp)
+                    2 -> GridCells.Fixed(1)
+                    else -> GridCells.Adaptive(112.dp)
+                }
+                LazyVerticalGrid(
+                    columns = celdas,
+                    contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 120.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (vista.modo == 2) 0.dp else 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (vista.modo == 2) 4.dp else 14.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    if (seguir != null && filtro.isEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }, key = "seguir") { SeguirJugando(seguir, b) }
+                    }
+                    items(lista, key = { it.clave }) { g ->
+                        val c = b.consola(g.sistema)
+                        Box {
+                            when (vista.modo) {
+                                2 -> FilaJuego(g, c, { SatronhoUi.orden("jugar|${g.clave}") }, { menuJuego = g.clave })
+                                else -> TarjetaJuego(g, c, vista.modo == 1, { SatronhoUi.orden("jugar|${g.clave}") }, { menuJuego = g.clave })
+                            }
+                            MenuJuego(menuJuego == g.clave, g) { menuJuego = "" }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Abajo a la derecha: el guía (consejos) y «Carpeta», como en NX.
+        Column(
+            Modifier.align(Alignment.BottomEnd).windowInsetsPadding(WindowInsets.safeDrawing).padding(18.dp),
+            horizontalAlignment = Alignment.End,
+        ) {
+            if (e.guias && b.consejos.isNotEmpty()) {
+                val guia = b.consejos[consejo.mod(b.consejos.size)].guia
+                Box(
+                    Modifier.size(52.dp).clip(CircleShape).border(2.dp, Guias.color(guia), CircleShape)
+                        .clickable { mostrarConsejo(b, consejo) },
+                    contentAlignment = Alignment.Center,
+                ) { Avatar(guia, 48.dp) }
+                Spacer(Modifier.height(12.dp))
+            }
+            ExtendedFloatingActionButton(
+                onClick = { SatronhoUi.orden("carpeta") },
+                icon = { Icon(Iconos.carpeta, null) },
+                text = { Text(t("Carpeta")) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            )
+        }
+    }
+}
+
+private fun mostrarConsejo(b: Biblioteca, i: Int) {
+    if (b.consejos.isEmpty()) return
+    val c = b.consejos[i.mod(b.consejos.size)]
+    SatronhoUi.tarjeta = Tarjeta(
+        "local:consejo", c.guia, Guias.nombre(c.guia), c.texto,
+        listOf("preguntar" to t("Preguntar"), "otro" to t("Otro consejo"), "cerrar" to t("Cerrar")),
+    )
+}
+
+@Composable
+private fun BotonRedondo(icono: ImageVector, descripcion: String, activo: Boolean = false, alTocar: () -> Unit) {
+    IconButton(onClick = alTocar) {
+        Box(
+            Modifier.size(34.dp).clip(CircleShape)
+                .background(if (activo) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icono, descripcion, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun CampoBusqueda(texto: String, cambiar: (String) -> Unit, modifier: Modifier) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(23.dp)).border(1.dp, cs.outline, RoundedCornerShape(23.dp))
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Search, null, tint = cs.primary, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Box(Modifier.weight(1f)) {
+            if (texto.isEmpty()) Text(t("Buscar juegos"), color = cs.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge)
+            BasicTextField(
+                value = texto, onValueChange = cambiar, singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = cs.onSurface),
+                cursorBrush = SolidColor(cs.primary), modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (texto.isNotEmpty()) {
+            Icon(Icons.Filled.Clear, t("Borrar"), tint = cs.onSurfaceVariant, modifier = Modifier.size(20.dp).clickable { cambiar("") })
+        }
+    }
+}
+
+@Composable
+private fun MenuFiltro(abierto: Boolean, vista: Vista, cerrar: () -> Unit) {
+    DropdownMenu(expanded = abierto, onDismissRequest = cerrar) {
+        @Composable
+        fun opcion(texto: String, elegida: Boolean, alTocar: () -> Unit) {
+            DropdownMenuItem(
+                text = { Text(texto) },
+                trailingIcon = { RadioButton(selected = elegida, onClick = null) },
+                onClick = { alTocar(); vista.guardar() },
+            )
+        }
+        opcion(t("Cuadrícula"), vista.modo == 0) { vista.modo = 0 }
+        opcion(t("Cuadrícula compacta"), vista.modo == 1) { vista.modo = 1 }
+        opcion(t("Lista"), vista.modo == 2) { vista.modo = 2 }
+        HorizontalDivider()
+        opcion(t("Alfabético"), vista.orden == 0) { vista.orden = 0 }
+        opcion(t("Jugados hace poco"), vista.orden == 1) { vista.orden = 1 }
+        opcion(t("Más jugados"), vista.orden == 2) { vista.orden = 2 }
+        HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text(t("Solo favoritos")) },
+            trailingIcon = { Checkbox(checked = vista.favoritos, onCheckedChange = null) },
+            onClick = { vista.favoritos = !vista.favoritos; vista.guardar() },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TarjetaJuego(g: Juego, c: Consola?, compacta: Boolean, jugar: () -> Unit, menu: () -> Unit) {
+    val color = c?.color ?: MaterialTheme.colorScheme.primary
+    Column(
+        Modifier.combinedClickable(onClick = jugar, onLongClick = menu).alpha(if (g.oculto) 0.45f else 1f),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box {
+            Portada(g.portada, g.titulo, color, Modifier.fillMaxWidth().aspectRatio(1f), radio = 14)
+            if (g.favorito) {
+                Icon(Icons.Filled.Star, null, tint = Color(0xFFFFD166),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(18.dp))
+            }
+        }
+        if (!compacta) {
+            Spacer(Modifier.height(6.dp))
+            Text(g.titulo, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 2,
+                overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FilaJuego(g: Juego, c: Consola?, jugar: () -> Unit, menu: () -> Unit) {
+    val color = c?.color ?: MaterialTheme.colorScheme.primary
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).combinedClickable(onClick = jugar, onLongClick = menu)
+            .padding(vertical = 6.dp, horizontal = 4.dp).alpha(if (g.oculto) 0.45f else 1f),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Portada(g.portada, g.titulo, color, Modifier.size(52.dp), radio = 10, lado = 160)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(g.titulo, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val detalle = listOfNotNull(c?.completo, g.tiempoTexto.takeIf { it.isNotEmpty() }).joinToString(" · ")
+            Text(detalle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+        if (g.favorito) Icon(Icons.Filled.Star, null, tint = Color(0xFFFFD166), modifier = Modifier.size(18.dp))
+    }
+}
+
+@Composable
+private fun SeguirJugando(g: Juego, b: Biblioteca) {
+    val c = b.consola(g.sistema)
+    val color = c?.color ?: MaterialTheme.colorScheme.primary
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
+    ) {
+        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Portada(g.portada, g.titulo, color, Modifier.size(64.dp), radio = 12, lado = 200)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(t("Seguir jugando"), style = MaterialTheme.typography.labelMedium, color = color)
+                Text(g.titulo, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (g.ultimaTexto.isNotEmpty()) {
+                    Text(g.ultimaTexto, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            FilledTonalButton(onClick = { SatronhoUi.orden("continuar|${g.clave}") }) {
+                Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(t("Continuar"))
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuJuego(abierto: Boolean, g: Juego, cerrar: () -> Unit) {
+    DropdownMenu(expanded = abierto, onDismissRequest = cerrar) {
+        DropdownMenuItem(text = { Text(t("Jugar")) }, leadingIcon = { Icon(Icons.Filled.PlayArrow, null) },
+            onClick = { cerrar(); SatronhoUi.orden("jugar|${g.clave}") })
+        if (g.continuar) {
+            DropdownMenuItem(text = { Text(t("Continuar donde quedé")) }, leadingIcon = { Icon(Iconos.cargar, null) },
+                onClick = { cerrar(); SatronhoUi.orden("continuar|${g.clave}") })
+        }
+        DropdownMenuItem(
+            text = { Text(t(if (g.favorito) "Quitar de favoritos" else "Agregar a favoritos")) },
+            leadingIcon = { Icon(Icons.Filled.Star, null) },
+            onClick = { cerrar(); SatronhoUi.orden("favorito|${g.clave}") },
+        )
+        DropdownMenuItem(
+            text = { Text(t(if (g.oculto) "Mostrar en la biblioteca" else "Ocultar de la biblioteca")) },
+            leadingIcon = { Icon(Iconos.ojo, null) },
+            onClick = { cerrar(); SatronhoUi.orden("ocultar|${g.clave}|${if (g.oculto) 0 else 1}") },
+        )
+        DropdownMenuItem(text = { Text(t("Ajustes de este juego…")) }, leadingIcon = { Icon(Iconos.ajustesJuego, null) },
+            onClick = { cerrar(); SatronhoUi.orden("ajustes_juego|${g.clave}") })
+        if (g.tiempoTexto.isNotEmpty()) {
+            HorizontalDivider()
+            Text(
+                t("Tiempo de juego") + ": " + g.tiempoTexto, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SinJuegos(b: Biblioteca) {
+    Column(Modifier.fillMaxSize().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Avatar("samy", 72.dp)
+        Spacer(Modifier.height(14.dp))
+        Text(
+            t(if (b.buscando) "Buscando tus juegos…" else "Todavía no hay juegos"),
+            style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            t("Toca «Carpeta» y elige dónde guardas tus juegos. También puedes abrirlos desde WhatsApp, Drive o Archivos con «Abrir con»."),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
+        )
+    }
+}
