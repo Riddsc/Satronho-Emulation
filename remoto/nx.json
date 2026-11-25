@@ -1,0 +1,4 @@
+{
+  "nota": "De aquí saca el hub el APK de Satronho NX. Si el enlace deja de servir, se cambia aquí y todos los hubs bajan del nuevo sin otra build. Junto al APK debe estar el mismo nombre con .sha256.",
+  "apk": "https://github.com/Riddsc/satronho-nx/releases/download/android-vista-previa/satronho-nx-android-arm64-vista-previa.apk"
+}

@@ -2555,12 +2555,26 @@ void App::DrawControls() {
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
     if (compact_) {
-        Segmented("##ctrl_tab", &ctrl_tab_, {"General", "Jugador 1", "Jugador 2", "Atajos"}, ImGui::GetContentRegionAvail().x);
+        {
+            // General · Jugadores · Atajos; el jugador se elige abajo.
+            int seg = ctrl_tab_ == 0 ? 0 : ctrl_tab_ == kCtrlHotkeys ? 2 : 1;
+            if (Segmented("##ctrl_tab", &seg, {"General", "Jugadores", "Atajos"}, ImGui::GetContentRegionAvail().x))
+                ctrl_tab_ = seg == 0 ? 0 : seg == 2 ? kCtrlHotkeys : std::max(ctrl_last_player_, 1);
+            if (ctrl_tab_ >= 1 && ctrl_tab_ <= Input::kPlayers) {
+                ImGui::Dummy({0, S(4)});
+                std::vector<std::string> js;
+                for (int pl = 0; pl < CtrlPlayersShown(); ++pl) js.push_back(Fmt("%d", pl + 1));
+                std::vector<const char*> jp;
+                for (auto& j : js) jp.push_back(j.c_str());
+                int sel = ctrl_tab_ - 1;
+                if (Segmented("##ctrl_jug", &sel, jp, ImGui::GetContentRegionAvail().x)) ctrl_tab_ = sel + 1;
+            }
+        }
         ImGui::Dummy({0, S(6)});
     } else {
         ImGui::BeginChild("##ctrl_nav", {nav_w, 0});
         SectionLabel("PUERTOS");
-        for (int pl = 0; pl < 2; ++pl) {
+        for (int pl = 0; pl < CtrlPlayersShown(); ++pl) {
             const PlayerConfig& pc = input_.players[pl];
             std::string sub = pc.pad >= 0 && pc.pad < static_cast<int>(pads.size()) ? pads[pc.pad].name : pc.keyboard ? "Teclado" : "Sin mando";
             if (sub.size() > 22) sub = sub.substr(0, 21) + "…";
@@ -2568,7 +2582,7 @@ void App::DrawControls() {
         }
         ImGui::Dummy({0, S(8)});
         SectionLabel("AJUSTES");
-        if (NavItem("Atajos", Icon::Forward, ctrl_tab_ == 3, nullptr, false, Color::Amber)) ctrl_tab_ = 3;
+        if (NavItem("Atajos", Icon::Forward, ctrl_tab_ == kCtrlHotkeys, nullptr, false, Color::Amber)) ctrl_tab_ = kCtrlHotkeys;
         if (NavItem("General", Icon::Gear, ctrl_tab_ == 0, nullptr, false, Color::Teal)) ctrl_tab_ = 0;
         ImGui::Dummy({0, S(14)});
         SectionLabel("MANDOS CONECTADOS");
@@ -2593,7 +2607,8 @@ void App::DrawControls() {
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
     // Puertos: la consola se elige en una lista, como el «Tipo de mando» de DuckStation.
-    if (ctrl_tab_ == 1 || ctrl_tab_ == 2) {
+    if (ctrl_tab_ >= 1 && ctrl_tab_ <= Input::kPlayers) ctrl_last_player_ = ctrl_tab_;
+    if (ctrl_tab_ >= 1 && ctrl_tab_ <= Input::kPlayers) {
         const ImVec2 p = ImGui::GetCursorScreenPos();
         DrawControllerMini(ImGui::GetWindowDrawList(), sys.layout, {p.x + S(22), p.y + S(19)}, sys.handheld ? S(22) : S(36), 1.0f);
         ImGui::SetCursorScreenPos({p.x + S(52), p.y + S(9)});
@@ -2638,8 +2653,32 @@ void App::DrawControls() {
             ImGui::TextUnformatted(Tr(Fmt("Mando %d · %s (%s)%s", pd.slot + 1, pd.name.c_str(), pd.family_name.c_str(), owner.c_str()).c_str()));
         }
         Muted("Cada jugador recuerda su mando: si uno se desconecta, los demás siguen con el suyo.", 13);
+        ImGui::Dummy({0, S(10)});
+        Heading("Jugadores", 16);
+        Muted("Hasta 8. NES, Super Nintendo, PlayStation y Saturn conectan solas su adaptador de varios jugadores; 64 y Dreamcast traen 4 puertos.", 13);
+        ImGui::Dummy({0, S(4)});
+        const int claiming = input_.Claiming();
+        if (claiming >= 0) {
+            Chip(Fmt("Jugador %d: aprieta un botón en tu mando", claiming + 1).c_str(), Color::Amber);
+            ImGui::SameLine();
+            if (Button("Cancelar", ButtonKind::Ghost)) input_.CancelClaim();
+        } else if (Button("Toma tu puesto: cada uno aprieta un botón en orden", ButtonKind::Primary, {0, 0}, Icon::Gamepad, true)) {
+            input_.StartClaimAll();
+        }
+        for (int pl = 0; pl < CtrlPlayersShown(); ++pl) {
+            ImGui::PushID(pl + 500);
+            const PlayerConfig& pc = input_.players[pl];
+            std::string who = pc.pad >= 0 && pc.pad < static_cast<int>(pads.size()) ? pads[pc.pad].name
+                              : pc.Disconnected()                                   ? std::string(Tr("Su mando está desconectado"))
+                              : pc.keyboard                                         ? std::string(Tr("Teclado"))
+                                                                                    : std::string(Tr("Sin mando"));
+            RowBegin(Fmt("Jugador %d", pl + 1).c_str(), who.c_str());
+            if (Button(claiming == pl ? "Esperando…" : "Elegir con un botón", ButtonKind::Secondary)) input_.StartClaim(pl);
+            RowEnd();
+            ImGui::PopID();
+        }
         if (changed) SaveConfig();
-    } else if (ctrl_tab_ == 3) {
+    } else if (ctrl_tab_ == kCtrlHotkeys) {
         DrawHotkeys();
     } else {
         DrawControllerEditor(Systems()[cur], ctrl_tab_ - 1, compact_);
@@ -3007,7 +3046,14 @@ void App::DrawPauseMenu() {
         Title("Controles", "Toca un botón del dibujo y presiona la tecla o el botón que quieras");
         ImGui::Dummy({0, S(4)});
         static int player = 0;
-        Segmented("##jug_menu", &player, {"Jugador 1", "Jugador 2"}, S(260));
+        {
+            std::vector<std::string> js;
+            for (int pl = 0; pl < CtrlPlayersShown(); ++pl) js.push_back(Fmt("Jugador %d", pl + 1));
+            std::vector<const char*> jp;
+            for (auto& j : js) jp.push_back(j.c_str());
+            player = std::min(player, static_cast<int>(jp.size()) - 1);
+            Segmented("##jug_menu", &player, jp, std::min(S(130) * jp.size(), ImGui::GetContentRegionAvail().x));
+        }
         ImGui::Dummy({0, S(6)});
         DrawControllerEditor(*sys_, player, true);
     }

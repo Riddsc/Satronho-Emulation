@@ -865,6 +865,18 @@ fun cartucho(p: Pintor, x: Float, y: Float, w: Float, h: Float, tono: Int, titul
             }
             label(V(c0.x + cw * 0.1f, c0.y + ch * (if (forma == "ds") 0.12f else 0.2f)), V(c1.x - cw * 0.1f, c0.y + ch * (if (forma == "ds") 0.84f else 0.86f)), 0.2f)
         }
+        "nx" -> {
+            // Tarjeta de juego de Switch: pequeña, redondeada, con su muesca arriba a la derecha.
+            val cw = w * 0.5f
+            val ch = cw * 1.42f
+            val c0 = V(x + (w - cw) * 0.5f, y + (h - ch) * 0.55f)
+            val c1 = V(c0.x + cw, c0.y + ch)
+            sombraRect(c0, c1, cw * 0.09f)
+            p.rectFilled(c0, c1, col(58, 56, 66), cw * 0.09f)
+            p.rectFilled(V(c1.x - cw * 0.22f, c0.y), V(c1.x, c0.y + ch * 0.07f), hsv(hf, 0.55f, 0.18f))
+            p.rectFilled(V(c0.x + cw * 0.1f, c1.y - ch * 0.07f), V(c1.x - cw * 0.1f, c1.y - ch * 0.025f), col(196, 168, 92), cw * 0.02f)
+            label(V(c0.x + cw * 0.09f, c0.y + ch * 0.1f), V(c1.x - cw * 0.09f, c0.y + ch * 0.86f), 0.18f)
+        }
         "gba" -> {
             val cw = w * 0.74f
             val ch = cw * 0.66f

@@ -56,6 +56,8 @@ public:
     void Rekey(const std::vector<std::pair<std::string, std::string>>& old_new);
     // El mismo juego, pero con otro archivo de adentro del .zip/.7z (cuando trae varios).
     static Game MakeGameEntry(const fs::path& archive, const std::string& entry);
+    // Quita las pistas que nombra un .cue o .m3u (son partes de otro juego) y los .cue ya convertidos a .chd.
+    static void DropDiscParts(std::vector<Game>& found);
 
     // Ajustes de un juego en particular («mando», «motor», «res»): "" = como la consola.
     std::string GameOption(const std::string& key, const std::string& name) const;

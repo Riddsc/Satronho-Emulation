@@ -92,10 +92,15 @@ void App::NativeCommand(const std::string& line) {
     const std::string& cmd = a[0];
     auto arg = [&](size_t i) -> std::string { return i < a.size() ? a[i] : std::string(); };
     if (cmd != "ajuste" && cmd != "preguntar") Log::Info("Interfaz nativa: %s", line.c_str());
+    if (NativeCommandPhone(a)) return;
     if (NativeCommandExtra(a)) return;
 
     if (cmd == "jugar" || cmd == "continuar") {
         if (const Game* g = FindGame(arg(1))) {
+            if (const SystemDef* sd = SystemById(g->system); sd && sd->external) {
+                LaunchExternal(*g);
+                return;
+            }
             start_entry_ = g->entry;
             RequestStart(g->path, cmd == "continuar");
         }
@@ -157,6 +162,17 @@ void App::NativeCommand(const std::string& line) {
         if (arg(1) == "lento") {
             if (arg(2) == "bajar") SlowLower();
             else SlowKeep();
+        } else if (arg(1) == "escaneo" && arg(2) == "ver") {
+            native_page_ = "escaneo";
+            native_page_arg_.clear();
+            native_page_t_ = -10;
+            NativeUi::Emit("{\"t\":\"ir\",\"pagina\":\"escaneo\"}");
+        } else if (arg(1) == "carpeta_nueva" && arg(2) == "ver") {
+            StartPhoneScan();
+            native_page_ = "escaneo";
+            native_page_arg_.clear();
+            native_page_t_ = -10;
+            NativeUi::Emit("{\"t\":\"ir\",\"pagina\":\"escaneo\"}");
         }
     } else if (cmd == "registro") {
         SendLog();
@@ -209,7 +225,7 @@ std::string App::NativeStateJson() {
         const SystemDef* gs = SystemById(g.system);
         std::error_code ec;
         const fs::path cover = covers_.PathFor(g);
-        s += ",\"cargando\":{\"tono\":" + std::to_string(g.hue) + ",\"forma\":" + Quote(gs ? FormaDe(gs->layout) : "nes") +
+        s += ",\"cargando\":{\"tono\":" + std::to_string(g.hue) + ",\"forma\":" + Quote(gs ? (gs->external ? "nx" : FormaDe(gs->layout)) : "nes") +
              ",\"etiqueta\":" + Quote(gs ? gs->label : "") + ",\"titulo\":" + Quote(g.title) + ",\"consola\":" + Quote(gs ? Tr(gs->full) : "") +
              ",\"color\":" + Hex(gs ? gs->color : Ui::Color::Accent) +
              ",\"portada\":" + Quote(!cover.empty() && fs::exists(cover, ec) ? Paths::ToUtf8(cover) : "") +
@@ -255,7 +271,10 @@ std::string App::NativeLibraryJson() {
         std::error_code ec;
         const fs::path cover = covers_.PathFor(g);
         const bool has_cover = !cover.empty() && fs::exists(cover, ec);
-        g_json += "{\"clave\":" + Quote(g.key) + ",\"titulo\":" + Quote(g.title) + ",\"sistema\":" + Quote(g.system) +
+        const std::string nombre = library_.GameOption(g.key, "nombre");
+        const bool externo = g.system == NxSystem().id;
+        g_json += "{\"clave\":" + Quote(g.key) + ",\"titulo\":" + Quote(nombre.empty() ? g.title : nombre) + ",\"sistema\":" + Quote(g.system) +
+                  (externo ? ",\"ruta\":" + Quote(g.path_utf8) + ",\"programa\":" + Quote(library_.GameOption(g.key, "programa")) : std::string()) +
                   ",\"etiquetas\":" + Quote([&] {
                       std::string t;
                       for (const auto& x : g.tags) t += (t.empty() ? "" : " ") + x;
@@ -270,12 +289,16 @@ std::string App::NativeLibraryJson() {
 
     std::string sys_json = "[";
     first = true;
-    for (const auto& sys : Systems()) {
+    std::vector<const SystemDef*> lista;
+    for (const auto& sys : Systems()) lista.push_back(&sys);
+    if (NxAvailable()) lista.push_back(&NxSystem());
+    for (const SystemDef* sp : lista) {
+        const SystemDef& sys = *sp;
         if (!first) sys_json += ',';
         first = false;
         sys_json += "{\"id\":" + Quote(sys.id) + ",\"nombre\":" + Quote(Tr(sys.name)) + ",\"completo\":" + Quote(Tr(sys.full)) +
                     ",\"pista\":" + Quote(Tr(sys.hint)) + ",\"juegos_de\":" + Quote(Tr(sys.games)) + ",\"color\":" + Hex(sys.color) +
-                    ",\"cuantos\":" + std::to_string(counts[sys.id]) + ",\"forma\":" + Quote(FormaDe(sys.layout)) +
+                    ",\"cuantos\":" + std::to_string(counts[sys.id]) + ",\"forma\":" + Quote(sys.external ? "nx" : FormaDe(sys.layout)) +
                     ",\"etiqueta\":" + Quote(sys.label) + "}";
     }
     sys_json += "]";
@@ -290,7 +313,7 @@ std::string App::NativeLibraryJson() {
     tips += "]";
 
     return "{\"juegos\":" + g_json + ",\"consolas\":" + sys_json + ",\"consejos\":" + tips + ",\"buscando\":" + B(library_.Scanning()) +
-           ",\"carpetas\":" + std::to_string(settings_.folders.size()) + "}";
+           ",\"carpetas\":" + std::to_string(settings_.folders.size()) + ",\"nx\":" + NxFilesJson() + "}";
 }
 
 void App::NativeTick() {

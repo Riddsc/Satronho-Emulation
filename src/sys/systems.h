@@ -58,9 +58,14 @@ struct SystemDef {
     const char* bios_note = ""; // qué cambia con la BIOS original
     // Valores por defecto de Satronho para opciones del núcleo.
     std::vector<std::pair<const char*, const char*>> core_defaults;
+    bool external = false; // lo abre otra app de la familia (Satronho NX), no un núcleo del hub
 };
 
 const std::vector<SystemDef>& Systems();
+// Satronho NX (juegos de Switch): app aparte que el hub abre. No está en Systems() (no tiene núcleo
+// ni ajustes aquí), pero SystemById y SystemForExtension la encuentran en el celular.
+const SystemDef& NxSystem();
+bool NxAvailable();
 const SystemDef* SystemById(const std::string& id);
 const SystemDef* SystemForExtension(const std::string& ext);
 std::vector<std::string> AllExtensions();

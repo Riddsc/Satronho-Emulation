@@ -346,6 +346,52 @@ void Library::Rescan(const std::vector<std::string>& folders) {
     worker_ = std::thread([this] { ScanLoop(); });
 }
 
+void Library::DropDiscParts(std::vector<Game>& found) {
+    // Juegos en disco: los .bin que nombra un .cue y los discos que nombra un .m3u son partes
+    // de un mismo juego, no juegos aparte (y un .bin de PlayStation no es de Mega).
+    std::set<std::string> parts;
+    for (const auto& g : found) {
+        if (g.ext != "cue" && g.ext != "m3u") continue;
+        std::ifstream in(g.path);
+        std::string line;
+        int lines = 0;
+        while (std::getline(in, line) && ++lines < 400) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            std::string name;
+            if (g.ext == "cue") {
+                const size_t a = line.find('"'), b = line.rfind('"');
+                if (Lower(line).find("file") == std::string::npos || a == std::string::npos || b <= a) continue;
+                name = line.substr(a + 1, b - a - 1);
+            } else {
+                if (line.empty() || line[0] == '#') continue;
+                name = line;
+            }
+            std::error_code e2;
+            const fs::path part = fs::weakly_canonical(g.path.parent_path() / Paths::FromUtf8(name), e2);
+            if (!e2) parts.insert(Paths::ToUtf8(part));
+        }
+    }
+    if (!parts.empty()) {
+        found.erase(std::remove_if(found.begin(), found.end(),
+                                   [&](const Game& g) {
+                                       std::error_code e2;
+                                       const fs::path p = fs::weakly_canonical(g.path, e2);
+                                       return !e2 && parts.count(Paths::ToUtf8(p));
+                                   }),
+                    found.end());
+    }
+    // Un disco que ya se convirtió a .chd (mismo nombre, misma carpeta) no se muestra dos veces.
+    found.erase(std::remove_if(found.begin(), found.end(),
+                               [](const Game& g) {
+                                   if (g.ext != "cue" || g.Archived()) return false;
+                                   fs::path chd = g.path;
+                                   chd.replace_extension(".chd");
+                                   std::error_code e2;
+                                   return fs::exists(chd, e2);
+                               }),
+                found.end());
+}
+
 void Library::ScanLoop() {
     std::vector<std::string> extensions = AllExtensions();
     extensions.push_back("zip");
@@ -391,49 +437,7 @@ void Library::ScanLoop() {
             Log::Info("Biblioteca: búsqueda cancelada");
             continue;
         }
-        // Juegos en disco: los .bin que nombra un .cue y los discos que nombra un .m3u son partes
-        // de un mismo juego, no juegos aparte (y un .bin de PlayStation no es de Mega).
-        std::set<std::string> parts;
-        for (const auto& g : found) {
-            if (g.ext != "cue" && g.ext != "m3u") continue;
-            std::ifstream in(g.path);
-            std::string line;
-            int lines = 0;
-            while (std::getline(in, line) && ++lines < 400) {
-                if (!line.empty() && line.back() == '\r') line.pop_back();
-                std::string name;
-                if (g.ext == "cue") {
-                    const size_t a = line.find('"'), b = line.rfind('"');
-                    if (Lower(line).find("file") == std::string::npos || a == std::string::npos || b <= a) continue;
-                    name = line.substr(a + 1, b - a - 1);
-                } else {
-                    if (line.empty() || line[0] == '#') continue;
-                    name = line;
-                }
-                std::error_code e2;
-                const fs::path part = fs::weakly_canonical(g.path.parent_path() / Paths::FromUtf8(name), e2);
-                if (!e2) parts.insert(Paths::ToUtf8(part));
-            }
-        }
-        if (!parts.empty()) {
-            found.erase(std::remove_if(found.begin(), found.end(),
-                                       [&](const Game& g) {
-                                           std::error_code e2;
-                                           const fs::path p = fs::weakly_canonical(g.path, e2);
-                                           return !e2 && parts.count(Paths::ToUtf8(p));
-                                       }),
-                        found.end());
-        }
-        // Un disco que ya se convirtió a .chd (mismo nombre, misma carpeta) no se muestra dos veces.
-        found.erase(std::remove_if(found.begin(), found.end(),
-                                   [](const Game& g) {
-                                       if (g.ext != "cue" || g.Archived()) return false;
-                                       fs::path chd = g.path;
-                                       chd.replace_extension(".chd");
-                                       std::error_code e2;
-                                       return fs::exists(chd, e2);
-                                   }),
-                    found.end());
+        DropDiscParts(found);
         // Sin duplicados (la misma carpeta agregada dos veces).
         std::sort(found.begin(), found.end(), [](const Game& a, const Game& b) { return a.key < b.key; });
         found.erase(std::unique(found.begin(), found.end(), [](const Game& a, const Game& b) { return a.key == b.key; }), found.end());

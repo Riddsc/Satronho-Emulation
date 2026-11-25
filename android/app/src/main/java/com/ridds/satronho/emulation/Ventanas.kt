@@ -72,7 +72,7 @@ import java.io.File
 
 /** Velo oscuro que no deja tocar lo de atrás. */
 @Composable
-private fun Velo(alpha: Float = 0.6f, contenido: @Composable () -> Unit) {
+internal fun Velo(alpha: Float = 0.6f, contenido: @Composable () -> Unit) {
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = alpha))
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
@@ -82,7 +82,7 @@ private fun Velo(alpha: Float = 0.6f, contenido: @Composable () -> Unit) {
 }
 
 @Composable
-private fun Ventana(ancho: Int = 460, contenido: @Composable ColumnScope.() -> Unit) {
+internal fun Ventana(ancho: Int = 460, contenido: @Composable ColumnScope.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp, shadowElevation = 10.dp,
         modifier = Modifier.widthIn(max = ancho.dp).fillMaxWidth(),

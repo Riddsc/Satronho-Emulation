@@ -325,21 +325,45 @@ const std::vector<SystemDef>& Systems() {
     return systems;
 }
 
+const SystemDef& NxSystem() {
+    static const SystemDef nx = [] {
+        SystemDef s = Make("nx", "NX", "juegos de Switch", "Switch", "", {"nsp", "xci", "nsz", "xcz"}, "NX", 0xE4405F, Layout::Psp, true);
+        s.external = true;
+        s.runahead_ok = false;
+        return s;
+    }();
+    return nx;
+}
+
+bool NxAvailable() {
+#ifdef __ANDROID__
+    return true;
+#else
+    return false;
+#endif
+}
+
 const SystemDef* SystemById(const std::string& id) {
     for (const auto& s : Systems())
         if (s.id == id) return &s;
+    if (NxAvailable() && id == NxSystem().id) return &NxSystem();
     return nullptr;
 }
 
 const SystemDef* SystemForExtension(const std::string& ext) {
     for (const auto& s : Systems())
         if (std::find(s.extensions.begin(), s.extensions.end(), ext) != s.extensions.end()) return &s;
+    if (NxAvailable()) {
+        const auto& e = NxSystem().extensions;
+        if (std::find(e.begin(), e.end(), ext) != e.end()) return &NxSystem();
+    }
     return nullptr;
 }
 
 std::vector<std::string> AllExtensions() {
     std::vector<std::string> out;
     for (const auto& s : Systems()) out.insert(out.end(), s.extensions.begin(), s.extensions.end());
+    if (NxAvailable()) out.insert(out.end(), NxSystem().extensions.begin(), NxSystem().extensions.end());
     return out;
 }
 

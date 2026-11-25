@@ -113,7 +113,7 @@ struct CoreCallbacks {
         return frames;
     }
     static bool Rumble(unsigned port, enum retro_rumble_effect effect, uint16_t strength) {
-        if (!g_host || port >= 4 || effect > RETRO_RUMBLE_WEAK) return false;
+        if (!g_host || port >= CoreHost::kPorts || effect > RETRO_RUMBLE_WEAK) return false;
         g_host->rumble[port][effect] = strength;
         return true;
     }
@@ -121,7 +121,7 @@ struct CoreCallbacks {
     static uintptr_t HwFramebuffer() { return g_host && g_host->hw_host ? g_host->hw_host->Framebuffer() : 0; }
     static retro_proc_address_t HwProc(const char* sym) { return g_host && g_host->hw_host ? g_host->hw_host->ProcAddress(sym) : nullptr; }
     static int16_t State(unsigned port, unsigned device, unsigned index, unsigned id) {
-        if (!g_host || port >= 4) return 0;
+        if (!g_host || port >= CoreHost::kPorts) return 0;
         const PadState& pad = g_host->pads[port];
         switch (device & RETRO_DEVICE_MASK) {
         case RETRO_DEVICE_JOYPAD:
@@ -229,6 +229,7 @@ void CoreHost::UnloadCore() {
     retro_deinit_();
     SDL_UnloadObject(static_cast<SDL_SharedObject*>(lib_));
     lib_ = nullptr;
+    controller_ports_ = 0;
     options_.clear();
     categories_.clear();
     disk_ = {};
@@ -309,7 +310,7 @@ bool CoreHost::LoadGame(const fs::path& rom, std::string* error, std::vector<uin
     std::memset(&av_info_, 0, sizeof av_info_);
     retro_get_system_av_info_(&av_info_);
     geometry_changed_ = true;
-    for (unsigned port = 0; port < 2; ++port) retro_set_controller_port_device_(port, port_device);
+    ApplyPortDevices();
     LoadSram();
     Log::Info("Juego cargado: %s (%ux%u, %.4f fps, %.0f Hz)", path_utf8.c_str(), av_info_.geometry.base_width,
               av_info_.geometry.base_height, av_info_.timing.fps, av_info_.timing.sample_rate);
@@ -855,11 +856,17 @@ bool CoreHost::Environment(unsigned cmd, void* data) {
         has_disk_ = true;
         return true;
     case Cmd(RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS):
-        *static_cast<unsigned*>(data) = 4;
+        *static_cast<unsigned*>(data) = kPorts;
         return true;
+    case Cmd(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO): {
+        // Cuántos puertos tiene la consola (la lista termina en uno vacío).
+        unsigned n = 0;
+        for (auto* info = static_cast<const retro_controller_info*>(data); info && info[n].types; ++n) {}
+        controller_ports_ = n;
+        return true;
+    }
     case Cmd(RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL):
     case Cmd(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS):
-    case Cmd(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO):
     case Cmd(RETRO_ENVIRONMENT_SET_SUBSYSTEM_INFO):
     case Cmd(RETRO_ENVIRONMENT_SET_MEMORY_MAPS):
     case Cmd(RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS): // también SET_HW_SHARED_CONTEXT (44): se acepta

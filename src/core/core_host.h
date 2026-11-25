@@ -131,7 +131,8 @@ public:
     std::vector<uint8_t> FrameRGBA(unsigned* w, unsigned* h) const;
 
     // Entradas y salidas que conecta la aplicación.
-    PadState pads[4];
+    static constexpr int kPorts = 8; // hasta 8 jugadores (multitap de CD y Anillo)
+    PadState pads[kPorts];
     std::function<void(const int16_t*, size_t)> on_audio;     // frames estéreo intercalados
     std::function<void(const std::string&, int)> on_message; // texto, duración en ms
     std::function<float(unsigned)> on_sensor;                // RETRO_SENSOR_* -> valor
@@ -140,15 +141,23 @@ public:
     bool fast_forwarding = false;
     float target_refresh = 60.0f;
     unsigned port_device = RETRO_DEVICE_JOYPAD; // tipo de mando que se conecta (DualShock en CD)
+    // Mando distinto en un puerto (0 = el de port_device): el adaptador de varios jugadores de Hexa o Mega.
+    unsigned port_special[kPorts] = {};
     // Cambia el tipo de mando con el juego abierto (como desenchufar uno y enchufar otro).
     void SetPortDevice(unsigned device) {
         port_device = device;
-        if (retro_set_controller_port_device_ && GameLoaded())
-            for (unsigned port = 0; port < 2; ++port) retro_set_controller_port_device_(port, device);
+        ApplyPortDevices();
     }
+    void ApplyPortDevices() {
+        if (!retro_set_controller_port_device_ || !GameLoaded()) return;
+        for (unsigned port = 0; port < Ports(); ++port)
+            retro_set_controller_port_device_(port, port_special[port] ? port_special[port] : port_device);
+    }
+    // Puertos que el núcleo dice tener (2 si no lo dice).
+    unsigned Ports() const { return controller_ports_ ? std::min<unsigned>(controller_ports_, kPorts) : 2; }
 
     // Vibración que pide el núcleo (Rumble Pak, DualShock): 0..65535 por puerto, fuerte y débil.
-    uint16_t rumble[4][2] = {};
+    uint16_t rumble[kPorts][2] = {};
     // true una vez si el núcleo cambió la frecuencia del sonido a mitad del juego.
     bool TakeAudioRateChanged() { bool c = audio_rate_changed_; audio_rate_changed_ = false; return c; }
 
@@ -187,6 +196,7 @@ private:
     bool game_loaded_ = false;
     retro_disk_control_ext_callback disk_{};
     bool has_disk_ = false;
+    unsigned controller_ports_ = 0;
     std::string last_msg_;
     fs::path rom_path_;
     std::vector<uint8_t> rom_data_;

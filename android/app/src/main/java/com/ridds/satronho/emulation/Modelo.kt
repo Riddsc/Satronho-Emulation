@@ -79,6 +79,8 @@ data class Juego(
     val clave: String, val titulo: String, val sistema: String, val etiquetas: String, val portada: String,
     val favorito: Boolean, val oculto: Boolean, val tiempo: Long, val tiempoTexto: String, val ultima: Long,
     val ultimaTexto: String, val continuar: Boolean, val tono: Int,
+    /** Juegos de Satronho NX: la ruta del archivo (NX lo abre) y su programa (lo dice NX). */
+    val ruta: String = "", val programa: String = "",
 )
 
 data class Consola(
@@ -94,6 +96,9 @@ data class Biblioteca(
     val consejos: List<Consejo> = emptyList(),
     val buscando: Boolean = false,
     val carpetas: Int = 0,
+    /** Claves y firmware de la Switch que el hub encontró en el teléfono (para el asistente de NX). */
+    val nxClaves: List<String> = emptyList(),
+    val nxFirmware: List<String> = emptyList(),
 ) {
     fun consola(id: String) = consolas.firstOrNull { it.id == id }
 }
@@ -201,7 +206,7 @@ object Leer {
             juegos.add(Juego(g.optString("clave"), g.optString("titulo"), g.optString("sistema"), g.optString("etiquetas"),
                 g.optString("portada"), g.optBoolean("favorito"), g.optBoolean("oculto"), g.optLong("tiempo"),
                 g.optString("tiempo_texto"), g.optLong("ultima"), g.optString("ultima_texto"), g.optBoolean("continuar"),
-                g.optInt("tono")))
+                g.optInt("tono"), g.optString("ruta"), g.optString("programa")))
         }
         val consolas = ArrayList<Consola>()
         val ca = o.optJSONArray("consolas") ?: JSONArray()
@@ -217,7 +222,10 @@ object Leer {
             val c = ta.getJSONObject(i)
             consejos.add(Consejo(c.optString("guia"), c.optString("texto")))
         }
-        return Biblioteca(juegos, consolas, consejos, o.optBoolean("buscando"), o.optInt("carpetas"))
+        val nx = o.optJSONObject("nx")
+        fun lista(a: JSONArray?): List<String> = if (a == null) emptyList() else (0 until a.length()).map { a.getString(it) }
+        return Biblioteca(juegos, consolas, consejos, o.optBoolean("buscando"), o.optInt("carpetas"),
+            lista(nx?.optJSONArray("claves")), lista(nx?.optJSONArray("firmware")))
     }
 
     /** Un aviso suelto: devuelve un Aviso, una Tarjeta o null. */
@@ -238,6 +246,9 @@ object Leer {
             "explorador" -> Explorar(o.optBoolean("raiz"))
             "ir" -> Ir(o.optString("pagina"))
             "consola" -> VerConsola(o.optString("id"))
+            "nx" -> PedidoNx(o.optString("clave"), o.optString("ruta"), o.optString("titulo"))
+            "respaldo" -> PedidoRespaldo(o.optString("ruta"), o.optBoolean("todos"), o.optBoolean("hecho"))
+            "restaurar" -> PedidoRestaurar
             else -> null
         }
     }
@@ -247,5 +258,7 @@ object Leer {
 data class Explorar(val raiz: Boolean)
 /** Un guía llevó a otra pantalla de Ajustes («ir»). */
 data class Ir(val pagina: String)
+/** C++ pide jugar un juego de Switch con Satronho NX. */
+data class PedidoNx(val clave: String, val ruta: String, val titulo: String)
 /** Un guía llevó a una consola de la biblioteca. */
 data class VerConsola(val id: String)

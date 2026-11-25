@@ -58,7 +58,10 @@ set(SATRONHO_SOURCES
   src/app_tools.cpp
   src/app_native.cpp
   src/app_native_pages.cpp
+  src/app_phone.cpp
+  src/app_backup.cpp
   src/sys/native_ui.cpp
+  src/sys/phone_scan.cpp
   src/core/audio.cpp
   src/core/core_host.cpp
   src/core/input.cpp
