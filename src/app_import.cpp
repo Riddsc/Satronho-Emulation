@@ -149,9 +149,17 @@ void App::SetupPublicFolder() {
             return;
         }
     }
+    const bool nueva = EnsureGamesTree(root);
+    if (nueva)
+        NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"carpeta_nueva\",\"guia\":\"samy\",\"titulo\":" + NativeUi::Quote(Tr("Tu carpeta Satronho Games")) +
+                       ",\"texto\":" +
+                       NativeUi::Quote(Tr("Te armé «Satronho Games» en la memoria del celular, con una carpeta para cada consola, otra para las BIOS y otra para "
+                                          "las claves de NX. ¿Busco juegos en todo el teléfono para ordenarlos ahí?")) +
+                       ",\"botones\":[[\"no\"," + NativeUi::Quote(Tr("Ahora no")) + "],[\"ver\"," + NativeUi::Quote(Tr("Buscar")) + "]]}");
     if (ini_.Get("android.carpeta_publica") == Paths::ToUtf8(root)) {
         Paths::SetPublicRoot(root);
         Log::Info("Carpeta de Satronho: %s", Paths::ToUtf8(root).c_str());
+        SyncBiosFolder();
         return;
     }
     BeginDataMove(root);
@@ -161,6 +169,33 @@ void App::SetupPublicFolder() {
 // Muda juegos, partidas y estados a otra carpeta (de la de la app a «Satronho Games», o de una
 // carpeta pública a otra que la persona elija), en segundo plano. Los juegos cambian de ruta y con
 // eso de clave: el tiempo de juego, los favoritos y los estados pasan a la clave nueva.
+// «Satronho Games/BIOS»: lo que la persona pone ahí se reconoce y se usa; y las BIOS que ya tenía la
+// app quedan también ahí, a la vista, para respaldarlas.
+void App::SyncBiosFolder() {
+    const fs::path dir = Paths::PublicRoot().empty() ? fs::path{} : Paths::PublicRoot() / "BIOS";
+    std::error_code ec;
+    if (dir.empty() || !fs::exists(dir, ec)) return;
+    for (auto it = fs::directory_iterator(dir, ec); !ec && it != fs::directory_iterator(); it.increment(ec)) {
+        if (!it->is_regular_file(ec)) continue;
+        const SystemDef* sys = nullptr;
+        const BiosFile* b = BiosFor(Lower(Paths::ToUtf8(it->path().filename())), it->file_size(ec), &sys);
+        if (!b) continue;
+        const fs::path dst = Paths::System() / b->name;
+        std::error_code e;
+        if (fs::exists(dst, e) && fs::file_size(dst, e) == it->file_size(e)) continue;
+        fs::create_directories(dst.parent_path(), e);
+        fs::copy_file(it->path(), dst, fs::copy_options::overwrite_existing, e);
+        if (!e) Log::Info("BIOS desde Satronho Games: %s para %s", b->name, sys->full.c_str());
+    }
+    for (const auto& sd : Systems())
+        for (const auto& b : sd.bios) {
+            const fs::path src = Paths::System() / b.name;
+            const fs::path copy = dir / fs::path(b.name).filename();
+            std::error_code e;
+            if (fs::exists(src, e) && !fs::exists(copy, e)) fs::copy_file(src, copy, e);
+        }
+}
+
 void App::BeginDataMove(const fs::path& to) {
     if (move_state_ != 0) return;
     if (move_thread_.joinable()) move_thread_.join();

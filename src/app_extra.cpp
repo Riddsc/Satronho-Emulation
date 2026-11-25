@@ -857,7 +857,7 @@ void App::DoChatAction(const ChatButton& b) {
     case ChatAction::Library: page_ = Page::Library; lib_system_.clear(); break;
     case ChatAction::System: page_ = Page::Library; lib_system_ = b.arg; break;
     case ChatAction::Controls: page_ = Page::Controls; break;
-    case ChatAction::Hotkeys: page_ = Page::Controls; ctrl_tab_ = 3; break;
+    case ChatAction::Hotkeys: page_ = Page::Controls; ctrl_tab_ = kCtrlHotkeys; break;
     case ChatAction::Suggested: page_ = Page::Suggested; break;
     case ChatAction::ApplySuggestion:
         ApplySuggestion();
@@ -1195,6 +1195,42 @@ int App::GpuResFor(const SystemDef& sys, int api) const {
     for (int k : steps)
         if (ResHeight(k) <= cap) best = k;
     return best;
+}
+
+int App::CtrlPlayersShown() const {
+    int n = std::max(2, static_cast<int>(input_.Gamepads().size()));
+    for (int pl = 0; pl < Input::kPlayers; ++pl)
+        if (input_.players[pl].pad >= 0 || !input_.players[pl].guid.empty()) n = std::max(n, pl + 1);
+    if (ctrl_tab_ >= 1 && ctrl_tab_ <= Input::kPlayers) n = std::max(n, ctrl_tab_);
+    return std::min(n, static_cast<int>(Input::kPlayers));
+}
+
+int App::ApplyPlayers(const SystemDef& sys, bool in_game) {
+    const int n = input_.ActivePlayers();
+    for (auto& d : core_.port_special) d = 0;
+    if (sys.id == "octa") {
+        core_.SetOption("nestopia_select_adapter", n > 2 ? "ntsc" : "auto");
+    } else if (sys.id == "hexa") {
+        // Multitap de Super Nintendo en el puerto 2: los jugadores 2 a 5 van por ahí.
+        if (n > 2) core_.port_special[1] = RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0);
+    } else if (sys.id == "mega") {
+        // Team Player en el puerto 2 (solo el núcleo del celular lo tiene; el de PC es de 2 jugadores).
+#ifdef __ANDROID__
+        if (n > 2) core_.port_special[1] = RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 6);
+#endif
+    } else if (sys.id == "cd") {
+        // Multitap: hasta 5 jugadores con uno en el puerto 2; hasta 8 con los dos.
+        core_.SetOption("beetle_psx_hw_enable_multitap_port1", n > 5 ? "enabled" : "disabled");
+        core_.SetOption("beetle_psx_hw_enable_multitap_port2", n > 2 ? "enabled" : "disabled");
+    } else if (sys.id == "anillo") {
+        core_.SetOption("beetle_saturn_multitap_port1", n > 7 ? "enabled" : "disabled");
+        core_.SetOption("beetle_saturn_multitap_port2", n > 2 ? "enabled" : "disabled");
+    }
+    if (in_game) core_.ApplyPortDevices();
+    if (n > 2 && n != players_applied_)
+        Log::Info("%d jugadores en %s: adaptador de varios jugadores conectado", n, sys.full.c_str());
+    players_applied_ = n;
+    return n;
 }
 
 void App::ApplyGpuChoice(const SystemDef& sys) {

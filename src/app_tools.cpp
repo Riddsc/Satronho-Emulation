@@ -322,6 +322,21 @@ void App::DrawTools() {
     });
 
     ImGui::Dummy({0, S(18)});
+    // ---------------- Partidas: respaldar y restaurar (también entre PC y celular)
+    card("##t_partidas", "Partidas", Icon::Save, Color::Pink, S(200), [&]() {
+        Muted("Un .zip con las partidas y los estados de todos tus juegos. Se restaura aquí o en el celular, y cada partida vuelve a su juego aunque el "
+              "archivo se llame distinto.",
+              13);
+        ImGui::Dummy({0, S(8)});
+        if (Button("Respaldar todas las partidas", ButtonKind::Primary, {0, 0}, Icon::Save, true)) BackupAndShare(library_.Snapshot(), "todas");
+        ImGui::SameLine(0, S(8));
+        if (Button("Restaurar un respaldo", ButtonKind::Secondary, {0, 0}, Icon::Folder, true)) {
+            static const SDL_DialogFileFilter zip[] = {{"Respaldo de Satronho (.zip)", "zip"}};
+            SDL_ShowOpenFileDialog(&RestoreDialogCallback, this, window_, zip, 1, Paths::ToUtf8(BackupFolder()).c_str(), false);
+        }
+    });
+
+    ImGui::Dummy({0, S(18)});
     // ---------------- Discos a .chd (el mismo panel de Ajustes » Biblioteca)
     PanelBegin("##t_chd", {compact_ ? avail : col_w * 2 + S(18), 0}, Color::Surface, 16, {20, 18});
     DrawChdPanel();
@@ -334,6 +349,11 @@ void App::DrawTools() {
 void App::NativePageTools(NPage& p) {
     p.Section("");
     p.Guide("nono", "Aquí tienes lo que no es jugar: probar tus mandos, mirar las partidas de tus Memory Cards y abrir las carpetas de Satronho.");
+
+    p.Section("Partidas", "Un .zip con las partidas y los estados de todos tus juegos (y los de Satronho NX). Se restaura aquí, en otro celular o en el PC.");
+    p.Action("respaldar_todo", "Respaldar todas las partidas", "", "guardar", [this] { BackupAndShare(library_.Snapshot(), "todas"); }, "primario");
+    p.Action("restaurar", "Restaurar un respaldo", "Elige el .zip. Cada partida vuelve a su juego aunque el archivo se llame distinto.", "cargar",
+             [] { NativeUi::Emit("{\"t\":\"restaurar\"}"); });
 
     // Prueba de mandos (en vivo).
     p.Section("Prueba de mandos");

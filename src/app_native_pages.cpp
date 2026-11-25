@@ -235,6 +235,12 @@ std::string App::NativeSettingsJson() {
             }, "", "¿Quitar esta carpeta? Los juegos no se borran del celular.", "Quitar");
         }
         p.Action("agregar", "Agregar carpeta", "Elige dónde guardas tus juegos.", "agregar", [this] { OpenBrowser(true); }, "primario");
+        p.Link("escaneo", "Buscar juegos en todo el teléfono", "Reviso descargas, WhatsApp, la tarjeta SD… y tú eliges qué agregar.", "buscar");
+        if (NxAvailable()) {
+            p.Section("Satronho NX · para juegos de Switch", "Los juegos de Switch se abren con Satronho NX, que el hub instala y prepara por ti.");
+            p.Action("nx_asistente", "Preparar Satronho NX", "Instalarla, darle tus claves y tu firmware, y ver si tu teléfono sirve.", "mando",
+                     [] { NativeUi::Emit("{\"t\":\"nx\",\"clave\":\"\"}"); }, "primario");
+        }
         if (library_.Scanning()) p.Action("cancelar", "Buscando juegos…", "Toca para cancelar la búsqueda.", "refrescar", [this] { library_.CancelScan(); });
         else p.Action("buscar", "Volver a buscar", "Revisa las carpetas otra vez.", "refrescar", [this] { Rescan(); });
         p.Section("Carátulas");
@@ -388,6 +394,9 @@ std::string App::NativeSettingsJson() {
             }, "resolucion");
         }
         p.Section("");
+        if (sd && !sd->external)
+            p.Action("respaldar", "Respaldar sus partidas", "Un .zip con su partida y sus estados. Se restaura en el PC o en otro celular.", "guardar",
+                     [this, game] { BackupAndShare({game}, game.title); });
         p.Action("fav", game.favorite ? "Quitar de favoritos" : "Agregar a favoritos", "", "estrella", [this, game] {
             library_.ToggleFavorite(game.key);
             games_dirty_ = true;
@@ -418,6 +427,11 @@ std::string App::NativeSettingsJson() {
         title = "Herramientas";
         subtitle = "Cosas útiles para tus juegos, tus mandos y tus partidas";
         icon = "herramientas";
+    } else if (pg == "escaneo") {
+        title = "Buscar en el teléfono";
+        subtitle = "Juegos, claves y firmware";
+        icon = "buscar";
+        NativePagePhoneScan(p);
     } else if (pg == "chat") {
         title = "Guías";
         subtitle = "Pregúntales lo que quieras";
@@ -442,11 +456,21 @@ void App::NativePageControls(NPage& p) {
         if (SystemById(v)) ctrl_system_ = v;
         input_.CancelCapture();
     });
-    const int tab = std::clamp(ctrl_tab_, 0, 3);
-    p.Tabs("pestana", tab == 0 ? 0 : tab, {"General", "Jugador 1", "Jugador 2", "Atajos"}, [this](int v) {
-        ctrl_tab_ = std::clamp(v, 0, 3);
+    const int tab = ctrl_tab_ <= 0 ? 0 : ctrl_tab_ >= kCtrlHotkeys ? 2 : 1;
+    p.Tabs("pestana", tab, {"General", "Jugadores", "Atajos"}, [this](int v) {
+        ctrl_tab_ = v <= 0 ? 0 : v >= 2 ? kCtrlHotkeys : std::max(ctrl_last_player_, 1);
         input_.CancelCapture();
+        input_.CancelClaim();
     });
+    if (tab == 1) {
+        std::vector<std::string> js;
+        for (int pl = 0; pl < CtrlPlayersShown(); ++pl) js.push_back(std::to_string(pl + 1));
+        p.Tabs("jugador", ctrl_tab_ - 1, js, [this](int v) {
+            ctrl_tab_ = std::clamp(v + 1, 1, static_cast<int>(Input::kPlayers));
+            ctrl_last_player_ = ctrl_tab_;
+            input_.CancelCapture();
+        });
+    }
     if (tab == 0) {
         p.Section("Mandos");
         p.Slider("zona", "Zona muerta de las palancas", "Cuánto hay que mover la palanca para que cuente.", input_.deadzone * 100, 5, 60, 1, "%.0f %%",
@@ -456,9 +480,27 @@ void App::NativePageControls(NPage& p) {
         const auto pads = input_.Gamepads();
         if (pads.empty()) p.Info("No hay mandos conectados", "Conecta uno por Bluetooth o USB y aparece aquí al momento.", "mando");
         for (const auto& pd : pads) p.Info(TrFmt("Mando %d · %s", pd.slot + 1, pd.name.c_str()), pd.family_name, "mando");
+        p.Section("Jugadores", "Hasta 8. NES, Super Nintendo, Genesis, PlayStation y Saturn conectan solas su adaptador de varios jugadores; 64 y Dreamcast traen 4 puertos.");
+        const int claiming = input_.Claiming();
+        if (claiming >= 0) {
+            p.Guide("samy", TrFmt("Jugador %d: aprieta cualquier botón en tu mando.", claiming + 1));
+            p.Action("puesto_cancelar", "Cancelar", "", "cerrar", [this] { input_.CancelClaim(); });
+        } else {
+            p.Action("puestos", "Toma tu puesto", "Cada uno aprieta un botón en su mando, en orden: Jugador 1, 2, 3… Su mando vibra al quedar.", "mando",
+                     [this] { input_.StartClaimAll(); }, "primario");
+        }
+        for (int pl = 0; pl < CtrlPlayersShown(); ++pl) {
+            const PlayerConfig& pc = input_.players[pl];
+            std::string who = Tr("Sin mando");
+            for (const auto& pd : pads)
+                if (pd.slot == pc.pad) who = pd.name;
+            if (pc.pad < 0 && pc.Disconnected()) who = Tr("Su mando está desconectado");
+            p.Action("puesto" + std::to_string(pl), TrFmt("Jugador %d", pl + 1), who, "mando", [this, pl] { input_.StartClaim(pl); }, claiming == pl ? "primario" : "",
+                     "", claiming == pl ? Tr("Esperando…") : Tr("Elegir con un botón"));
+        }
         return;
     }
-    if (tab == 3) {
+    if (tab == 2) {
         p.Section("Atajos", "Funciones de Satronho con un botón del mando. Toca uno y aprieta el botón que quieras.");
         const PadFamily fam = input_.Gamepads().empty() ? PadFamily::Generic : input_.FamilyOfSlot(input_.Gamepads().front().slot);
         for (int h = 0; h < static_cast<int>(Hotkey::Count); ++h) {
@@ -471,7 +513,7 @@ void App::NativePageControls(NPage& p) {
         p.Action("atajos_restablecer", "Restablecer los atajos", "", "refrescar", [this] { input_.ResetHotkeys(); SaveConfig(); }, "", "¿Restablecer los atajos?");
         return;
     }
-    const int player = tab - 1;
+    const int player = std::clamp(ctrl_tab_ - 1, 0, static_cast<int>(Input::kPlayers) - 1);
     // Mando del jugador.
     {
         const auto pads = input_.Gamepads();
@@ -607,13 +649,14 @@ std::string App::NativeExtrasJson() {
     }
     // Recibiendo juegos, mudanza de carpeta.
     s += NativeImportJson();
+    s += NativeOrganizeJson();
     if (move_state_ == 1)
         s += ",\"progreso\":{\"id\":\"mudanza\",\"guia\":\"samy\",\"texto\":" +
              Quote(TrFmt("Estoy pasando tus juegos, partidas y estados a «%s», en la memoria del celular: así no se borran si desinstalas la app. %d de %d archivos.",
                          Paths::ToUtf8(move_to_.filename()).c_str(), move_done_.load(), move_total_.load())) +
              ",\"avance\":" + NPage::Num(move_total_ > 0 ? static_cast<float>(move_done_) / move_total_ : -1.0f) +
              ",\"nota\":" + Quote(Tr("No cierres la app mientras tanto.")) + ",\"botones\":[]}";
-    s += ",\"capturando\":" + std::string(input_.Capturing() ? "true" : "false");
+    s += ",\"capturando\":" + std::string(input_.Capturing() || input_.Claiming() >= 0 ? "true" : "false");
     return s;
 }
 
@@ -681,7 +724,7 @@ bool App::NativeCommandExtra(const std::vector<std::string>& a) {
                 std::string dest;
                 switch (b.action) {
                 case ChatAction::Controls: dest = "controles"; break;
-                case ChatAction::Hotkeys: dest = "controles"; ctrl_tab_ = 3; break;
+                case ChatAction::Hotkeys: dest = "controles"; ctrl_tab_ = kCtrlHotkeys; break;
                 case ChatAction::Suggested: dest = "sugerida"; break;
                 case ChatAction::News: case ChatAction::CheckUpdates: dest = "novedades"; break;
                 case ChatAction::SettingsVideo: dest = "graficos"; break;

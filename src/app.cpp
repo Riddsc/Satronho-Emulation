@@ -88,6 +88,13 @@ void FileDialogCallback(void* user, const char* const* list, int) {
     for (; *list; ++list) app->pending_roms_.push_back(*list);
 }
 
+void RestoreDialogCallback(void* user, const char* const* list, int) {
+    auto* app = static_cast<App*>(user);
+    if (!list || !*list) return;
+    std::lock_guard lock(app->pending_mutex_);
+    app->pending_restores_.push_back(*list);
+}
+
 void CoverDialogCallback(void* user, const char* const* list, int) {
     auto* app = static_cast<App*>(user);
     if (!list || !*list) return;
@@ -354,7 +361,10 @@ bool App::Init() {
         ctrl_system_ = qa_["sistema"];
     }
     if (qa_.count("gfx")) gfx_sys_ = qa_["gfx"];
-    if (qa_.count("ctrl")) ctrl_tab_ = std::atoi(qa_["ctrl"].c_str());
+    if (qa_.count("ctrl")) {
+        ctrl_tab_ = std::atoi(qa_["ctrl"].c_str());
+        if (ctrl_tab_ == 3) ctrl_tab_ = kCtrlHotkeys; // ctrl=3 eran los atajos
+    }
     if (qa_.count("tab")) tab_ = static_cast<SettingsTab>(std::clamp(std::atoi(qa_["tab"].c_str()), 0, static_cast<int>(SettingsTab::Count) - 1));
     if (qa_.count("rom")) {
         // «continuar=1»: como el botón Continuar (pasa por «Cargando…» y la ranura automática).
@@ -684,6 +694,8 @@ void App::Frame() {
     NativeTick();
     PollUnpack();
     PollDataMove();
+    PollPhoneScan();
+    PollOrganize();
 #ifdef __ANDROID__
     // El permiso de archivos se puede dar después (en la pantalla de Android): se revisa cada tanto.
     if (Paths::PublicRoot().empty() && move_state_ == 0 && SDL_GetTicks() / 1000.0 - public_check_t_ > 1.5) {
@@ -921,6 +933,12 @@ void App::ProcessPendingPaths() {
         bios.swap(pending_bios_);
     }
     for (const auto& b : bios) ImportBios(bios_target_, Paths::FromUtf8(b));
+    std::vector<std::string> restores;
+    {
+        std::lock_guard lock(pending_mutex_);
+        restores.swap(pending_restores_);
+    }
+    for (const auto& r : restores) RestoreAndTell(Paths::FromUtf8(r));
     std::vector<std::string> covers;
     {
         std::lock_guard lock(pending_mutex_);
@@ -1062,12 +1080,34 @@ void App::HandleEvent(const SDL_Event& e) {
     const bool was_capturing = input_.Capturing();
     ImGui_ImplSDL3_ProcessEvent(&e);
     // Se desconectó el mando mientras se juega con él: el juego espera con el menú de arriba a la vista.
-    if (e.type == SDL_EVENT_GAMEPAD_REMOVED && in_game_ && !bar_open_ && !menu_open_ && !native_menu_) {
+    int jugador_ido = -1;
+    if (e.type == SDL_EVENT_GAMEPAD_REMOVED)
+        for (int pl = 0; pl < Input::kPlayers; ++pl)
+            if (input_.players[pl].bound == e.gdevice.which) jugador_ido = pl;
+    if (e.type == SDL_EVENT_GAMEPAD_REMOVED && jugador_ido >= 0 && in_game_ && !bar_open_ && !menu_open_ && !native_menu_) {
         if (NativeMode()) SetNativeMenu(true);
         else bar_open_ = true;
-        Toast("Se desconectó el mando. El juego espera: conéctalo o sigue con el control en pantalla.", GuideId::Samy, 5);
+        if (jugador_ido == 0)
+            Toast("Se desconectó el mando. El juego espera: conéctalo o sigue con el control en pantalla.", GuideId::Samy, 5);
+        else
+            Toast(TrFmt("Se fue el mando del Jugador %d. El juego espera: al reconectarlo vuelve a su mismo puesto.", jugador_ido + 1), GuideId::Samy, 6);
     }
+    bool antes[Input::kPlayers];
+    for (int pl = 0; pl < Input::kPlayers; ++pl) antes[pl] = input_.players[pl].pad >= 0;
     input_.HandleEvent(e);
+    if (e.type == SDL_EVENT_GAMEPAD_ADDED || e.type == SDL_EVENT_GAMEPAD_REMOVED) {
+        if (e.type == SDL_EVENT_GAMEPAD_ADDED)
+            for (int pl = 0; pl < Input::kPlayers; ++pl)
+                if (!antes[pl] && input_.players[pl].pad >= 0) {
+                    if (in_game_) Toast(TrFmt("Volvió el Jugador %d, en su mismo puesto.", pl + 1), GuideId::Samy, 3);
+                    input_.Greet(input_.players[pl].pad);
+                }
+        if (in_game_ && sys_) ApplyPlayers(*sys_, true);
+    }
+    if (const std::string c = input_.TakeClaimNote(); !c.empty()) {
+        Toast(c, GuideId::Samy, 3);
+        SaveConfig();
+    }
     TouchEvent(e);
     switch (e.type) {
     case SDL_EVENT_QUIT:
@@ -1258,6 +1298,8 @@ bool App::StartGame(const fs::path& rom) {
     // Cada consola guarda sus partidas en su propia carpeta (partidas/<consola>).
     core_.SetSaveDir(Paths::Saves() / sys->id);
     ApplyGpuChoice(*sys);
+    players_applied_ = 0;
+    const int jugadores = ApplyPlayers(*sys, false);
     game_api_ = game_res_ = 0; // lo del juego vale solo para abrirlo (las pantallas muestran lo de la consola)
     fs::path load_path = rom;
     std::vector<uint8_t> mem;
@@ -1270,6 +1312,8 @@ bool App::StartGame(const fs::path& rom) {
         Toast(err, GuideId::MechaRidds, 6);
         return false;
     }
+    if (jugadores > 2 && (sys->id == "octa" || sys->id == "hexa" || sys->id == "cd" || sys->id == "anillo" || sys->id == "n64" || sys->id == "sueno"))
+        Toast(TrFmt("%d jugadores listos. Cada uno en su puesto; si un mando se va, vuelve a su lugar al reconectarlo.", jugadores), GuideId::Samy, 5);
     if (sys->id == "cd" && BiosFound(*sys).empty() && !bios_hint_shown_) {
         bios_hint_shown_ = true;
         Toast("Sin BIOS de PlayStation uso OpenBIOS, que es libre. Si un juego falla, agrega la tuya en Ajustes » Núcleo » CD.",

@@ -272,4 +272,31 @@ bool ExtractAll(const fs::path& archive, const fs::path& dir, const std::functio
     return false;
 }
 
+// ---------------------------------------------------------------- escribir un .zip
+
+bool WriteZip(const fs::path& out, const std::vector<std::pair<std::string, std::vector<uint8_t>>>& files) {
+    mz_zip_archive z{};
+    if (!mz_zip_writer_init_heap(&z, 0, 64 * 1024)) return false;
+    bool ok = true;
+    for (const auto& [name, data] : files)
+        ok = ok && mz_zip_writer_add_mem(&z, name.c_str(), data.data(), data.size(), MZ_DEFAULT_COMPRESSION);
+    void* buf = nullptr;
+    size_t size = 0;
+    ok = ok && mz_zip_writer_finalize_heap_archive(&z, &buf, &size);
+    if (ok) {
+        std::error_code ec;
+        fs::create_directories(out.parent_path(), ec);
+#ifdef _WIN32
+        FILE* f = _wfopen(out.c_str(), L"wb");
+#else
+        FILE* f = std::fopen(out.c_str(), "wb");
+#endif
+        ok = f && std::fwrite(buf, 1, size, f) == size;
+        if (f) std::fclose(f);
+    }
+    mz_zip_writer_end(&z);
+    if (buf) mz_free(buf); // el .zip terminado pasó a ser nuestro
+    return ok;
+}
+
 } // namespace Satronho::Archive

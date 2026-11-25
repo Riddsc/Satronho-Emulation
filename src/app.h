@@ -25,6 +25,7 @@
 #include "sys/guide_chat.h"
 #include "sys/hardware.h"
 #include "sys/library.h"
+#include "sys/phone_scan.h"
 #include "sys/settings.h"
 #include "sys/systems.h"
 #include "sys/updater.h"
@@ -351,6 +352,36 @@ private:
     void ApplyVsync();
     std::vector<uint8_t> CurrentFrameRGBA(unsigned* w, unsigned* h);
     void ApplyGpuChoice(const SystemDef& sys); // motor y resolución de CD y 64
+    // Más de 2 jugadores: conecta el adaptador de varios jugadores de la consola (Four Score,
+    // Multitap, Team Player, 6Player). Devuelve cuántos jugadores quedaron.
+    int ApplyPlayers(const SystemDef& sys, bool in_game);
+
+    // Build 26 (app_phone.cpp): buscar en todo el teléfono, «Satronho Games» por consola y Satronho NX.
+    bool EnsureGamesTree(const fs::path& root);
+    void StartPhoneScan();
+    void PollPhoneScan();
+    void AddFoundFolders();
+    void BeginOrganize();
+    void PollOrganize();
+    void NativePagePhoneScan(NPage& p);
+    std::string NativeOrganizeJson() const;
+    std::string NxFilesJson() const;
+    void LaunchExternal(const Game& g);
+    bool NativeCommandPhone(const std::vector<std::string>& a);
+    void SyncBiosFolder();
+    // Respaldos de partidas (app_backup.cpp).
+    bool BackupSaves(const std::vector<Game>& games, const fs::path& out, int* saved_games);
+    fs::path BackupFolder() const;
+    void BackupAndShare(const std::vector<Game>& games, const std::string& what);
+    std::string RestoreSaves(const fs::path& zip, int* restored, std::vector<std::string>* missing);
+    void RestoreAndTell(const fs::path& zip);
+    PhoneScan phone_scan_;
+    PhoneScan::Result phone_result_;
+    bool phone_result_ready_ = false;
+    std::atomic<int> organize_state_{0}; // 0 nada, 1 moviendo, 2 terminó
+    std::atomic<int> organize_done_{0}, organize_total_{0};
+    int organize_failed_ = 0;
+    int players_applied_ = 0;
     int game_api_ = 0, game_res_ = 0; // ajustes del juego que se abre (0 = como la consola)
     int GpuApiFor(const SystemDef& sys) const;  // 1 OpenGL, 2 Vulkan, 3 procesador
     int GpuResFor(const SystemDef& sys, int api) const;
@@ -404,7 +435,10 @@ private:
     std::string tab_options_sys_;
     std::string lib_system_;        // consola elegida en la biblioteca ("" = todas)
     std::string ctrl_system_ = "octa";
-    int ctrl_tab_ = 1;              // 0 general, 1 jugador 1, 2 jugador 2, 3 atajos
+    static constexpr int kCtrlHotkeys = 9;
+    int ctrl_tab_ = 1;              // 0 general, 1..8 jugador 1..8, 9 atajos
+    int CtrlPlayersShown() const;
+    int ctrl_last_player_ = 1;   // cuántos jugadores se muestran en Controles (al menos 2)
     std::string core_tab_system_ = "octa";
     int profile_popup_ = 0;         // 0 cerrado, 1 nuevo, 2 renombrar
     int profile_player_ = 0;
@@ -531,6 +565,7 @@ private:
     std::vector<std::string> pending_folders_;
     std::vector<std::string> pending_roms_;
     std::vector<std::string> pending_bios_;
+    std::vector<std::string> pending_restores_; // respaldos de partidas elegidos en el PC
     std::vector<std::string> pending_covers_;
     bool bios_hint_shown_ = false;
     std::string bios_target_;
@@ -587,6 +622,10 @@ private:
     friend void FileDialogCallback(void*, const char* const*, int);
     friend void BiosDialogCallback(void*, const char* const*, int);
     friend void CoverDialogCallback(void*, const char* const*, int);
+    friend void RestoreDialogCallback(void*, const char* const*, int);
 };
+
+// Respaldo de partidas elegido en el PC (diálogo de SDL).
+void RestoreDialogCallback(void* user, const char* const* list, int);
 
 } // namespace Satronho

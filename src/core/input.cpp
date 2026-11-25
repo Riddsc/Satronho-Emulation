@@ -98,8 +98,10 @@ void Input::Init() {
     players[0] = {};
     players[0].keyboard = true;
     players[0].want_pos = 0;
-    players[1] = {};
-    players[1].want_pos = 1;
+    for (int pl = 1; pl < kPlayers; ++pl) {
+        players[pl] = {};
+        players[pl].want_pos = pl;
+    }
     int count = 0;
     SDL_JoystickID* ids = SDL_GetGamepads(&count);
     for (int i = 0; i < count; ++i) {
@@ -300,7 +302,7 @@ void Input::Load(const Ini& ini) {
     for (int pl = 0; pl < kPlayers; ++pl) {
         const std::string b = "jugador." + std::to_string(pl + 1) + ".";
         players[pl].keyboard = ini.GetBool(b + "teclado", pl == 0);
-        players[pl].want_pos = std::clamp(ini.GetInt(b + "mando", pl), -1, 3);
+        players[pl].want_pos = std::clamp(ini.GetInt(b + "mando", pl), -1, kPlayers - 1);
         players[pl].guid = ini.Get(b + "mando_id");
         players[pl].bound = 0;
     }
@@ -577,6 +579,15 @@ void Input::HandleEvent(const SDL_Event& e) {
                 capture.pad = true;
                 AssignCaptured(SDL_SCANCODE_UNKNOWN, e.gbutton.button);
             }
+            break;
+        }
+        if (!claim_.empty() && s >= 0) {
+            const int pl = claim_.front();
+            claim_.erase(claim_.begin());
+            SetPlayerPad(pl, s);
+            Greet(s);
+            claim_note_ = std::string(Tr("Jugador")) + " " + std::to_string(pl + 1) + ": " + SDL_GetGamepadName(pads_[s].pad);
+            Log::Info("Jugador %d tomó el mando %d (%s)", pl + 1, s + 1, SDL_GetGamepadName(pads_[s].pad));
             break;
         }
         if (GameUses(e.gbutton.button)) break;
@@ -871,6 +882,30 @@ void Input::ResolvePads() {
         }
     }
     for (int pl = 0; pl < kPlayers; ++pl) players[pl].pad = slot_of[pl];
+}
+
+int Input::ActivePlayers() const {
+    int n = 0;
+    for (int pl = 0; pl < kPlayers; ++pl)
+        if (players[pl].pad >= 0 || (pl == 0 && players[pl].keyboard)) n = pl + 1;
+    return std::max(n, 1);
+}
+
+void Input::StartClaim(int player) {
+    if (player < 0 || player >= kPlayers) return;
+    CancelCapture();
+    claim_ = {player};
+}
+
+void Input::StartClaimAll() {
+    CancelCapture();
+    claim_.clear();
+    const int n = std::max<int>(static_cast<int>(pads_.size()), 1);
+    for (int pl = 0; pl < std::min(n, kPlayers); ++pl) claim_.push_back(pl);
+}
+
+void Input::Greet(int slot) {
+    if (SDL_Gamepad* pad = PadAt(slot)) SDL_RumbleGamepad(pad, 0x6000, 0xA000, 260);
 }
 
 void Input::ApplyRumble(const CoreHost& core, bool enabled) {

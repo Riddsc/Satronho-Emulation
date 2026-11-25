@@ -426,6 +426,12 @@ public class SatronhoActivity extends SDLActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (SatronhoUi.INSTANCE.getActiva()) SatronhoUi.INSTANCE.alVolver();
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);

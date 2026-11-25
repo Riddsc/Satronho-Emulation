@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "util/paths.h"
@@ -26,5 +27,7 @@ bool ExtractToMemory(const fs::path& archive, const std::string& name, std::vect
 // Saca todo a una carpeta (los juegos de disco: .cue con sus .bin). progress(0..1) opcional; si
 // devuelve false, se cancela (y ExtractAll devuelve false).
 bool ExtractAll(const fs::path& archive, const fs::path& dir, const std::function<bool(float)>& progress = {});
+// Escribe un .zip nuevo con estos archivos (nombre dentro del .zip y contenido). Para los respaldos.
+bool WriteZip(const fs::path& out, const std::vector<std::pair<std::string, std::vector<uint8_t>>>& files);
 
 } // namespace Satronho::Archive

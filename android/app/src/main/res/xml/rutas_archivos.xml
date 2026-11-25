@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Archivos que el hub comparte con Satronho NX (el juego, las claves, el firmware) y con otras apps
+     (respaldos de partidas). Solo se comparte el archivo pedido, con permiso de lectura. -->
+<paths>
+    <root-path name="raiz" path="/" />
+    <cache-path name="cache" path="." />
+    <files-path name="datos" path="." />
+</paths>

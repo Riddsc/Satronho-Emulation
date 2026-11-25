@@ -126,6 +126,7 @@ object SatronhoUi {
         if (vb != verBiblioteca) {
             verBiblioteca = vb
             biblioteca = Leer.biblioteca(Puente.biblioteca())
+            actividad?.let { Nx.revisarJuegos(it, biblioteca) }
         }
         val sueltos = Puente.avisos()
         if (sueltos.isNotEmpty()) {
@@ -141,6 +142,9 @@ object SatronhoUi {
                     is Ir -> if (a.pagina.isEmpty()) pilaAjustes.clear()
                         else if (pilaAjustes.lastOrNull()?.first != a.pagina) pilaAjustes.add(a.pagina to "")
                     is VerConsola -> { pilaAjustes.clear(); consolaPedida = a.id }
+                    is PedidoRespaldo -> actividad?.let { Respaldo.terminar(it, a) }
+                    is PedidoRestaurar -> Respaldo.pedirArchivo = true
+                    is PedidoNx -> actividad?.let { if (a.clave.isEmpty()) Nx.asistente = Nx.Asistente(null) else Nx.pedir(it, a) }
                 }
             }
         }
@@ -167,6 +171,11 @@ object SatronhoUi {
         marco.visibility = if (imgui) View.GONE else View.VISIBLE
         modoAnterior = modo
         imguiAnterior = imgui
+    }
+
+    /** La actividad volvió al frente (por ejemplo, al salir de un juego de Satronho NX). */
+    fun alVolver() {
+        actividad?.let { Nx.alVolver(it) }
     }
 
     fun orden(texto: String) {
@@ -219,6 +228,7 @@ object SatronhoUi {
         val e = estado
         if (presentacion && !e.enJuego) { presentacion = false; return true }
         if (explorador != null) { explorador = null; orden("explorador_cerrar"); return true }
+        if (Nx.asistente != null) { Nx.cerrar(); return true }
         if (e.confirmar != null) { orden("confirmar|no"); return true }
         if (e.zip != null) { orden("zip_cancelar"); return true }
         if (e.tactil.editar) { orden("tactil_listo"); return true }
@@ -293,6 +303,8 @@ private fun Raiz() {
                 e.confirmar?.let { VentanaConfirmar(it) }
                 CapaAvisos(e.enJuego)
                 SatronhoUi.tarjeta?.let { TarjetaGuia(it, e.enJuego) }
+                if (!e.enJuego) Nx.asistente?.let { AsistenteNx(it) }
+                SelectorRespaldo()
                 if (SatronhoUi.presentacion && !e.enJuego) Presentacion()
             }
         }

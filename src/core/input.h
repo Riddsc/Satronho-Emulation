@@ -60,7 +60,7 @@ enum class PadFamily { Xbox, PlayStation, Switch, Generic };
 
 class Input {
 public:
-    static constexpr int kPlayers = 2;
+    static constexpr int kPlayers = 8; // CoreHost::kPorts
     static constexpr const char* kDefaultProfile = "Predeterminado";
 
     void Init();
@@ -88,6 +88,18 @@ public:
     void SetPlayerPad(int player, int slot); // -1 = sin mando
     void ResolvePads();                      // reparte los mandos conectados entre los jugadores
     void ApplyRumble(const CoreHost& core, bool enabled);
+    // Jugadores que tienen con qué jugar (mando conectado, o el teclado el 1): hasta el último que tiene.
+    int ActivePlayers() const;
+    // «Toma tu puesto»: el próximo botón que se apriete en cualquier mando le da ese mando al jugador.
+    // Con varios en la cola, van en orden (Jugador 1, 2, 3…).
+    void StartClaim(int player);
+    void StartClaimAll();
+    void CancelClaim() { claim_.clear(); }
+    int Claiming() const { return claim_.empty() ? -1 : claim_.front(); }
+    // Aviso pendiente para la pantalla («Jugador 3: Mando DualShock 4»).
+    std::string TakeClaimNote() { std::string c; c.swap(claim_note_); return c; }
+    // Saluda al mando: vibra un momento (para saber cuál es de quién).
+    void Greet(int slot);
 
     // Vista en vivo: botones del RetroPad presionados ahora mismo por el jugador.
     uint16_t LiveButtons(int player, const SystemDef& sys);
@@ -169,6 +181,8 @@ private:
     bool GameUses(int code) const;
     std::string GuidOfSlot(int slot) const;
     bool combo_latched_ = false;
+    std::vector<int> claim_;
+    std::string claim_note_;
     std::string conflict_;
     uint64_t turbo_tick_ = 0;   // cuenta propia del turbo (no depende de los cuadros que dibuja el núcleo)
     uint16_t rumble_sent_[kPlayers][2] = {};
