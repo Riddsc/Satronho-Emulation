@@ -3,6 +3,45 @@
     {
       "version": "Esta build",
       "fecha": "25 de noviembre de 2026",
+      "titulo": "En el celular, todo es nuevo: pantallas nativas como las de Satronho NX y un control táctil que no se equivoca",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "En Android, la biblioteca, los Ajustes, el menú del juego y todas las ventanas están hechas como las de Satronho NX: tarjetas limpias, letras proporcionadas, pasos suaves entre pantallas y se manejan con el dedo o con el mando."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Vista carrusel en la biblioteca (menú de filtro): una portada grande con las vecinas a los lados y el fondo con los colores del juego. Se acomoda en vertical y en horizontal, y un deslizón rápido pasa varias portadas."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "La imagen del juego ya no se estira ni se aplasta: conserva su forma y el control en pantalla va encima, sin quitarle espacio."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "La cruceta táctil ya no marca dos direcciones cuando quieres una: las diagonales son más angostas y el centro tiene más margen. Si tu juego solo usa cuatro direcciones, activa «Solo 4 direcciones» en Ajustes » Control táctil."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Ñoño recuerda la resolución que eliges para cada juego, y la opción automática dice claramente qué está usando."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Controles muestra el dibujo del mando de cada consola, igual que en PC: toca un botón del dibujo para asignarlo y mira cómo se ilumina lo que aprietas."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Los juegos sin portada muestran el cartucho o la caja de disco de su consola, con los colores del juego. El logo de Satronho acompaña la biblioteca y los Ajustes, y cada guía aparece en su sección."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "En PC, el ícono de Herramientas ya no se monta sobre su texto."
+        }
+      ]
+    },
+    {
+      "version": "Build 24",
+      "fecha": "25 de noviembre de 2026",
       "titulo": "Un control en pantalla con la cara de cada consola, y volver de la PSP ya no cierra la app",
       "cambios": [
         {
