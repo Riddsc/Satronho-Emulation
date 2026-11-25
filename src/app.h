@@ -498,6 +498,12 @@ private:
     int audio_cuts_logged_ = 0, audio_drops_logged_ = 0;
     uint64_t emu_frames_ = 0;
     double session_s_ = 0;
+    // Cómo fue la sesión (para el resumen al salir y la ficha del juego).
+    double ses_fps_sum_ = 0, ses_fps_low_ = 1e9, ses_sample_t_ = 0;
+    int ses_fps_n_ = 0, ses_stutters0_ = 0;
+    void RecordSession();
+    void NativeGameRecord(NPage& p, const Game& g); // la ficha: tiempo, sesiones y su gráfica
+    std::string LastSessionBadge(const std::string& key) const;
     double uncommitted_s_ = 0;
     double sram_timer_ = 0;
     std::vector<uint8_t> runahead_state_;

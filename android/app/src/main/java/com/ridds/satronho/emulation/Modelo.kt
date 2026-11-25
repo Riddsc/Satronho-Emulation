@@ -71,6 +71,7 @@ data class Estado(
     val capturando: Boolean = false,
     val medidor: Medidor? = null,
     val chip: String = "",
+    val avisoCalor: Boolean = true,
 ) {
     val enJuego get() = modo == "juego"
 }
@@ -81,6 +82,8 @@ data class Juego(
     val ultimaTexto: String, val continuar: Boolean, val tono: Int,
     /** Juegos de Satronho NX: la ruta del archivo (NX lo abre) y su programa (lo dice NX). */
     val ruta: String = "", val programa: String = "",
+    /** Sello de la última sesión («60 fps»), como en Satronho NX. */
+    val sello: String = "",
 )
 
 data class Consola(
@@ -193,7 +196,7 @@ object Leer {
         }
         return Estado(o.optString("modo", "biblioteca"), o.optBoolean("imgui"), o.optInt("build"), o.optBoolean("guias", true),
             o.optString("idioma"), tema, cargando, juego, tactil, pagina, cf, bv, o.optString("novedad"), zp, pr,
-            o.optBoolean("capturando"), md, o.optString("chip"))
+            o.optBoolean("capturando"), md, o.optString("chip"), o.optBoolean("aviso_calor", true))
     }
 
     fun biblioteca(texto: String): Biblioteca {
@@ -206,7 +209,7 @@ object Leer {
             juegos.add(Juego(g.optString("clave"), g.optString("titulo"), g.optString("sistema"), g.optString("etiquetas"),
                 g.optString("portada"), g.optBoolean("favorito"), g.optBoolean("oculto"), g.optLong("tiempo"),
                 g.optString("tiempo_texto"), g.optLong("ultima"), g.optString("ultima_texto"), g.optBoolean("continuar"),
-                g.optInt("tono"), g.optString("ruta"), g.optString("programa")))
+                g.optInt("tono"), g.optString("ruta"), g.optString("programa"), g.optString("sello")))
         }
         val consolas = ArrayList<Consola>()
         val ca = o.optJSONArray("consolas") ?: JSONArray()
@@ -244,7 +247,7 @@ object Leer {
                 Tarjeta(o.optString("id"), o.optString("guia"), o.optString("titulo"), o.optString("texto"), bs)
             }
             "explorador" -> Explorar(o.optBoolean("raiz"))
-            "ir" -> Ir(o.optString("pagina"))
+            "ir" -> Ir(o.optString("pagina"), o.optString("arg"))
             "consola" -> VerConsola(o.optString("id"))
             "nx" -> PedidoNx(o.optString("clave"), o.optString("ruta"), o.optString("titulo"))
             "respaldo" -> PedidoRespaldo(o.optString("ruta"), o.optBoolean("todos"), o.optBoolean("hecho"))
@@ -257,7 +260,7 @@ object Leer {
 /** C++ pide abrir el explorador de carpetas (para juegos o para mover «Satronho Games»). */
 data class Explorar(val raiz: Boolean)
 /** Un guía llevó a otra pantalla de Ajustes («ir»). */
-data class Ir(val pagina: String)
+data class Ir(val pagina: String, val arg: String = "")
 /** C++ pide jugar un juego de Switch con Satronho NX. */
 data class PedidoNx(val clave: String, val ruta: String, val titulo: String)
 /** Un guía llevó a una consola de la biblioteca. */

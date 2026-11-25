@@ -398,6 +398,15 @@ private fun TarjetaJuego(g: Juego, c: Consola?, compacta: Boolean, jugar: () -> 
                 Icon(Icons.Filled.Star, null, tint = Color(0xFFFFD166),
                     modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(18.dp))
             }
+            // Sello de Satronho (como en NX): cómo fue su última sesión.
+            if (g.sello.isNotEmpty() && !compacta) {
+                Text(
+                    g.sello, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(6.dp).clip(RoundedCornerShape(6.dp))
+                        .background(color.copy(alpha = 0.85f)).padding(horizontal = 6.dp, vertical = 1.dp),
+                )
+            }
         }
         if (!compacta) {
             Spacer(Modifier.height(6.dp))
@@ -421,7 +430,7 @@ private fun FilaJuego(g: Juego, c: Consola?, jugar: () -> Unit, menu: () -> Unit
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(g.titulo, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val detalle = listOfNotNull(c?.completo, g.tiempoTexto.takeIf { it.isNotEmpty() }).joinToString(" · ")
+            val detalle = listOfNotNull(c?.completo, g.tiempoTexto.takeIf { it.isNotEmpty() }, g.sello.takeIf { it.isNotEmpty() }).joinToString(" · ")
             Text(detalle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         }
         if (g.favorito) Icon(Icons.Filled.Star, null, tint = Color(0xFFFFD166), modifier = Modifier.size(18.dp))

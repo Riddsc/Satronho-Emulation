@@ -141,3 +141,26 @@ fun SelectorRespaldo() {
         }
     }
 }
+
+/**
+ * Mientras se juega, cada medio minuto se mira la temperatura de la batería: si pasa de 42 °C, Ñoño
+ * avisa una vez (como Satronho NX). Un celular muy caliente baja su velocidad solo.
+ */
+@Composable
+fun VigilaCalor(activo: Boolean) {
+    val ctx = LocalContext.current
+    LaunchedEffect(activo) {
+        if (!activo) return@LaunchedEffect
+        var avisado = false
+        while (!avisado) {
+            kotlinx.coroutines.delay(30_000)
+            val i = try { ctx.registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED)) } catch (_: Throwable) { null }
+            val decimas = i?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+            if (decimas >= 420) {
+                avisado = true
+                val texto = TrFmtKt("El celular está a %d °C. Si se calienta más, se pone lento solo: dale un respiro o baja la resolución.", decimas / 10)
+                SatronhoUi.avisos.add(Aviso("nono", texto, 8.0))
+            }
+        }
+    }
+}

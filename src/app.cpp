@@ -22,6 +22,7 @@
 #include "util/chd.h"
 #include "util/hash.h"
 #include "util/log.h"
+#include "util/strip.h"
 
 #ifndef SATRONHO_BUILD
 #define SATRONHO_BUILD 0
@@ -1344,6 +1345,11 @@ bool App::StartGame(const fs::path& rom) {
     emu_frames_ = 0;
     acc_ = 0;
     session_s_ = 0;
+    ses_fps_sum_ = 0;
+    ses_fps_low_ = 1e9;
+    ses_sample_t_ = 0;
+    ses_fps_n_ = 0;
+    ses_stutters0_ = perf_.stutters;
     uncommitted_s_ = 0;
     sram_timer_ = 0;
     paused_ = false;
@@ -1379,6 +1385,7 @@ void App::StopGame() {
     // Ranura automática: al volver, «Continuar» sigue justo aquí.
     if (settings_.autosave_exit && core_.GameLoaded() && emu_frames_ > 30) SaveSlot(0, true);
     input_.ClearGameCodes();
+    RecordSession();
     CommitPlaytime();
     core_.UnloadGame();
     input_.ApplyRumble(core_, false);
@@ -1518,6 +1525,16 @@ void App::EmulateTick(double dt) {
     while (!perf_.emu_times.empty() && now - perf_.emu_times.front() > 1.0) perf_.emu_times.pop_front();
     perf_.fps = static_cast<double>(perf_.emu_times.size());
     WatchSlowGame(dt, fps);
+    // Una muestra por segundo para el resumen de la sesión (sin contar pausas ni avance rápido).
+    ses_sample_t_ += dt;
+    if (ses_sample_t_ >= 1.0) {
+        ses_sample_t_ = 0;
+        if (emu_frames_ > 120 && !paused_ && !fast_forward_ && !menu_open_ && !native_menu_) {
+            ses_fps_sum_ += perf_.fps;
+            ++ses_fps_n_;
+            ses_fps_low_ = std::min(ses_fps_low_, perf_.fps);
+        }
+    }
 
     // Cada minuto se anota en el registro cómo va el sonido, para revisar cortes.
     audio_report_s_ += dt;
@@ -1774,7 +1791,13 @@ void App::Screenshot() {
     const std::time_t t = std::time(nullptr);
     std::strftime(stamp, sizeof stamp, "%Y-%m-%d %H.%M.%S", std::localtime(&t));
     const fs::path p = Paths::Screenshots() / (Paths::SafeName(current_.title) + " " + stamp + ".png");
-    if (Ui::SavePng(Paths::ToUtf8(p), rgba.data(), static_cast<int>(w), static_cast<int>(h)))
+    std::vector<uint8_t> img(rgba.begin(), rgba.end());
+    if (settings_.screenshot_strip && sys_) {
+        char when[32];
+        std::strftime(when, sizeof when, "%d/%m/%Y", std::localtime(&t));
+        Strip::Add(img, w, h, current_.title, Tr(sys_->full), std::string("Satronho Emulation · ") + when, sys_->color, Paths::Assets());
+    }
+    if (Ui::SavePng(Paths::ToUtf8(p), img.data(), static_cast<int>(w), static_cast<int>(h)))
         Toast("Captura guardada en la carpeta de capturas", GuideId::Troya, 2.5);
 }
 

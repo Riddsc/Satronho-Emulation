@@ -84,6 +84,8 @@ void Settings::Load(const Ini& ini) {
     touch_opacity = std::clamp(ini.GetFloat("tactil.opacidad", touch_opacity), 0.15f, 1.0f);
     touch_haptics = ini.GetBool("tactil.vibracion", touch_haptics);
     touch_dpad4 = ini.GetBool("tactil.solo4", touch_dpad4);
+    screenshot_strip = ini.GetBool("captura.franja", screenshot_strip);
+    battery_warn = ini.GetBool("aviso.bateria", battery_warn);
     touch_offsets.clear();
     for (const auto& [k, v] : ini.Values()) {
         if (k.rfind("tactil.pos.", 0) != 0) continue;
@@ -174,6 +176,8 @@ void Settings::Save(Ini& ini) const {
     ini.SetFloat("tactil.opacidad", touch_opacity);
     ini.SetBool("tactil.vibracion", touch_haptics);
     ini.SetBool("tactil.solo4", touch_dpad4);
+    ini.SetBool("captura.franja", screenshot_strip);
+    ini.SetBool("aviso.bateria", battery_warn);
     for (const auto& [k, v] : touch_offsets) {
         char buf[64];
         std::snprintf(buf, sizeof buf, "%.4f,%.4f", v.first, v.second);

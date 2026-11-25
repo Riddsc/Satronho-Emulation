@@ -197,6 +197,11 @@ std::string App::NativeSettingsJson() {
                  }, "paleta");
         p.Slider("marca", "Logo de Satronho de fondo", "Su opacidad. Va de 10 % a 100 %; no se puede apagar.", settings_.watermark * 100, 10, 100, 5,
                  "%.0f %%", [this](float v) { settings_.watermark = std::clamp(v / 100.0f, 0.10f, 1.0f); SaveConfig(); });
+        p.Section("Satronho");
+        p.Toggle("franja", "Captura Satronho", "Las capturas llevan abajo una franja con el logo, el juego, su consola y la fecha.", settings_.screenshot_strip,
+                 [this](bool v) { settings_.screenshot_strip = v; SaveConfig(); }, "imagen");
+        p.Toggle("bateria", "Aviso de calor", "Ñoño te avisa si el celular pasa de 42 °C mientras juegas.", settings_.battery_warn,
+                 [this](bool v) { settings_.battery_warn = v; SaveConfig(); }, "info");
         p.Section("Idioma");
         {
             const auto& langs = I18n::Languages();
@@ -366,7 +371,8 @@ std::string App::NativeSettingsJson() {
         title = game.title;
         subtitle = sd ? Tr(sd->full) : "";
         icon = "ajustes_juego";
-        p.Section("Solo para este juego", "Lo demás sigue como la consola.");
+        NativeGameRecord(p, game);
+        if (!sd || !sd->external) p.Section("Solo para este juego", "Lo demás sigue como la consola.");
         if (sd && sd->id == "cd") {
             const bool normal = library_.GameOption(game.key, "mando") == "normal";
             p.Toggle("mando", "Mando normal (sin palancas)", "Para juegos viejos de PS1 que no aceptan el DualShock.", normal, [this, game](bool v) {

@@ -88,6 +88,8 @@ struct Settings {
     float touch_scale = 1.0f;
     float touch_opacity = 0.6f;
     bool touch_haptics = true;       // vibración corta al tocar un botón
+    bool screenshot_strip = true;    // «Captura Satronho»: franja con el logo, el juego y la fecha
+    bool battery_warn = true;        // aviso de Ñoño si el celular se calienta (42 °C)
     bool touch_dpad4 = false;        // cruceta solo con arriba, abajo, izquierda y derecha (sin diagonales)
     std::map<std::string, std::pair<float, float>> touch_offsets; // «<consola>.<grupo>» → corrimiento
 

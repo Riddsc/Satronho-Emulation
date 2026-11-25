@@ -80,6 +80,15 @@ fun TarjetaCarga(c: Cargando) {
                 }
             }
         }
+        // Un consejo de un guía mientras carga (como la pantalla de carga de Satronho NX).
+        val consejos = SatronhoUi.biblioteca.consejos
+        val consejo = remember(c.titulo) { consejos.randomOrNull() }
+        if (consejo != null) {
+            Surface(
+                shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f), tonalElevation = 2.dp,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(18.dp).widthIn(max = 520.dp).fillMaxWidth(),
+            ) { Box(Modifier.padding(12.dp)) { GuiaDice(consejo.guia, consejo.texto) } }
+        }
     }
 }
 
