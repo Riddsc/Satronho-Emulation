@@ -3,7 +3,28 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
-## Build 25 en curso (rama `build-25`): pantallas nativas de Android, como Satronho NX
+## Estado al 25 de noviembre de 2026 (build 25 publicada)
+
+Build 25 oficial: interfaz nativa en Android como Satronho NX (Kotlin + Compose encima de SDL), control
+táctil con la cara de cada consola, Controles con el dibujo del mando, carrusel, y los cinco arreglos
+(interfaz gorda, imagen estirada, resolución automática confusa, cruceta que marcaba dos direcciones, Ñoño).
+
+- Tras la prueba 3, Ridds dijo que los controles (en juego y en Controles) se ven bien. El carrusel se
+  rompía en horizontal (la portada medía el ancho y se salía) y deslizaba lento. Arreglo en `Carrusel`
+  (`Biblioteca.kt`): tamaño de portada según alto y ancho, en horizontal portadas a la izquierda y datos a la
+  derecha; la escala se lee en `graphicsLayer` (no recompone cada cuadro); fondo y datos siguen a
+  `settledPage`; `PagerSnapDistance.atMost(12)` para pasar varias de un deslizón. **Sin probar en teléfono.**
+
+### Falta probar (pedírselo a Ridds)
+- Carrusel en horizontal y deslizando rápido.
+- Que la app ofrezca la build 25 como actualización a quien tenga la 24.
+
+### Siguiente: build 26 = Satronho NX enlazada
+- El hub detecta/abre `dev.satronho.nx` (Intent VIEW + FileProvider para el juego). Pendiente de Ridds:
+  ¿lo descarga para cualquiera o solo lo abre si ya está instalado? (el repo de NX es público).
+- Pendientes menores: el chat no entiende «Games» solo; conversión CHD sin pantalla nativa; APK ~42 MB.
+
+### Cómo se hizo la build 25 (rama `build-25`, ya unida a `main`)
 
 Ridds vio Satronho NX como app aparte (video) y pidió que el hub en Android funcione **exactamente como NX**:
 pantallas nativas (Kotlin + Jetpack Compose), control en pantalla nativo, biblioteca en vertical y juego
