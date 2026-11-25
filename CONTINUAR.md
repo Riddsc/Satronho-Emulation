@@ -3,6 +3,32 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Build 25 en curso (rama `build-25`): pantallas nativas de Android, como Satronho NX
+
+Ridds vio Satronho NX como app aparte (video) y pidió que el hub en Android funcione **exactamente como NX**:
+pantallas nativas (Kotlin + Jetpack Compose), control en pantalla nativo, biblioteca en vertical y juego
+acostado. **NX queda para la build 26, enlazada** (el hub la abre como app aparte; no va dentro). Esto reemplaza
+el «build 25 = NX» de abajo. Plan aprobado: tres APK de prueba antes de publicar la 25.
+
+- **Prueba 1 (subida, commit 41a0abc)**: Release `prueba-25` (marcado como prueba; la app no lo ofrece como
+  actualización; versionCode 25 para instalar encima de la 24). Lo sube `android.yml` en cada push a `build-25`.
+- Arquitectura: una sola actividad. `SDLActivity` ahora extiende `androidx.activity.ComponentActivity`
+  (Compose necesita su ciclo de vida). `SatronhoUi.instalar` pone un `ComposeView` encima de la superficie de
+  SDL. Kotlin → C++: órdenes de texto (`Puente.orden("jugar|clave")`, atendidas en `App::NativeCommand`).
+  C++ → Kotlin: estado y biblioteca en JSON con número de versión (`NativeStateJson`, `NativeLibraryJson`,
+  leídos cada cuadro con Choreographer) y avisos sueltos (`NativeUi::Emit`). Control: `Puente.tactil(bits,…)`
+  → `NativeApplyTouch`. Archivos: `src/sys/native_ui.*`, `src/app_native.cpp`, `android/.../*.kt`.
+- Lo que todavía no es nativo se sigue viendo con ImGui: si `NativeNeedsImGui()` (Ajustes, explorador,
+  bienvenida, preguntas, editor del control…) Kotlin se esconde y los toques van a SDL. «Atrás» lo atiende
+  primero Kotlin (`SatronhoActivity.dispatchKeyEvent` → `SatronhoUi.atras`); si no lo usa, va a SDL.
+- `TouchReserve` vale 0 en modo nativo (el control va encima y la imagen conserva su forma); sin barra de menús.
+- Cruceta nativa: cardinales 72°, diagonales 18°, centro muerto 30 %, histéresis 6°; `tactil.solo4` en el ini.
+- Ñoño (juego lento): ahora guarda la resolución **por juego** (`SlowLower`), tarjeta nativa en la esquina.
+- Pendiente prueba 2: Ajustes nativos en tarjetas (como NX), novedades, sugerida, guías; etiqueta de la
+  resolución automática. Prueba 3: cajón completo, editor de controles, importar, mudanza, chat.
+- Pendiente: navegar la biblioteca nativa con un mando (hoy las teclas del mando van a SDL); el medidor sigue
+  siendo el de ImGui; el APK pesa ~41,7 MB (24: 35,2 MB) por Compose sin minificar.
+
 ## Estado al 25 de noviembre de 2026 (build 24)
 
 Ridds mandó el registro de Android (Mali-G78, 8 hilos, 120 Hz, app en inglés): WALL-E (PSP) andaba bien, pero al
