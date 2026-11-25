@@ -3,6 +3,40 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Estado al 25 de noviembre de 2026 (build 24)
+
+Ridds mandó el registro de Android (Mali-G78, 8 hilos, 120 Hz, app en inglés): WALL-E (PSP) andaba bien, pero al
+volver a la biblioteca la app se cerraba (también en PC). Pidió mejorar el control en pantalla (X, O, «Cross»…)
+y dejó trabajar solo, sin capturas ni aprobaciones (se fue a dormir).
+
+- **Cierre al salir de PSP** (`CoreHost::UnloadGame`): se llamaba `context_destroy` **después** de
+  `retro_unload_game`; PPSSPP borra `ctx` en `retro_unload_game` y su `context_destroy` lo usaba → cierre.
+  Ahora va antes, como RetroArch (`ContextDestroy` de PPSSPP está hecho para eso: para el hilo y suelta la GPU).
+  Probado con Beetle PSX (OpenGL y Vulkan): sale bien. PPSSPP no se pudo probar aquí (sandbox de 2 núcleos).
+- **Control en pantalla nuevo** (`app_touch.cpp`: `LookFor`, `DrawDisc`, `DrawPill`, `DrawGlyph`): relieve,
+  sombra, brillo y hundido al apretar; colores y figuras por consola (busca por el nombre del botón en
+  `SystemDef::buttons`: «Triángulo», «C arriba»…). Cruceta sólida con flechas grabadas; palanca con base y
+  cabeza. Para probar sin juego: un .cue con un .bin vacío abre OpenBIOS en Beetle PSX (`/tmp/psx/prueba.cue`)
+  y `tactil=1` muestra el control; para ver otras consolas se puede cambiar `sys_` en `DrawTouchPad` a mano.
+- **Textos de PPSSPP**: `scripts/ppsspp-assets.sh` baja también `lang/` (es_ES, es_LA, en_US, fr_FR, pt_BR,
+  pt_PT, it_IT).
+- La caché de sombreadores de PPSSPP no se puede guardar («Mode not yet supported (libretro vfs): ab»): es del
+  propio núcleo con libretro (pasa igual en RetroArch); no tiene arreglo desde el hub.
+- Las ventanas emergentes sí salen en las capturas de QA con `rom=`; con `page=` a veces no (no investigado).
+
+### Falta probar (pedírselo a Ridds)
+
+- Volver a la biblioteca desde WALL-E (PSP) en PC y celular sin que se cierre; y desde un juego de Sueño.
+- Cómo se ve el control nuevo en cada consola; la transparencia (Ajustes » Controles) sigue funcionando.
+- Lo pendiente de la 23: Vigilante 8 a 2×, Twisted Metal/DBZ con el DualShock.
+
+### Siguiente (aprobado por Ridds): build 25 = Satronho NX
+
+- Repo `Riddsc/satronho-nx` (fork de Eden). Todavía usa `applicationId` `dev.eden.eden_emulator`: darle uno propio
+  (p. ej. `com.ridds.satronho.nx`) y publicar el APK en sus Releases. El hub lo baja, lo instala, revisa el
+  equipo (Ñoño: los Mali van peor que los Adreno) y abre los juegos con un `Intent` VIEW (Eden acepta
+  `content://` con `application/octet-stream`; el hub necesitará un FileProvider).
+
 ## Estado al 24 de noviembre de 2026 (build 23)
 
 Ridds probó la build 22 en el celular (pantalla de 1440 px de alto, app en inglés): Vigilante 8 iba a 6–23

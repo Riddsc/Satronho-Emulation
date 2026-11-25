@@ -2,6 +2,29 @@
   "builds": [
     {
       "version": "Esta build",
+      "fecha": "25 de noviembre de 2026",
+      "titulo": "Un control en pantalla con la cara de cada consola, y volver de la PSP ya no cierra la app",
+      "cambios": [
+        {
+          "tipo": "arreglo",
+          "texto": "Al salir de un juego de Satronho Portátil para volver a la biblioteca, la app se cerraba (en PC y en el celular). Era el orden en que se le avisaba al emulador que el juego terminaba; ahora es el mismo que usan los demás programas y también protege a Sueño, CD y 64."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El control en pantalla es nuevo: botones con relieve, sombra y brillo, que se hunden e iluminan al apretarlos. Cada consola tiene su estilo: las figuras de colores en CD y Portátil (ya no salen palabras), el rombo de colores de Sueño, los cuatro colores de Hexa, los botones C amarillos con flechas en la 64, rojos en Octa, magenta en Bolsillo y así."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "La cruceta ahora es una cruz sólida con flechas grabadas, y el brazo que aprietas se pinta del color de la consola. La palanca tiene base hundida y una cabeza con relieve que sigue al dedo."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Satronho Portátil trae los textos del sistema de la PSP en español (y en los demás idiomas de la app), para ventanas como la de guardar partida."
+        }
+      ]
+    },
+    {
+      "version": "Build 23",
       "fecha": "24 de noviembre de 2026",
       "titulo": "Los juegos de CD aceptan tu mando y el celular ya no se ahoga con la resolución",
       "cambios": [

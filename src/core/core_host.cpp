@@ -320,8 +320,11 @@ void CoreHost::UnloadGame() {
     if (!game_loaded_) return;
     SaveSram();
     HwEnter();
-    retro_unload_game_();
+    // Como RetroArch: primero se avisa que el contexto gráfico se va y después se descarga el juego.
+    // Al revés, PPSSPP ya borró lo suyo en retro_unload_game y context_destroy lo usaba borrado
+    // (la app se cerraba al volver a la biblioteca desde un juego de PSP).
     if (hw_active_ && hw_cb_.context_destroy) hw_cb_.context_destroy();
+    retro_unload_game_();
     HwLeave();
     if (hw_active_ && hw_host) hw_host->Stop();
     hw_active_ = false;
