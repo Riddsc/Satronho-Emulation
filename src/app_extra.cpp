@@ -13,6 +13,7 @@
 
 #include "app.h"
 #include "sys/android.h"
+#include "sys/native_ui.h"
 #include "util/i18n.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -599,6 +600,7 @@ void App::DrawConfirm() {
         return;
     }
     if (confirm_ == 0) return;
+    if (NativeMode()) return; // la pregunta la muestra Android
     const bool app = confirm_ == 1;
     auto close = [&](bool accept) {
         if (confirm_dont_ask_) {
@@ -1756,6 +1758,35 @@ void App::WatchSlowGame(double dt, double target_fps) {
     paused_ = true;
 }
 
+// Un escalón más abajo de la resolución actual (o la original si ya no hay más).
+static int LowerStep(const std::vector<int>& steps, int now, int (*height)(int, const SystemDef*), const SystemDef* sys) {
+    int lower = steps.empty() ? now : steps.front();
+    for (int k : steps)
+        if (height(k, sys) < height(now, sys)) lower = k;
+    return lower;
+}
+
+void App::SlowLower() {
+    if (!in_game_ || !sys_) return;
+    const int api = GpuApiFor(*sys_);
+    const int now = GpuResFor(*sys_, api);
+    const int lower = LowerStep(GpuResSteps(*sys_, api), now, &App::ResHeight, sys_);
+    // Se recuerda para este juego: la próxima vez abre directo en la que va fluida.
+    library_.SetGameOption(current_.key, "res", std::to_string(lower));
+    game_res_ = lower;
+    SaveConfig();
+    Log::Info("Ñoño bajó la resolución de %s a %d (solo este juego)", current_.title.c_str(), lower);
+    slow_prompt_ = false;
+    if (emu_frames_ > 30) SaveSlot(0, true);
+    start_entry_ = current_.entry;
+    RequestStart(current_.path, true);
+}
+
+void App::SlowKeep() {
+    paused_ = slow_was_paused_;
+    slow_prompt_ = false;
+}
+
 void App::DrawSlowPrompt() {
     if (!slow_prompt_ || !in_game_ || !sys_) return;
     const int api = GpuApiFor(*sys_);
@@ -1765,6 +1796,21 @@ void App::DrawSlowPrompt() {
     int lower = steps.front();
     for (int k : steps)
         if (ResHeight(k) < ResHeight(now)) lower = k;
+
+    if (NativeMode()) {
+        // En el celular la pregunta la muestra Android: una sola tarjeta de Ñoño, en una esquina.
+        if (!slow_card_sent_) {
+            slow_card_sent_ = true;
+            const std::string text = TrFmt("Este juego va lento en tu celular (%.0f cuadros por segundo; la consola hace %.0f). "
+                                           "Si bajo la resolución de %s a %s, sigue justo donde vas y debería ir fluido. "
+                                           "Lo recuerdo solo para este juego.",
+                                           perf_.fps, core_.Fps(), ResLabel(now, sys_).c_str(), ResLabel(lower, sys_).c_str());
+            NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"lento\",\"guia\":\"nono\",\"titulo\":" + NativeUi::Quote(Tr("Ñoño tiene una idea")) +
+                           ",\"texto\":" + NativeUi::Quote(text) + ",\"botones\":[[\"seguir\"," + NativeUi::Quote(Tr("Seguir así")) +
+                           "],[\"bajar\"," + NativeUi::Quote(Tr("Bajar la resolución")) + "]]}");
+        }
+        return;
+    }
 
     ImGui::OpenPopup("##juego_lento");
     const ImGuiViewport* vp = ImGui::GetMainViewport();
@@ -1785,29 +1831,15 @@ void App::DrawSlowPrompt() {
         const float bw = (inner - S(12)) * 0.5f;
         bool close = false;
         if (Button("Bajar la resolución", ButtonKind::Primary, {bw, S(48)})) {
-            // Se guarda para la consola (o para el juego, si tenía la suya) y se vuelve a abrir donde iba.
-            if (game_res_ > 0) {
-                library_.SetGameOption(current_.key, "res", std::to_string(lower));
-                game_res_ = lower;
-            } else {
-                settings_.gpu_res[sys_->id] = lower;
-            }
-            SaveConfig();
-            Log::Info("Ñoño bajó la resolución de %s a %d", sys_->id.c_str(), lower);
-            if (emu_frames_ > 30) SaveSlot(0, true);
-            start_entry_ = current_.entry;
-            RequestStart(current_.path, true);
+            SlowLower();
             close = true;
         }
         ImGui::SameLine(0, S(12));
         if (Button("Seguir así", ButtonKind::Secondary, {bw, S(48)})) {
-            paused_ = slow_was_paused_;
+            SlowKeep();
             close = true;
         }
-        if (close) {
-            slow_prompt_ = false;
-            ImGui::CloseCurrentPopup();
-        }
+        if (close) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
     ImGui::PopStyleColor(2);

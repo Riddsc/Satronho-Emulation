@@ -19,6 +19,7 @@
 #include <sstream>
 
 #include "app.h"
+#include "sys/native_ui.h"
 #include "imgui.h"
 #include "sys/android.h"
 #include "ui/kit.h"
@@ -767,6 +768,86 @@ void App::DrawImport() {
         }
     }
     ImGui::End();
+}
+
+} // namespace Satronho
+
+namespace Satronho {
+
+// Lo mismo que DrawImport, para la tarjeta nativa de Android («progreso»).
+std::string App::NativeImportJson() {
+    ImportState st;
+    {
+        std::lock_guard lock(import_mutex_);
+        if (!import_.active) return {};
+        st = import_;
+    }
+    if (in_game_) return {};
+    const bool working = !st.done || !st.receiving.empty() || import_busy_;
+    int added = 0;
+    for (const auto& [k, c] : st.added) added += c;
+    std::string text;
+    float progress = -1;
+    if (!st.receiving.empty()) {
+        std::vector<std::string> p;
+        size_t pos = 0;
+        while (true) {
+            const size_t bar = st.receiving.find('|', pos);
+            p.push_back(st.receiving.substr(pos, bar == std::string::npos ? std::string::npos : bar - pos));
+            if (bar == std::string::npos) break;
+            pos = bar + 1;
+        }
+        if (p.size() >= 4) {
+            const double got = std::atof(p[1].c_str()), all = std::atof(p[2].c_str());
+            progress = all > 0 ? static_cast<float>(got / all) : -1;
+            text = TrFmt("Recibiendo «%s» desde la otra app… %s", p[0].c_str(), HumanSize(static_cast<uint64_t>(got)).c_str());
+        } else {
+            text = Tr("Recibiendo desde la otra app…");
+        }
+    } else if (working) {
+        progress = st.phase == 3 ? st.progress : -1;
+        const char* what = st.phase == 3 ? "Descomprimiendo «%s»…" : st.phase == 4 ? "Acomodando los juegos de «%s» en sus consolas…" : "Revisando «%s»…";
+        text = TrFmt(what, st.name.c_str());
+        if (st.files_total > 1) text += "  ·  " + TrFmt("%d de %d", st.files_done, st.files_total);
+    } else if (added > 0) {
+        text = TrFmt("¡Listo! Agregué %d juegos a tu biblioteca:", added);
+        bool first = true;
+        for (const auto& [sys, c] : st.added) {
+            text += (first ? " " : ", ") + std::to_string(c) + " " + Tr("de") + " " + sys;
+            first = false;
+        }
+        text += ".";
+    } else if (st.errors.empty() && st.bios.empty()) {
+        text = Tr("Ya tenías todos esos juegos en tu biblioteca: no agregué nada repetido.");
+    } else if (st.errors.empty()) {
+        text = Tr("¡Listo!");
+    } else {
+        text = Tr("No pude agregar los juegos. Abajo te cuento qué pasó.");
+    }
+    std::string details = "[";
+    bool first = true;
+    auto add = [&](const std::string& d) {
+        details += (first ? "" : ",") + NativeUi::Quote(d);
+        first = false;
+    };
+    if (!working) {
+        if (st.skipped > 0) add(TrFmt("No repetí %d que ya tenías.", st.skipped));
+        for (const auto& b : st.bios) add(std::string(Tr("BIOS agregada: ")) + b);
+        for (const auto& e : st.errors) add(e);
+    }
+    details += "]";
+    std::string buttons = "[";
+    if (!working) {
+        if (Paths::PublicRoot().empty()) buttons += "[\"permiso\"," + NativeUi::Quote(Tr("Dar permiso")) + "],";
+        buttons += "[\"cerrar\"," + NativeUi::Quote(Tr("Cerrar")) + "]";
+    }
+    buttons += "]";
+    const char* guide = working ? "samy" : (st.errors.empty() ? "samy" : "nono");
+    char prog[32];
+    std::snprintf(prog, sizeof prog, "%.3f", working ? progress : 1.0f);
+    return ",\"progreso\":{\"id\":\"importar\",\"guia\":\"" + std::string(guide) + "\",\"texto\":" + NativeUi::Quote(text) + ",\"avance\":" + prog +
+           ",\"trabajando\":" + (working ? "true" : "false") + ",\"detalles\":" + details + ",\"botones\":" + buttons +
+           ",\"nota\":" + NativeUi::Quote(working ? Tr("Puedes dejar la app abierta mientras tanto. Los juegos grandes de PS1 tardan un poco.") : "") + "}";
 }
 
 } // namespace Satronho

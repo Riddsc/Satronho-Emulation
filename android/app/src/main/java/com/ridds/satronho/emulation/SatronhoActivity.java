@@ -21,6 +21,7 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 
@@ -56,7 +57,32 @@ public class SatronhoActivity extends SDLActivity {
         prepareFiles();
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // Build 25: pantallas nativas (biblioteca, control en pantalla, cajón del juego) encima de SDL.
+        if (!mBrokenLibraries && mLayout != null) SatronhoUi.INSTANCE.instalar(this, mLayout, mSurface);
         recibir(getIntent());
+    }
+
+    private boolean mAtrasNativo = false;
+
+    /** «Atrás»: lo atiende primero lo nativo; si no lo usa, sigue a SDL (C++). */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        // Mando físico fuera del juego (o con el cajón/Ajustes abiertos): mueve lo nativo.
+        if (event.getKeyCode() != KeyEvent.KEYCODE_BACK && SatronhoUi.INSTANCE.getActiva() && SatronhoUi.INSTANCE.teclaMando(event)) return true;
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && SatronhoUi.INSTANCE.getActiva()) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (event.getRepeatCount() == 0) mAtrasNativo = !SatronhoUi.INSTANCE.getEstado().getImgui();
+                if (mAtrasNativo) return true;
+            } else if (event.getAction() == KeyEvent.ACTION_UP && mAtrasNativo) {
+                mAtrasNativo = false;
+                if (!SatronhoUi.INSTANCE.atras()) {
+                    onNativeKeyDown(KeyEvent.KEYCODE_BACK);
+                    onNativeKeyUp(KeyEvent.KEYCODE_BACK);
+                }
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     /** La orientación la elige Satronho (Ajustes), no SDL según el tamaño de la ventana. */
@@ -169,6 +195,8 @@ public class SatronhoActivity extends SDLActivity {
     public static void orientacion(int modo) {
         final SatronhoActivity a = sInstance;
         if (a == null) return;
+        // Con las pantallas nativas, la orientación la manejan ellas (biblioteca gira, juego acostado).
+        if (SatronhoUi.INSTANCE.getActiva()) return;
         final int o = modo == 1 ? ActivityInfo.SCREEN_ORIENTATION_FULL_USER
                 : modo == 2 ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT : ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
         a.runOnUiThread(() -> a.setRequestedOrientation(o));

@@ -2,10 +2,12 @@ name: Android
 
 # APK de Satronho Emulation (arm64, Android 8 o más nuevo). Desde la rama de trabajo solo compila;
 # llamado desde «Build» en main, sube el APK al mismo Release que la versión de Windows.
+# Desde la rama build-25 sube el APK a un Release de prueba («prueba-25», marcado como prueba: la app
+# no lo ofrece como actualización) para probar en el celular antes de publicar.
 # No se usan artifacts de Actions: los núcleos van en la caché y el APK directo al Release.
 on:
   push:
-    branches: [etapa-2]
+    branches: [etapa-2, build-25]
     paths:
       - "src/**"
       - "android/**"
@@ -130,7 +132,7 @@ jobs:
 
       - name: APK
         env:
-          SATRONHO_BUILD: ${{ inputs.build || '0' }}
+          SATRONHO_BUILD: ${{ inputs.build || (github.ref == 'refs/heads/build-25' && '25') || '0' }}
         run: |
           cd android
           gradle --no-daemon assembleRelease
@@ -146,3 +148,18 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "$APK"
           sha256sum "$APK" | cut -d' ' -f1 > "$APK.sha256"
           gh release upload "${{ inputs.tag }}" "$APK" "$APK.sha256" --clobber
+
+      - name: Subir la prueba (rama build-25)
+        if: inputs.tag == '' && github.ref == 'refs/heads/build-25'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="SatronhoEmulation-prueba-25-android-arm64.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          if ! gh release view prueba-25 > /dev/null 2>&1; then
+            gh release create prueba-25 --prerelease --target build-25 --title "Build 25 · APK de prueba" \
+              --notes "APK de prueba de la build 25 (pantallas nativas). No es la versión final: la app no lo ofrece como actualización."
+          fi
+          # GitHub a veces responde 500 al reemplazar el archivo: se intenta hasta tres veces.
+          for i in 1 2 3; do gh release upload prueba-25 "$APK" --clobber && break; sleep 10; done
+          echo "Prueba subida: $(git rev-parse --short HEAD)"

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app.h"
 #include "sys/android.h"
+#include "sys/native_ui.h"
 #include "util/i18n.h"
 
 #include <algorithm>
@@ -650,6 +651,12 @@ void App::ApplySafeArea() {
 
 void App::Toast(const std::string& text_es, GuideId guide, double seconds) {
     const std::string text = Tr(text_es);
+    if (NativeMode() && !NativeNeedsImGui()) {
+        // En el celular los avisos los muestra Android (una tarjeta chica con el guía).
+        NativeUi::Emit("{\"t\":\"aviso\",\"guia\":" + NativeUi::Quote(Guide(guide).key) + ",\"texto\":" + NativeUi::Quote(text) +
+                       ",\"segundos\":" + std::to_string(seconds) + "}");
+        return;
+    }
     const double now = SDL_GetTicks() / 1000.0;
     // Si el mismo aviso sigue en pantalla, solo se alarga.
     for (auto& t : toasts_) {
@@ -674,6 +681,7 @@ void App::Frame() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) HandleEvent(e);
     ProcessPendingPaths();
+    NativeTick();
     PollUnpack();
     PollDataMove();
 #ifdef __ANDROID__
@@ -705,7 +713,10 @@ void App::Frame() {
         const bool typing = ImGui::GetIO().WantTextInput;
         for (Hotkey h : input_.TakeHotkeyPresses())
             if (!typing && confirm_ == 0) DoHotkey(h);
-        if (in_game_ && input_.MenuComboPressed() && confirm_ == 0) SetMenuOpen(!menu_open_);
+        if (in_game_ && input_.MenuComboPressed() && confirm_ == 0) {
+            if (NativeMode()) SetNativeMenu(!native_menu_);
+            else SetMenuOpen(!menu_open_);
+        }
     }
 
     ImGuiIO& io = ImGui::GetIO();
@@ -713,7 +724,7 @@ void App::Frame() {
     if ((in_game_ && !menu_open_ && confirm_ == 0) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    if (in_game_ && !paused_ && !menu_open_ && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0 && !(touch_mode_ && bar_open_)) EmulateTick(dt);
+    if (in_game_ && !paused_ && !menu_open_ && !native_menu_ && native_page_.empty() && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0 && !(touch_mode_ && bar_open_)) EmulateTick(dt);
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) {
         if (gl_) video_gl_.Upload(core_);
@@ -1051,8 +1062,9 @@ void App::HandleEvent(const SDL_Event& e) {
     const bool was_capturing = input_.Capturing();
     ImGui_ImplSDL3_ProcessEvent(&e);
     // Se desconectó el mando mientras se juega con él: el juego espera con el menú de arriba a la vista.
-    if (e.type == SDL_EVENT_GAMEPAD_REMOVED && in_game_ && !bar_open_ && !menu_open_) {
-        bar_open_ = true;
+    if (e.type == SDL_EVENT_GAMEPAD_REMOVED && in_game_ && !bar_open_ && !menu_open_ && !native_menu_) {
+        if (NativeMode()) SetNativeMenu(true);
+        else bar_open_ = true;
         Toast("Se desconectó el mando. El juego espera: conéctalo o sigue con el control en pantalla.", GuideId::Samy, 5);
     }
     input_.HandleEvent(e);
@@ -1110,7 +1122,10 @@ void App::HandleEvent(const SDL_Event& e) {
             if (browser_open_) browser_open_ = false;
             else if (touch_edit_) { touch_edit_ = false; SaveConfig(); }
             else if (confirm_) confirm_ = 0;
+            else if (!game_settings_.key.empty()) game_settings_ = Game{};
             else if (in_game_ && overlay_page_ >= 0) overlay_page_ = -1;
+            else if (NativeMode() && in_game_) SetNativeMenu(!native_menu_);
+            else if (NativeMode() && legacy_page_ >= 0) { legacy_page_ = -1; page_ = Page::Library; }
             else if (in_game_ && bar_open_) bar_open_ = false;
             else if (in_game_ && menu_open_) SetMenuOpen(false);
             else if (in_game_) ToggleGameBar(); // en el celular, «atrás» despliega el menú de arriba
@@ -1235,7 +1250,7 @@ bool App::StartGame(const fs::path& rom) {
     // Ajustes de este juego (si tiene): tipo de mando, motor gráfico y resolución.
     if (library_.GameOption(probe.key, "mando") == "normal") core_.port_device = RETRO_DEVICE_JOYPAD;
     slow_s_ = 0;
-    slow_asked_ = slow_prompt_ = false;
+    slow_asked_ = slow_prompt_ = slow_card_sent_ = false;
     analog_pulse_ = 0;
     audio_full_s_ = 0;
     game_api_ = std::atoi(library_.GameOption(probe.key, "motor").c_str());
@@ -1294,7 +1309,10 @@ bool App::StartGame(const fs::path& rom) {
     RefreshSlotThumbs();
     SDL_SetWindowTitle(window_, (current_.title + " — Satronho Emulation").c_str());
     // El aviso habla de lo que la persona tiene en la mano: el dedo, el mando o el teclado.
-    if (TouchPadVisible())
+    if (NativeMode())
+        Toast(input_.Gamepads().empty() ? "¡A jugar! «Atrás» o el botón de pausa abren el menú del juego."
+                                         : "¡A jugar! «Atrás» o Select + Start abren el menú del juego.", GuideId::Samy, 3.5);
+    else if (TouchPadVisible())
         Toast("¡A jugar! El botón de pausa (a la derecha) o deslizar desde arriba abren el menú.", GuideId::Samy, 3.5);
     else if (!input_.Gamepads().empty())
         Toast("¡A jugar! Select + Start (o el botón Guía) abren el menú.", GuideId::Samy, 3.0);
@@ -1336,6 +1354,8 @@ void App::StopGame() {
     disk_swap_target_ = -1;
     bar_open_ = false;
     bar_menu_active_ = false;
+    native_menu_ = false;
+    NativeUi::ResetTouch();
     fast_forward_toggle_ = false;
     if (pending_page_ >= 0) {
         page_ = static_cast<Page>(pending_page_);
@@ -1353,6 +1373,11 @@ void App::StopGame() {
 
 void App::SetMenuOpen(bool open) {
     if (!in_game_) return;
+    if (NativeMode()) {
+        // En el celular el menú del juego es el cajón nativo.
+        SetNativeMenu(open);
+        return;
+    }
     menu_open_ = open;
     audio_.SetPaused(open || paused_);
     if (open) {
