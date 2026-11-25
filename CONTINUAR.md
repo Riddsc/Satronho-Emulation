@@ -37,6 +37,14 @@ el «build 25 = NX» de abajo. Plan aprobado: tres APK de prueba antes de public
   «En lista»), guías con nombre en su color y reparto (Samy 32, Troya 26, Ñoño 16, Juana 14, MechaRidds 12, cada
   20 s), menú «Más» de PC con el ícono encima del texto. Logo de Satronho Emulation al frente (presentación,
   encabezado, Ajustes, cajón, carga).
+- **Prueba 3 (subida, 93792ea)**: estética de Satronho. `Mandos.kt` es el dibujo de PC pasado a Kotlin sin
+  nada de Android (controles de `controllers.cpp`, botones del control en pantalla de `app_touch.cpp` y
+  cartuchos de `DrawCartridge`), sobre la interfaz `Pintor`; `Lienzo.kt` lo pinta en Compose. Se puede probar
+  fuera de Android con kotlinc (bajado de GitHub) y un Pintor de java.awt que guarda PNG. Vista carrusel
+  (`vista.modo == 3`, HorizontalPager). Chat con preguntas sugeridas (`sugerencia|i`).
+- **NX va en la build 26** (Ridds lo confirmó). La rama `android` de Riddsc/satronho-nx ya usa
+  `applicationId "dev.satronho.nx"` («Satronho NX»); `main` sigue con el de Eden (escritorio). El repo de NX
+  es **público**. Pendiente de Ridds: ¿el hub descarga NX para cualquiera o solo lo abre si ya está instalado?
 - Pendiente: navegar la biblioteca nativa con un mando (hoy las teclas del mando van a SDL); el medidor sigue
   siendo el de ImGui; el APK pesa ~41,7 MB (24: 35,2 MB) por Compose sin minificar.
 
