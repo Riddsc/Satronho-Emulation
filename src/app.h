@@ -543,6 +543,29 @@ private:
     float qa_scroll_mid_ = -1; // …y a mitad de la prueba
     void QaScrollTest();       // «desplazar=1»: baja y mueve de lado; la página no debe crecer
 
+    // Interfaz nativa de Android (app_native.cpp, build 25). Las pantallas las dibuja Kotlin y aquí
+    // se atienden sus órdenes y se le pasa el estado. En PC NativeMode() siempre es false.
+    bool NativeMode() const;
+    bool NativeNeedsImGui() const;   // hay algo de la interfaz de siempre encima (Kotlin se esconde)
+    void NativeTick();
+    void NativeCommand(const std::string& line);
+    std::string NativeStateJson();
+    std::string NativeLibraryJson();
+    std::string NativeTouchJson();
+    void NativeApplyTouch();
+    const Game* FindGame(const std::string& key);
+    void SetNativeMenu(bool open);
+    void SlowLower();                // «Bajar la resolución» (Ñoño, juego lento)
+    void SlowKeep();                 // «Seguir así»
+    int legacy_page_ = -1;           // pantalla de siempre pedida desde la nativa (-1: ninguna)
+    bool native_menu_ = false;       // cajón del juego abierto: el juego espera
+    bool slow_card_sent_ = false;    // la tarjeta de Ñoño del juego lento ya se mandó
+    double native_lib_t_ = -10;      // última vez que se armó la biblioteca para Kotlin
+    std::string native_touch_cache_; // control en pantalla ya armado (cambia poco)
+    int native_touch_w_ = 0, native_touch_h_ = 0;
+    std::string native_touch_sys_;
+    uint32_t native_touch_prev_ = 0;
+
     friend void FolderDialogCallback(void*, const char* const*, int);
     friend void FileDialogCallback(void*, const char* const*, int);
     friend void BiosDialogCallback(void*, const char* const*, int);

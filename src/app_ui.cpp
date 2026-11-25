@@ -17,6 +17,7 @@
 #include "ui/controllers.h"
 #include "util/log.h"
 #include "sys/android.h"
+#include "sys/native_ui.h"
 
 namespace Satronho {
 
@@ -107,15 +108,32 @@ void App::GuideSays(GuideId id, const char* text, float width) {
 
 void App::DrawUi() {
     const ImGuiViewport* vp = ImGui::GetMainViewport();
+    const bool native = NativeMode();
     if (in_game_) {
         DrawGameLayer();
         DrawGameOverlay();
         DrawGameSettings();
         DrawSlowPrompt();
         DrawToasts();
-        if (!pending_start_.empty()) DrawLoading();
+        if (!pending_start_.empty() && !native) DrawLoading();
         if (overlay_page_ < 0) DrawTouchPad(); // con una pantalla de Satronho encima, el control táctil se esconde
         DrawConfirm();
+        return;
+    }
+    if (native && legacy_page_ < 0) {
+        // Celular: la biblioteca es nativa (Kotlin). Aquí solo lo que todavía es de la interfaz de
+        // siempre y aparece encima: bienvenida, novedades, explorador, preguntas…
+        splash_done_ = true;
+        if (show_welcome_) DrawWelcome();
+        else if (show_whats_new_) DrawWhatsNew();
+        DrawArchivePicker();
+        DrawGameSettings();
+        DrawUnpack();
+        DrawDataMove();
+        DrawBrowser();
+        DrawImport();
+        DrawConfirm();
+        DrawToasts();
         return;
     }
 
@@ -2694,7 +2712,7 @@ void App::DrawGameLayer() {
         DrawPauseMenu();
         return;
     }
-    DrawGameBar();
+    if (!NativeMode()) DrawGameBar(); // en el celular, el menú es el cajón nativo
     if (settings_.meter > 0 && overlay_page_ < 0) DrawMeter();
 
     // Indicadores de estado arriba al centro.
