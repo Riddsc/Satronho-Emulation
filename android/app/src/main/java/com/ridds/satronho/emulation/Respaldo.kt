@@ -46,7 +46,7 @@ object Respaldo {
 
     private fun partidasNx(ctx: Context): ByteArray? {
         if (!Nx.instalado(ctx)) return null
-        val b = try { ctx.contentResolver.call(Uri.parse("content://${Nx.PAQUETE}.hub"), "partidas", null, null) } catch (e: Throwable) { null }
+        val b = Nx.llamar(ctx, "partidas")
         val u = b?.getString("zip") ?: return null
         return try { ctx.contentResolver.openInputStream(Uri.parse(u))?.use { it.readBytes() } } catch (e: Throwable) { null }
     }
@@ -113,7 +113,7 @@ object Respaldo {
                     z.getInputStream(e).use { inp -> FileOutputStream(interno).use { inp.copyTo(it) } }
                     val u = FileProvider.getUriForFile(ctx, ctx.packageName + ".archivos", interno)
                     ctx.grantUriPermission(Nx.PAQUETE, u, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    val r = try { ctx.contentResolver.call(Uri.parse("content://${Nx.PAQUETE}.hub"), "restaurar_partidas", u.toString(), null) } catch (_: Throwable) { null }
+                    val r = Nx.llamar(ctx, "restaurar_partidas", u.toString())
                     nxOk = (r?.getInt("archivos") ?: 0) > 0
                     interno.delete()
                 }

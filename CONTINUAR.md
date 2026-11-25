@@ -3,6 +3,24 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Build 26: arreglo de «No bootable game present!» (25 nov, tarde)
+
+Ridds probó la prueba 26 (video): al tocar Jugar en un juego de Switch, NX se abría y se cerraba con
+«No bootable game present!» 3-4 veces; a la 5.ª abría. A veces el asistente decía «NX vieja que no habla
+con el hub» aunque estaba la nueva. Y al volver de NX el carrusel quedaba en el primer juego.
+- Causa: las preguntas del hub al `HubProvider` de NX (estado, info, claves) corren en otro hilo de NX y
+  recargan las claves / rehacen el sistema de archivos del núcleo. Si caían mientras `EmulationFragment`
+  revisaba el juego del intent, el juego parecía inválido. Además Android deja llegar esas preguntas
+  antes de que `YuzuApplication.onCreate` termine.
+- NX (rama `android`, commit 899932b): `satronho/HubGate.kt` (espera a que NX arranque, un turno a la
+  vez, «ocupado» con juego abierto), claves una vez por proceso, `EmulationFragment.gameFromIntent`
+  (con turno, claves cargadas y un reintento).
+- Hub: `Nx.kt` no pregunta nada mientras NX abre el juego (`calmaHasta`), reintenta si NX está ocupada
+  o tropezó (`llamarTal`), «ocupado» no cuenta como «NX vieja»; `Respaldo.kt` usa `Nx.llamar`. El
+  carrusel guarda el último juego en el teléfono (`satronho_carrusel`).
+- **Falta probar en el teléfono**: actualizar NX desde el asistente («Hay una Satronho NX más nueva») y
+  abrir Celeste varias veces seguidas.
+
 ## Build 26 en curso (rama `build-26`): Satronho NX enlazado y más
 
 Ridds aprobó todo y pidió **una sola APK de prueba** (Release `prueba-26`) antes de la oficial.

@@ -518,18 +518,33 @@ private fun SinJuegos(b: Biblioteca) {
  * Vista carrusel (como en PC): una portada grande a la vez, con las vecinas asomando a los lados, el
  * fondo con los colores de la carátula y los datos del juego abajo. Se desliza con el dedo.
  */
-/** Último juego elegido en el carrusel, para no volver al principio cuando se rearma. */
-private var ultimoCarrusel = ""
+/**
+ * Último juego elegido en el carrusel, para no volver al principio cuando se rearma. Se guarda
+ * también en el teléfono: si Android cierra el hub mientras juegas en Satronho NX (NX usa mucha
+ * memoria), al volver el carrusel sigue en el mismo juego y no en el primero.
+ */
+private var ultimoCarrusel: String? = null
+
+private fun prefsCarrusel(ctx: Context) = ctx.getSharedPreferences("satronho_carrusel", Context.MODE_PRIVATE)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Carrusel(lista: List<Juego>, b: Biblioteca, menuJuego: String, abrirMenu: (String) -> Unit) {
     val cs = MaterialTheme.colorScheme
+    val ctx = LocalContext.current
+    if (ultimoCarrusel == null) ultimoCarrusel = prefsCarrusel(ctx).getString("ultimo", "") ?: ""
     val estado = androidx.compose.foundation.pager.rememberPagerState(
         initialPage = lista.indexOfFirst { it.clave == ultimoCarrusel }.coerceAtLeast(0),
         pageCount = { lista.size },
     )
-    LaunchedEffect(estado.settledPage) { lista.getOrNull(estado.settledPage)?.let { ultimoCarrusel = it.clave } }
+    LaunchedEffect(estado.settledPage) {
+        lista.getOrNull(estado.settledPage)?.let {
+            if (it.clave != ultimoCarrusel) {
+                ultimoCarrusel = it.clave
+                prefsCarrusel(ctx).edit().putString("ultimo", it.clave).apply()
+            }
+        }
+    }
     // El fondo y los datos siguen a la portada donde el carrusel se detiene, no a cada una que pasa
     // mientras se desliza (así no se recalcula el desenfoque a cada rato y va fluido).
     val actual = lista.getOrNull(estado.settledPage) ?: lista.getOrNull(estado.currentPage) ?: return
