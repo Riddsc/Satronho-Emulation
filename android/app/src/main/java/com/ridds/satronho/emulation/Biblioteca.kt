@@ -510,60 +510,91 @@ private fun SinJuegos(b: Biblioteca) {
 private fun Carrusel(lista: List<Juego>, b: Biblioteca, menuJuego: String, abrirMenu: (String) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val estado = androidx.compose.foundation.pager.rememberPagerState(pageCount = { lista.size })
-    val actual = lista.getOrNull(estado.currentPage) ?: return
+    // El fondo y los datos siguen a la portada donde el carrusel se detiene, no a cada una que pasa
+    // mientras se desliza (así no se recalcula el desenfoque a cada rato y va fluido).
+    val actual = lista.getOrNull(estado.settledPage) ?: lista.getOrNull(estado.currentPage) ?: return
     val c = b.consola(actual.sistema)
     val color = c?.color ?: cs.primary
-    Box(Modifier.fillMaxSize()) {
+    // Un deslizón rápido puede pasar varias portadas de una vez, no solo una.
+    val lanzar = androidx.compose.foundation.pager.PagerDefaults.flingBehavior(
+        state = estado,
+        pagerSnapDistance = androidx.compose.foundation.pager.PagerSnapDistance.atMost(12),
+    )
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+        val horizontal = maxWidth > maxHeight
         // Fondo: la carátula del juego elegido, grande, borrosa y oscura.
-        val fondo = Imagenes.cargar(actual.portada, 200)
+        val fondo = Imagenes.cargar(actual.portada, 120)
         if (fondo != null) {
             Image(
                 fondo, null, contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().blur(36.dp).alpha(0.35f),
+                modifier = Modifier.fillMaxSize().blur(28.dp).alpha(0.35f),
             )
         }
         Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(
             listOf(Color.Transparent, cs.background.copy(alpha = 0.85f), cs.background))))
-        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-            androidx.compose.foundation.pager.HorizontalPager(
-                state = estado,
-                contentPadding = PaddingValues(horizontal = 72.dp),
-                pageSpacing = 14.dp,
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                key = { lista[it].clave },
-            ) { i ->
-                val g = lista[i]
-                val gc = b.consola(g.sistema)
-                val distancia = kotlin.math.abs((estado.currentPage - i) + estado.currentPageOffsetFraction).coerceIn(0f, 1f)
-                val escala = 1f - 0.14f * distancia
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Box {
-                        Box(
-                            Modifier.fillMaxWidth().aspectRatio(0.78f)
-                                .graphicsLayer { scaleX = escala; scaleY = escala; alpha = 1f - 0.45f * distancia }
-                                .border(2.dp, (gc?.color ?: cs.primary).copy(alpha = 0.6f * (1f - distancia)), RoundedCornerShape(20.dp))
-                                .combinedClickable(onClick = { SatronhoUi.orden("jugar|${g.clave}") }, onLongClick = { abrirMenu(g.clave) }),
-                        ) {
-                            Portada(g.portada, g.titulo, gc?.color ?: cs.primary, Modifier.fillMaxSize(), radio = 20, lado = 600,
-                                tono = g.tono, forma = gc?.forma ?: "nes", etiqueta = gc?.etiqueta ?: "")
-                            if (g.favorito) Icon(Icons.Filled.Star, null, tint = Color(0xFFFFD166),
-                                modifier = Modifier.align(Alignment.TopEnd).padding(10.dp).size(24.dp))
+
+        // Tamaño de la portada: que quepa a lo alto y a lo ancho, en vertical y en horizontal.
+        val altoDisponible = if (horizontal) maxHeight - 24.dp else maxHeight - 230.dp
+        val anchoDisponible = if (horizontal) maxWidth * 0.55f else maxWidth
+        val alto = minOf(altoDisponible, (anchoDisponible - 120.dp) / 0.78f).coerceAtLeast(120.dp)
+        val ancho = alto * 0.78f
+
+        val pasarela: @Composable (Modifier) -> Unit = { mod ->
+            androidx.compose.foundation.layout.BoxWithConstraints(mod) {
+                val lado = ((maxWidth - ancho) / 2).coerceAtLeast(0.dp)
+                androidx.compose.foundation.pager.HorizontalPager(
+                    state = estado,
+                    contentPadding = PaddingValues(horizontal = lado),
+                    pageSpacing = 14.dp,
+                    flingBehavior = lanzar,
+                    beyondViewportPageCount = 2,
+                    modifier = Modifier.fillMaxSize(),
+                    key = { lista[it].clave },
+                ) { i ->
+                    val g = lista[i]
+                    val gc = b.consola(g.sistema)
+                    val tinte = gc?.color ?: cs.primary
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box {
+                            Box(
+                                Modifier.size(ancho, alto)
+                                    // La distancia al centro se lee al dibujar, no al armar la pantalla:
+                                    // deslizar no vuelve a construir cada portada en cada cuadro.
+                                    .graphicsLayer {
+                                        val d = kotlin.math.abs((estado.currentPage - i) + estado.currentPageOffsetFraction)
+                                            .coerceIn(0f, 1f)
+                                        val e = 1f - 0.14f * d
+                                        scaleX = e; scaleY = e; alpha = 1f - 0.45f * d
+                                    }
+                                    .border(2.dp, tinte.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+                                    .combinedClickable(onClick = { SatronhoUi.orden("jugar|${g.clave}") }, onLongClick = { abrirMenu(g.clave) }),
+                            ) {
+                                Portada(g.portada, g.titulo, tinte, Modifier.fillMaxSize(), radio = 20, lado = 480,
+                                    tono = g.tono, forma = gc?.forma ?: "nes", etiqueta = gc?.etiqueta ?: "")
+                                if (g.favorito) Icon(Icons.Filled.Star, null, tint = Color(0xFFFFD166),
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(10.dp).size(24.dp))
+                            }
+                            MenuJuego(menuJuego == g.clave, g) { abrirMenu("") }
                         }
-                        MenuJuego(menuJuego == g.clave, g) { abrirMenu("") }
                     }
                 }
             }
-            // Datos del juego elegido.
-            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(actual.titulo, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, maxLines = 2,
+        }
+
+        val datos: @Composable (Modifier, Boolean) -> Unit = { mod, lado ->
+            Column(mod, horizontalAlignment = if (lado) Alignment.Start else Alignment.CenterHorizontally) {
+                Text(actual.titulo, style = MaterialTheme.typography.titleLarge,
+                    textAlign = if (lado) TextAlign.Start else TextAlign.Center, maxLines = 2,
                     overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     Box(Modifier.size(8.dp).clip(CircleShape).background(color))
                     Spacer(Modifier.width(6.dp))
-                    Text(c?.completo ?: "", style = MaterialTheme.typography.labelLarge, color = color)
-                    if (actual.tiempoTexto.isNotEmpty()) {
-                        Text("  ·  " + actual.tiempoTexto, style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant)
-                    }
+                    Text(c?.completo ?: "", style = MaterialTheme.typography.labelLarge, color = color, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis)
+                }
+                if (actual.tiempoTexto.isNotEmpty()) {
+                    Text(actual.tiempoTexto, style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp))
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -582,7 +613,19 @@ private fun Carrusel(lista: List<Juego>, b: Biblioteca, menuJuego: String, abrir
                 }
                 Spacer(Modifier.height(6.dp))
                 Text("${estado.currentPage + 1} / ${lista.size}", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
-                Spacer(Modifier.height(96.dp))
+            }
+        }
+
+        if (horizontal) {
+            // En horizontal: portadas a la izquierda y los datos a la derecha, sin taparse.
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                pasarela(Modifier.weight(0.58f).fillMaxSize())
+                datos(Modifier.weight(0.42f).padding(start = 8.dp, end = 104.dp, bottom = 40.dp), true)
+            }
+        } else {
+            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                pasarela(Modifier.fillMaxWidth().weight(1f))
+                datos(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 96.dp), false)
             }
         }
     }
