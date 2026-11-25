@@ -3,6 +3,37 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Build 26 en curso (rama `build-26`): Satronho NX enlazado y más
+
+Ridds aprobó todo y pidió **una sola APK de prueba** (Release `prueba-26`) antes de la oficial.
+Qué trae (detalles técnicos en `SATRONHO.md` » Android):
+- **Satronho NX enlazado** (solo celular): consola `nx` fuera de `Systems()` (`NxSystem()`); `Nx.kt` instala
+  NX desde `remoto/nx.json` (hoy apunta a la vista previa `android-vista-previa` de satronho-nx), le apaga el
+  ícono si lo instaló el hub, le pasa claves/firmware por el `HubProvider` de NX, abre el juego y anota el
+  tiempo al volver. Asistente antes del primer juego (Android 13+, Vulkan, espacio, NX, claves, firmware).
+  En NX (rama `android`, commits 3f042c6 y siguiente): `satronho/HubProvider.kt`, alias `Lanzador` en el
+  manifiesto, `SettingsActivity` sin intent de lanzador. Las claves y el firmware NUNCA se bajan: solo los
+  que la persona ya tiene.
+- **Buscar en todo el teléfono** (`PhoneScan`, página `escaneo`) y **Satronho Games por consola**
+  (`EnsureGamesTree`, `SyncBiosFolder`, ordenar con `BeginOrganize`).
+- **8 jugadores** (`ApplyPlayers`, «Toma tu puesto», pausa y aviso al irse un mando, vuelve a su puesto).
+- **Respaldos de partidas** PC↔Android (`app_backup.cpp`, `Respaldo.kt`, incluye `nx/partidas-nx.zip`).
+  Probado en Linux: respaldo y restauración con el juego renombrado (cayó en el juego correcto).
+- **Lo visual de NX**: ficha con gráfica de sesiones, resumen al salir, sello «60 fps», consejo en la carga,
+  Captura Satronho con franja (`util/strip.cpp`), aviso de calor (42 °C), widget «Continuar».
+- **Respaldo del código de NX**: workflow `respaldo.yml` en satronho-nx (ramas main y android) deja
+  `satronho-nx.bundle` (todas las ramas) en la pre-release `respaldo-codigo`. Si Ridds crea un repo privado
+  y los secretos `RESPALDO_REPO_TOKEN` y `RESPALDO_REPO`, también lo copia ahí. Falta una copia fuera de
+  GitHub (cuando la app de escritorio esté conectada, bajarla a su disco).
+- Pendiente para cuando NX publique su build 57 con APK: cambiar `remoto/nx.json` a ese APK estable.
+
+### Falta probar (pedírselo a Ridds) — todo en el celular
+- Un juego de Switch: instalar NX desde el asistente, claves, firmware, jugar y volver al hub.
+- Buscar en el teléfono y ordenar; carpetas de Satronho Games.
+- 3+ mandos Bluetooth (SNES con multitap, PS1, 64) y desconectar uno a mitad.
+- Respaldar en el celular y restaurar en el PC (y al revés).
+- Carrusel ocultando/mostrando; widget; captura; ficha y resumen.
+
 ## Estado al 25 de noviembre de 2026 (build 25 publicada)
 
 Build 25 oficial: interfaz nativa en Android como Satronho NX (Kotlin + Compose encima de SDL), control
