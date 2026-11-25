@@ -117,17 +117,17 @@ bool App::EnsureGamesTree(const fs::path& root) {
         fs::create_directories(dir, ec);
         std::string exts;
         for (const auto& e : s->extensions) exts += (exts.empty() ? "." : ", .") + e;
-        WriteIfMissing(dir / "Léeme.txt", TrFmt("%s · para %s.\n\nPon aquí tus juegos (%s; también sirven .zip y .7z). Satronho Emulation los encuentra solo.\n",
-                                                Tr(s->full).c_str(), Tr(s->games).c_str(), exts.c_str()));
+        WriteIfMissing(dir / "Léeme.txt", TrFmt("%s · para %s.", Tr(s->full).c_str(), Tr(s->games).c_str()) + "\n\n" +
+                                              TrFmt("Pon aquí tus juegos (%s; también sirven .zip y .7z). Satronho Emulation los encuentra solo.", exts.c_str()) + "\n");
     }
     fs::create_directories(root / "Claves y firmware", ec);
     WriteIfMissing(root / "Claves y firmware" / "Léeme.txt",
                    Tr("Para Satronho NX (juegos de Switch): pon aquí tus prod.keys y title.keys y el firmware (.zip) sacados de tu propia consola. "
-                      "Satronho Emulation se los pasa a NX.\n"));
+                      "Satronho Emulation se los pasa a NX.") + std::string("\n"));
     fs::create_directories(root / "BIOS", ec);
     WriteIfMissing(root / "BIOS" / "Léeme.txt",
                    Tr("Pon aquí las BIOS de tus consolas (por ejemplo scph5501.bin para CD). Satronho Emulation las reconoce y las usa; también deja aquí una "
-                      "copia de las que ya tenía, para que las respaldes.\n"));
+                      "copia de las que ya tenía, para que las respaldes.") + std::string("\n"));
     if (nueva) Log::Info("Satronho Games: carpetas por consola creadas en %s", Paths::ToUtf8(root).c_str());
     return nueva;
 }

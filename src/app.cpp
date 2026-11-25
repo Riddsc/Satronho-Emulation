@@ -880,6 +880,13 @@ void App::QaTick() {
         if (qa_frames_ == wanted / 3) SaveSlot(2);
         if (qa_frames_ == wanted * 2 / 3) LoadSlot(2);
     }
+    // Respaldos de partidas: respaldar todo y restaurar un .zip (para revisar sin pantalla).
+    if (qa_frames_ == wanted / 2 && qa_.count("respaldar")) {
+        int n = 0;
+        const bool ok = BackupSaves(library_.Snapshot(), Paths::FromUtf8(qa_["respaldar"]), &n);
+        Log::Info("QA respaldo: %s, %d juegos", ok ? "ok" : "nada", n);
+    }
+    if (qa_frames_ == wanted / 2 && qa_.count("restaurar")) RestoreAndTell(Paths::FromUtf8(qa_["restaurar"]));
     if (qa_frames_ < wanted) return;
     if (qa_.count("shot") && gl_) {
         int w, h;
@@ -1266,6 +1273,10 @@ bool App::StartGame(const fs::path& rom) {
     const SystemDef* sys = SystemById(probe.system);
     if (!sys) {
         Toast("Este archivo no es de ninguna consola de Satronho Emulation.", GuideId::MechaRidds, 5);
+        return false;
+    }
+    if (sys->external) {
+        LaunchExternal(probe);
         return false;
     }
     if (sys->bios_required && BiosFound(*sys).empty()) {
