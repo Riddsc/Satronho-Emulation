@@ -28,6 +28,11 @@ std::string Hex(unsigned rgb) {
     return buf;
 }
 const char* B(bool v) { return v ? "true" : "false"; }
+// Forma del control o del cartucho de cada consola (la misma lista que Layout).
+const char* FormaDe(Layout l) {
+    static const char* formas[] = {"nes", "gameboy", "gba", "genesis", "snes", "playstation", "n64", "ds", "saturn", "dreamcast", "psp"};
+    return formas[static_cast<int>(l)];
+}
 std::string F(double v) {
     char buf[32];
     std::snprintf(buf, sizeof buf, "%.4f", v);
@@ -196,7 +201,7 @@ std::string App::NativeStateJson() {
     // Colores del tema elegido (Ajustes » Apariencia), para que lo nativo combine.
     s += ",\"tema\":{\"fondo\":" + Hex(Ui::Color::Bg) + ",\"superficie\":" + Hex(Ui::Color::Surface) + ",\"superficie2\":" + Hex(Ui::Color::Surface2) +
          ",\"borde\":" + Hex(Ui::Color::Border) + ",\"texto\":" + Hex(Ui::Color::Text) + ",\"tenue\":" + Hex(Ui::Color::Muted) +
-         ",\"acento\":" + Hex(Ui::Color::Accent) + ",\"claro\":" + B(Ui::LightTheme()) + "}";
+         ",\"acento\":" + Hex(Ui::Color::Accent) + ",\"claro\":" + B(Ui::LightTheme()) + ",\"marca\":" + F(settings_.watermark) + "}";
 
     // Abriendo un juego: la tarjeta de carga.
     if (!pending_start_.empty() || unpack_state_ == 1) {
@@ -204,7 +209,8 @@ std::string App::NativeStateJson() {
         const SystemDef* gs = SystemById(g.system);
         std::error_code ec;
         const fs::path cover = covers_.PathFor(g);
-        s += ",\"cargando\":{\"titulo\":" + Quote(g.title) + ",\"consola\":" + Quote(gs ? Tr(gs->full) : "") +
+        s += ",\"cargando\":{\"tono\":" + std::to_string(g.hue) + ",\"forma\":" + Quote(gs ? FormaDe(gs->layout) : "nes") +
+             ",\"etiqueta\":" + Quote(gs ? gs->label : "") + ",\"titulo\":" + Quote(g.title) + ",\"consola\":" + Quote(gs ? Tr(gs->full) : "") +
              ",\"color\":" + Hex(gs ? gs->color : Ui::Color::Accent) +
              ",\"portada\":" + Quote(!cover.empty() && fs::exists(cover, ec) ? Paths::ToUtf8(cover) : "") +
              ",\"avance\":" + F(unpack_state_ == 1 ? unpack_progress_.load() : -1.0) + "}";
@@ -269,7 +275,8 @@ std::string App::NativeLibraryJson() {
         first = false;
         sys_json += "{\"id\":" + Quote(sys.id) + ",\"nombre\":" + Quote(Tr(sys.name)) + ",\"completo\":" + Quote(Tr(sys.full)) +
                     ",\"pista\":" + Quote(Tr(sys.hint)) + ",\"juegos_de\":" + Quote(Tr(sys.games)) + ",\"color\":" + Hex(sys.color) +
-                    ",\"cuantos\":" + std::to_string(counts[sys.id]) + "}";
+                    ",\"cuantos\":" + std::to_string(counts[sys.id]) + ",\"forma\":" + Quote(FormaDe(sys.layout)) +
+                    ",\"etiqueta\":" + Quote(sys.label) + "}";
     }
     sys_json += "]";
 

@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,6 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -59,7 +62,7 @@ fun TarjetaCarga(c: Cargando) {
         ) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box {
-                    Portada(c.portada, c.titulo, c.color, Modifier.size(64.dp), 10)
+                    Portada(c.portada, c.titulo, c.color, Modifier.size(64.dp), 10, tono = c.tono, forma = c.forma, etiqueta = c.etiqueta)
                     Logo(22.dp, Modifier.align(Alignment.BottomEnd).padding(2.dp))
                 }
                 Spacer(Modifier.width(12.dp))
@@ -80,21 +83,25 @@ fun TarjetaCarga(c: Cargando) {
     }
 }
 
-/** Portada de un juego, o un recuadro con su color y su nombre mientras no hay carátula. */
+/**
+ * Portada de un juego. Si todavía no hay carátula, el cartucho o la caja de disco de su consola con
+ * una etiqueta del color del juego (como en PC).
+ */
 @Composable
-fun Portada(ruta: String, titulo: String, color: Color, modifier: Modifier, radio: Int = 12, lado: Int = 360) {
+fun Portada(
+    ruta: String, titulo: String, color: Color, modifier: Modifier, radio: Int = 12, lado: Int = 360,
+    tono: Int = 0, forma: String = "nes", etiqueta: String = "",
+) {
     val img = Imagenes.cargar(ruta, lado)
-    Box(
-        modifier.clip(RoundedCornerShape(radio.dp)).background(color.copy(alpha = 0.22f)),
-        contentAlignment = Alignment.Center,
-    ) {
+    val medidor = rememberTextMeasurer()
+    val fuente = letras(LocalContext.current.assets)
+    Box(modifier.clip(RoundedCornerShape(radio.dp)).background(color.copy(alpha = 0.22f)), contentAlignment = Alignment.Center) {
         if (img != null) {
             Image(img, contentDescription = titulo, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
-            Text(
-                titulo, color = color, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 3,
-                overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(8.dp),
-            )
+            Canvas(Modifier.fillMaxSize()) {
+                cartucho(Lienzo(this, medidor, fuente), 0f, 0f, size.width, size.height, tono, titulo, forma, etiqueta, radio.dp.toPx())
+            }
         }
     }
 }

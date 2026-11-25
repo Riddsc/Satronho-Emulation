@@ -18,9 +18,13 @@ data class Tema(
     val tenue: Color = Color(0xFFA9A4C2),
     val acento: Color = Color(0xFF9B8CFF),
     val claro: Boolean = false,
+    val marca: Float = 0.18f,
 )
 
-data class Cargando(val titulo: String, val consola: String, val color: Color, val portada: String, val avance: Float)
+data class Cargando(
+    val titulo: String, val consola: String, val color: Color, val portada: String, val avance: Float,
+    val tono: Int = 0, val forma: String = "nes", val etiqueta: String = "",
+)
 
 data class JuegoActual(
     val titulo: String, val clave: String, val consola: String, val sistema: String, val color: Color,
@@ -79,7 +83,7 @@ data class Juego(
 
 data class Consola(
     val id: String, val nombre: String, val completo: String, val pista: String, val juegosDe: String,
-    val color: Color, val cuantos: Int,
+    val color: Color, val cuantos: Int, val forma: String = "nes", val etiqueta: String = "",
 )
 
 data class Consejo(val guia: String, val texto: String)
@@ -119,11 +123,13 @@ object Leer {
             tenue = color(tm.optString("tenue"), Tema().tenue),
             acento = color(tm.optString("acento"), Tema().acento),
             claro = tm.optBoolean("claro"),
+            marca = tm.optDouble("marca", 0.18).toFloat(),
         )
         val c = o.optJSONObject("cargando")
         val cargando = c?.let {
             Cargando(it.optString("titulo"), it.optString("consola"), color(it.optString("color"), tema.acento),
-                it.optString("portada"), it.optDouble("avance", -1.0).toFloat())
+                it.optString("portada"), it.optDouble("avance", -1.0).toFloat(), it.optInt("tono"), it.optString("forma", "nes"),
+                it.optString("etiqueta"))
         }
         val j = o.optJSONObject("juego")
         val juego = j?.let {
@@ -202,7 +208,8 @@ object Leer {
         for (i in 0 until ca.length()) {
             val s = ca.getJSONObject(i)
             consolas.add(Consola(s.optString("id"), s.optString("nombre"), s.optString("completo"), s.optString("pista"),
-                s.optString("juegos_de"), color(s.optString("color"), Color(0xFF9B8CFF)), s.optInt("cuantos")))
+                s.optString("juegos_de"), color(s.optString("color"), Color(0xFF9B8CFF)), s.optInt("cuantos"), s.optString("forma", "nes"),
+                s.optString("etiqueta")))
         }
         val consejos = ArrayList<Consejo>()
         val ta = o.optJSONArray("consejos") ?: JSONArray()

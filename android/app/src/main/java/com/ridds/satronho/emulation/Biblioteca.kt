@@ -66,7 +66,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -170,7 +172,8 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
         // Logo de Satronho de fondo, muy suave (como el planeta de NX).
         val logo = Imagenes.cargar("asset:logo.png", 512)
         if (logo != null) {
-            Image(logo, null, modifier = Modifier.align(Alignment.Center).size(300.dp).alpha(0.10f), contentScale = ContentScale.Fit)
+            Image(logo, null, modifier = Modifier.align(Alignment.Center).size(300.dp).alpha((e.tema.marca * 0.6f).coerceIn(0.05f, 0.6f)),
+                contentScale = ContentScale.Fit)
         }
 
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
@@ -227,6 +230,8 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
                 Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.TopCenter) {
                     Text(t("No hay juegos que coincidan."), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            } else if (vista.modo == 3) {
+                Carrusel(lista, b, menuJuego, { menuJuego = it })
             } else {
                 val celdas = when (vista.modo) {
                     1 -> GridCells.Adaptive(86.dp)
@@ -360,6 +365,7 @@ private fun MenuFiltro(abierto: Boolean, vista: Vista, cerrar: () -> Unit) {
         opcion(t("Cuadrícula"), vista.modo == 0) { vista.modo = 0 }
         opcion(t("Cuadrícula compacta"), vista.modo == 1) { vista.modo = 1 }
         opcion(t("En lista"), vista.modo == 2) { vista.modo = 2 }
+        opcion(t("Carrusel"), vista.modo == 3) { vista.modo = 3 }
         HorizontalDivider()
         opcion(t("Alfabético"), vista.orden == 0) { vista.orden = 0 }
         opcion(t("Jugados hace poco"), vista.orden == 1) { vista.orden = 1 }
@@ -382,7 +388,8 @@ private fun TarjetaJuego(g: Juego, c: Consola?, compacta: Boolean, jugar: () -> 
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box {
-            Portada(g.portada, g.titulo, color, Modifier.fillMaxWidth().aspectRatio(1f), radio = 14)
+            Portada(g.portada, g.titulo, color, Modifier.fillMaxWidth().aspectRatio(1f), radio = 14, tono = g.tono,
+                forma = c?.forma ?: "nes", etiqueta = c?.etiqueta ?: "")
             if (g.favorito) {
                 Icon(Icons.Filled.Star, null, tint = Color(0xFFFFD166),
                     modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(18.dp))
@@ -405,7 +412,8 @@ private fun FilaJuego(g: Juego, c: Consola?, jugar: () -> Unit, menu: () -> Unit
             .padding(vertical = 6.dp, horizontal = 4.dp).alpha(if (g.oculto) 0.45f else 1f),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Portada(g.portada, g.titulo, color, Modifier.size(52.dp), radio = 10, lado = 160)
+        Portada(g.portada, g.titulo, color, Modifier.size(52.dp), radio = 10, lado = 160, tono = g.tono, forma = c?.forma ?: "nes",
+            etiqueta = c?.etiqueta ?: "")
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(g.titulo, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -426,7 +434,8 @@ private fun SeguirJugando(g: Juego, b: Biblioteca) {
         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Portada(g.portada, g.titulo, color, Modifier.size(64.dp), radio = 12, lado = 200)
+            Portada(g.portada, g.titulo, color, Modifier.size(64.dp), radio = 12, lado = 200, tono = g.tono, forma = c?.forma ?: "nes",
+                etiqueta = c?.etiqueta ?: "")
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(t("Seguir jugando"), style = MaterialTheme.typography.labelMedium, color = color)
@@ -489,5 +498,92 @@ private fun SinJuegos(b: Biblioteca) {
             t("Toca «Carpeta» y elige dónde guardas tus juegos. También puedes abrirlos desde WhatsApp, Drive o Archivos con «Abrir con»."),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
         )
+    }
+}
+
+/**
+ * Vista carrusel (como en PC): una portada grande a la vez, con las vecinas asomando a los lados, el
+ * fondo con los colores de la carátula y los datos del juego abajo. Se desliza con el dedo.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun Carrusel(lista: List<Juego>, b: Biblioteca, menuJuego: String, abrirMenu: (String) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val estado = androidx.compose.foundation.pager.rememberPagerState(pageCount = { lista.size })
+    val actual = lista.getOrNull(estado.currentPage) ?: return
+    val c = b.consola(actual.sistema)
+    val color = c?.color ?: cs.primary
+    Box(Modifier.fillMaxSize()) {
+        // Fondo: la carátula del juego elegido, grande, borrosa y oscura.
+        val fondo = Imagenes.cargar(actual.portada, 200)
+        if (fondo != null) {
+            Image(
+                fondo, null, contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().blur(36.dp).alpha(0.35f),
+            )
+        }
+        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(
+            listOf(Color.Transparent, cs.background.copy(alpha = 0.85f), cs.background))))
+        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+            androidx.compose.foundation.pager.HorizontalPager(
+                state = estado,
+                contentPadding = PaddingValues(horizontal = 72.dp),
+                pageSpacing = 14.dp,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                key = { lista[it].clave },
+            ) { i ->
+                val g = lista[i]
+                val gc = b.consola(g.sistema)
+                val distancia = kotlin.math.abs((estado.currentPage - i) + estado.currentPageOffsetFraction).coerceIn(0f, 1f)
+                val escala = 1f - 0.14f * distancia
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box {
+                        Box(
+                            Modifier.fillMaxWidth().aspectRatio(0.78f)
+                                .graphicsLayer { scaleX = escala; scaleY = escala; alpha = 1f - 0.45f * distancia }
+                                .border(2.dp, (gc?.color ?: cs.primary).copy(alpha = 0.6f * (1f - distancia)), RoundedCornerShape(20.dp))
+                                .combinedClickable(onClick = { SatronhoUi.orden("jugar|${g.clave}") }, onLongClick = { abrirMenu(g.clave) }),
+                        ) {
+                            Portada(g.portada, g.titulo, gc?.color ?: cs.primary, Modifier.fillMaxSize(), radio = 20, lado = 600,
+                                tono = g.tono, forma = gc?.forma ?: "nes", etiqueta = gc?.etiqueta ?: "")
+                            if (g.favorito) Icon(Icons.Filled.Star, null, tint = Color(0xFFFFD166),
+                                modifier = Modifier.align(Alignment.TopEnd).padding(10.dp).size(24.dp))
+                        }
+                        MenuJuego(menuJuego == g.clave, g) { abrirMenu("") }
+                    }
+                }
+            }
+            // Datos del juego elegido.
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(actual.titulo, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, maxLines = 2,
+                    overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+                    Spacer(Modifier.width(6.dp))
+                    Text(c?.completo ?: "", style = MaterialTheme.typography.labelLarge, color = color)
+                    if (actual.tiempoTexto.isNotEmpty()) {
+                        Text("  ·  " + actual.tiempoTexto, style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (actual.continuar) {
+                        androidx.compose.material3.OutlinedButton(onClick = { SatronhoUi.orden("continuar|${actual.clave}") }) {
+                            Icon(Iconos.cargar, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(t("Continuar"))
+                        }
+                    }
+                    androidx.compose.material3.Button(onClick = { SatronhoUi.orden("jugar|${actual.clave}") }) {
+                        Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(t("Jugar"))
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text("${estado.currentPage + 1} / ${lista.size}", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                Spacer(Modifier.height(96.dp))
+            }
+        }
     }
 }
