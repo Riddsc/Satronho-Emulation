@@ -3,6 +3,45 @@
     {
       "version": "Esta build",
       "fecha": "25 de noviembre de 2026",
+      "titulo": "Juegos de Switch con Satronho NX, hasta 8 jugadores y tus juegos encontrados solos",
+      "cambios": [
+        {
+          "tipo": "nuevo",
+          "texto": "En el celular, los juegos de Switch (.nsp, .xci) aparecen en la biblioteca como Satronho NX y se juegan con un toque: el hub instala NX por ti (sin ícono propio, se abre desde aquí), le pasa tus claves y tu firmware, y al salir vuelves a la biblioteca con el tiempo jugado. Un asistente revisa antes si tu teléfono sirve (Android 13 o más nuevo)."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Buscar juegos en todo el teléfono (Ajustes » Biblioteca): descargas, WhatsApp, Telegram, la tarjeta SD… Al final eliges qué agregar y si los ordeno en «Satronho Games» o los dejo donde están. También encuentra tus claves y tu firmware para NX."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "«Satronho Games» ahora trae una carpeta para cada consola (con un Léeme que dice qué va ahí), más BIOS y Claves y firmware. Las BIOS que pongas ahí se usan solas."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Hasta 8 jugadores. NES, Super Nintendo, Genesis (celular), PlayStation y Saturn conectan solos su adaptador de varios jugadores. En Controles » General, «Toma tu puesto»: cada uno aprieta un botón y su mando vibra."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Si un mando Bluetooth se desconecta a mitad del juego, el juego espera y Samy te dice de qué jugador era; al reconectarlo vuelve a su mismo puesto."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Respaldar y restaurar partidas (Herramientas): un .zip con las partidas y los estados de todos tus juegos, también los de Satronho NX. Se restaura en el PC o en otro celular, y cada partida vuelve a su juego aunque el archivo se llame distinto."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Como en Satronho NX: la ficha de cada juego con la gráfica de sus sesiones, un resumen al salir (FPS y tirones), el sello de la última sesión en su portada, consejos de los guías en la pantalla de carga, la Captura Satronho con su franja, el aviso de calor de Ñoño y el widget «Continuar» para la pantalla de inicio."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "La vista carrusel ya no cierra la app al ocultar o mostrar juegos."
+        }
+      ]
+    },
+    {
+      "version": "Build 25",
+      "fecha": "25 de noviembre de 2026",
       "titulo": "En el celular, todo es nuevo: pantallas nativas como las de Satronho NX y un control táctil que no se equivoca",
       "cambios": [
         {

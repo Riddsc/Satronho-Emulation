@@ -127,6 +127,30 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
 - Carpeta pública «Satronho Games» (build 21): con el permiso de archivos, `Paths::PublicRoot()` tiene la
   ruta y ahí van `Juegos/<Consola>`, `Partidas` y `Estados`. La configuración, la caché y las BIOS siguen en
   la carpeta de la app. Ver `SetupPublicFolder` y `BeginDataMove` (app_import.cpp).
+- Build 26 (`app_phone.cpp`): `EnsureGamesTree` crea `Juegos/<sys.name>` para todas las consolas (y `NX`),
+  `Claves y firmware` y `BIOS` con un `Léeme.txt` (nunca toca lo que ya hay). `SyncBiosFolder` copia a
+  `Paths::System()` las BIOS que la persona deje ahí y deja ahí una copia de las que ya había.
+  `PhoneScan` (sys/phone_scan.*) recorre `Android::Roots()` en un hilo (se salta DCIM, Pictures, Music…,
+  Android/ salvo media/, carpetas ocultas, Partidas y Estados) y junta juegos nuevos por carpeta, `.keys` y
+  firmware (zip con «firmware» en el nombre o carpeta con 30+ `.nca`); lo de NX queda en el ini
+  (`nx.claves`, `nx.firmware`, separados por «|»). Página nativa `escaneo`; ordenar mueve con sus pistas
+  (`PartsOf`: .cue/.gdi/.m3u) y hace `Library::Rekey`.
+- **Satronho NX** (juegos de Switch, solo Android): `NxSystem()` no está en `Systems()` (no tiene núcleo
+  ni páginas), pero `SystemById`/`SystemForExtension` la encuentran (`external = true`). Jugar emite
+  `{"t":"nx"}`; `Nx.kt` hace todo lo demás: habla con NX por su `HubProvider`
+  (`content://dev.satronho.nx.hub`, métodos `estado`, `info`, `claves`, `firmware`, `partidas`,
+  `restaurar_partidas`, `ocultar`, `mostrar`; solo acepta llamadas del paquete del hub), le pasa archivos
+  con el FileProvider del hub (`<paquete>.archivos`, `root-path`) y abre
+  `org.yuzu.yuzu_emu.activities.EmulationActivity` con ACTION_VIEW. NX se baja de lo que diga
+  `remoto/nx.json` en `main` (se puede cambiar sin build) y se instala con `instalarApk`; si lo instaló el
+  hub, se le apaga el ícono (alias `org.yuzu.yuzu_emu.Lanzador`). Al volver (`onResume`) se manda
+  `nx_volvio|clave|segundos`. Nombre e ícono reales: `nx_info`.
+- 8 jugadores (`Input::kPlayers`, `CoreHost::kPorts`): `ApplyPlayers` conecta el adaptador de cada
+  consola (Nestopia `ntsc`, bsnes multitap en el puerto 2, Genesis Plus GX Team Player, Beetle PSX y
+  Saturn por opciones). Los puertos salen de `RETRO_ENVIRONMENT_SET_CONTROLLER_INFO`.
+- Respaldos (`app_backup.cpp`): .zip con `satronho-respaldo.json` y una carpeta por juego
+  (`partida/{juego}.srm`, `estados/…`); al restaurar se busca el juego por su huella (tamaño + primer y
+  último MB) y luego por el título. En el celular Kotlin (`Respaldo.kt`) le suma `nx/partidas-nx.zip`.
 
 ## Datos del usuario (dónde queda cada cosa)
 
