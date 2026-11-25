@@ -231,7 +231,11 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
                     Text(t("No hay juegos que coincidan."), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else if (vista.modo == 3) {
-                Carrusel(lista, b, menuJuego, { menuJuego = it })
+                // Si cambia lo que se muestra (ocultos, favoritos, consola, búsqueda u orden) el carrusel se arma
+                // de nuevo, quedándose en el mismo juego si sigue en la lista.
+                androidx.compose.runtime.key(vista.ocultos, vista.favoritos, consola, filtro, vista.orden) {
+                    Carrusel(lista, b, menuJuego, { menuJuego = it })
+                }
             } else {
                 val celdas = when (vista.modo) {
                     1 -> GridCells.Adaptive(86.dp)
@@ -505,11 +509,18 @@ private fun SinJuegos(b: Biblioteca) {
  * Vista carrusel (como en PC): una portada grande a la vez, con las vecinas asomando a los lados, el
  * fondo con los colores de la carátula y los datos del juego abajo. Se desliza con el dedo.
  */
+/** Último juego elegido en el carrusel, para no volver al principio cuando se rearma. */
+private var ultimoCarrusel = ""
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Carrusel(lista: List<Juego>, b: Biblioteca, menuJuego: String, abrirMenu: (String) -> Unit) {
     val cs = MaterialTheme.colorScheme
-    val estado = androidx.compose.foundation.pager.rememberPagerState(pageCount = { lista.size })
+    val estado = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = lista.indexOfFirst { it.clave == ultimoCarrusel }.coerceAtLeast(0),
+        pageCount = { lista.size },
+    )
+    LaunchedEffect(estado.settledPage) { lista.getOrNull(estado.settledPage)?.let { ultimoCarrusel = it.clave } }
     // El fondo y los datos siguen a la portada donde el carrusel se detiene, no a cada una que pasa
     // mientras se desliza (así no se recalcula el desenfoque a cada rato y va fluido).
     val actual = lista.getOrNull(estado.settledPage) ?: lista.getOrNull(estado.currentPage) ?: return
@@ -549,9 +560,10 @@ private fun Carrusel(lista: List<Juego>, b: Biblioteca, menuJuego: String, abrir
                     flingBehavior = lanzar,
                     beyondViewportPageCount = 2,
                     modifier = Modifier.fillMaxSize(),
-                    key = { lista[it].clave },
+                    // Nunca leer fuera de la lista: al ocultar un juego puede pedir una página que ya no existe.
+                    key = { lista.getOrNull(it)?.clave ?: "fuera$it" },
                 ) { i ->
-                    val g = lista[i]
+                    val g = lista.getOrNull(i) ?: return@HorizontalPager
                     val gc = b.consola(g.sistema)
                     val tinte = gc?.color ?: cs.primary
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
