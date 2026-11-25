@@ -471,6 +471,14 @@ private:
     bool resume_pending_ = false;       // cargar la ranura automática al empezar
     int disk_swap_target_ = -1;         // disco que se pone cuando termina de «abrirse la tapa»
     int disk_swap_wait_ = 0;            // cuadros que faltan
+    int analog_pulse_ = 0;              // cuadros con L1+R1+Select (botón Analog del DualShock en CD)
+    double audio_full_s_ = 0;           // tiempo con el sonido sin avanzar (el juego no corre)
+    // Juego lento: Ñoño ofrece bajar la resolución (una vez por juego).
+    double slow_s_ = 0;
+    bool slow_asked_ = false, slow_prompt_ = false, slow_was_paused_ = false;
+    void WatchSlowGame(double dt, double target_fps);
+    void SendLog(); // el registro (esta sesión y la anterior) al menú Compartir y a «Satronho Games»
+    void DrawSlowPrompt();
     int screens_pulse_ = 0;             // cuadros con R3 presionado (cambiar pantallas en DS)
     bool focus_paused_ = false;         // pausado porque la ventana perdió el foco
     fs::path pending_start_;            // juego por abrir (tras dibujar «Cargando…»)

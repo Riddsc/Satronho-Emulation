@@ -9,6 +9,7 @@ void Close();
 void Info(const char* fmt, ...);
 void Warn(const char* fmt, ...);
 void Error(const char* fmt, ...);
+void Flush(); // escribe ya lo pendiente (antes de leer el archivo)
 
 // Si la aplicación se cierra de golpe (un núcleo que falla, por ejemplo), deja anotado en el
 // registro el código del error y en qué archivo pasó (satronho-emulation.exe o el .dll del núcleo).

@@ -3,6 +3,37 @@
     {
       "version": "Esta build",
       "fecha": "24 de noviembre de 2026",
+      "titulo": "Los juegos de CD aceptan tu mando y el celular ya no se ahoga con la resolución",
+      "cambios": [
+        {
+          "tipo": "arreglo",
+          "texto": "Satronho CD: el DualShock arranca en modo digital, como el de verdad. Los juegos viejos que no respondían (Dragon Ball, Twisted Metal) ya aceptan el mando, y los que usan palancas lo pasan a analógico solos. Si alguno pide el botón Analog, está en el menú Juego de la barra."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "En el celular, la resolución automática ya no pasa de 2×: con pantallas de 1440 píxeles pedía 8×, y juegos como Vigilante 8 iban lentos y se congelaban al cargar. Si tu teléfono puede más, súbela en Ajustes » Gráficos."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Si un juego de CD, 64, Sueño o Portátil va muy lento varios segundos, Ñoño te ofrece bajar la resolución con un toque, y el juego sigue justo donde ibas."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Si la salida de sonido deja de avanzar, el juego ya no se queda congelado esperándola: se vacía y sigue (y queda anotado en el registro)."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Satronho CD esconde la rayita de colores que algunos juegos dejan en el borde de arriba. Se cambia en «Recortar arriba», en las opciones de su emulador."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Ajustes » Rendimiento » «Enviar el registro»: MechaRidds arma el registro (también el de la vez anterior si la app se cerró) y lo mandas por WhatsApp a Ridds."
+        }
+      ]
+    },
+    {
+      "version": "Build 22",
+      "fecha": "24 de noviembre de 2026",
       "titulo": "Llegan Satronho Sueño y Satronho Portátil, y el sonido ya no se pierde",
       "cambios": [
         {

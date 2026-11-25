@@ -61,6 +61,11 @@ void Open() {
 #endif
 }
 
+void Flush() {
+    std::lock_guard lock(g_mutex);
+    if (g_file) std::fflush(g_file);
+}
+
 void Close() {
     std::lock_guard lock(g_mutex);
     if (g_file) std::fclose(g_file);
