@@ -16,6 +16,7 @@
 #include <map>
 
 #include "app.h"
+#include "native_page.h"
 #include "imgui.h"
 #include "ui/controllers.h"
 #include "ui/kit.h"
@@ -769,6 +770,223 @@ void App::DrawSettingsVideo() {
     BackToTop();
     ImGui::EndChild();
     if (changed) SaveConfig();
+}
+
+
+// ---------------------------------------------------------------- interfaz nativa (Android)
+
+std::vector<std::pair<std::string, std::pair<std::string, std::string>>> NativeSystemList(bool only_gpu);
+
+namespace {
+// Lista de opciones del emulador como «opciones» de NPage (las conocidas, con su explicación).
+void NativeCoreOptionRow(App* app, NPage& p, const SystemDef& sys, const CoreOption& d, const OptionInfo* info, const std::string& cur,
+                         std::function<void(const std::string&)> set) {
+    std::vector<std::string> labels;
+    int sel = 0;
+    for (size_t i = 0; i < d.values.size(); ++i) {
+        const auto& val = d.values[i];
+        const ValueInfo* vi = info ? FindValue(*info, val.value) : nullptr;
+        std::string l = vi && vi->label ? std::string(Tr(vi->label)) : CommonValueLabel(val.value, val.label);
+        if (val.value == d.core_def) l += std::string("  ") + Tr("(del emulador)");
+        labels.push_back(l);
+        if (val.value == cur) sel = static_cast<int>(i);
+    }
+    std::string help = info && info->help ? std::string(Tr(info->help)) : d.info;
+    if (!info) {
+        const size_t dot = help.find(". ");
+        if (dot != std::string::npos && dot < 220) help.resize(dot + 1);
+    }
+    std::string note;
+    if (info) {
+        const ValueInfo* vi = FindValue(*info, d.values[sel].value);
+        if (vi && vi->help) note = Tr(vi->help);
+    }
+    const std::vector<CoreOption::Value> values = d.values;
+    p.Choice("op_" + d.key, info ? Tr(info->label) : d.label, help, sel, labels, [set, values](int v) {
+        if (v >= 0 && v < static_cast<int>(values.size())) set(values[v].value);
+    }, "", note);
+    (void)app;
+    (void)sys;
+}
+} // namespace
+
+void App::NativePageGraphics(NPage& p) {
+    if (gfx_sys_.empty()) gfx_sys_ = in_game_ && sys_ ? sys_->id : "cd";
+    const SystemDef* sys = SystemById(gfx_sys_);
+    if (!sys) sys = &Systems().front();
+    p.Section("", "Elige la consola que quieres ajustar. Lo que cambies vale solo para ella.");
+    p.Systems("consola", sys->id, NativeSystemList(false), [this](const std::string& v) {
+        if (SystemById(v)) gfx_sys_ = v;
+    });
+
+    // Imagen.
+    VideoOverride& vo = settings_.video_for[sys->id];
+    const std::string sid = sys->id;
+    p.Section("Imagen");
+    p.Toggle("propia", Fmt("Imagen propia para %s", sys->name.c_str()), "Si está apagado, usa la imagen general (la de todas las consolas).", vo.on,
+             [this, sid](bool v) {
+                 VideoOverride& o = settings_.video_for[sid];
+                 if (v && !o.on) {
+                     o.scale_mode = settings_.scale_mode;
+                     o.filter = settings_.filter;
+                     o.effect = settings_.effect;
+                     o.effect_strength = settings_.effect_strength;
+                 }
+                 o.on = v;
+                 SaveConfig();
+             }, "graficos");
+    auto ref_int = [this, sid](int which) -> int& {
+        VideoOverride& o = settings_.video_for[sid];
+        if (which == 0) return o.on ? o.scale_mode : settings_.scale_mode;
+        if (which == 1) return o.on ? o.filter : settings_.filter;
+        return o.on ? o.effect : settings_.effect;
+    };
+    p.Choice("escala", "Tamaño", "Ajustar: lo más grande posible con su forma. Entero: píxeles parejos. Estirar: toda la pantalla.", ref_int(0),
+             {"Ajustar", "Entero", "Estirar"}, [this, ref_int](int v) { ref_int(0) = std::clamp(v, 0, 2); SaveConfig(); });
+    p.Choice("filtro", "Filtro", "Cómo se agrandan los píxeles.", ref_int(1), {"Píxel exacto", "Nítido suave", "Suave"},
+             [this, ref_int](int v) { ref_int(1) = std::clamp(v, 0, 2); SaveConfig(); });
+    p.Choice("efecto", "Efecto de pantalla", "Auto: CRT en las de TV, LCD en portátiles y limpio en las 3D.", ref_int(2),
+             {"Ninguno", "Líneas", "CRT", "LCD", "Auto"}, [this, ref_int](int v) { ref_int(2) = std::clamp(v, 0, 4); SaveConfig(); });
+    if (ref_int(2) != 0) {
+        const float st = vo.on ? vo.effect_strength : settings_.effect_strength;
+        p.Slider("intensidad", "Intensidad del efecto", "", st * 100, 0, 100, 5, "%.0f %%", [this, sid](float v) {
+            VideoOverride& o = settings_.video_for[sid];
+            (o.on ? o.effect_strength : settings_.effect_strength) = std::clamp(v / 100.0f, 0.0f, 1.0f);
+            SaveConfig();
+        });
+    }
+
+    // Motor y resolución (consolas 3D).
+    if (sys->gpu) {
+        const int api_now = GpuApiFor(*sys);
+        const int res_now = GpuResFor(*sys, api_now);
+        p.Section("Motor y resolución", "Se aplica la próxima vez que abras un juego de esta consola.");
+        int api = settings_.GpuApi(sys->id);
+        if (!sys->gpu_cpu && api == 3) api = 0;
+        std::vector<std::string> apis{"Automático", "OpenGL", "Vulkan"};
+        if (sys->gpu_cpu) apis.push_back("Procesador");
+        const char* api_name = api_now == 1 ? "OpenGL" : api_now == 2 ? "Vulkan" : "el procesador";
+        p.Choice("api", "Motor del juego", TrFmt("Ahora: %s.", Tr(api_name)), api, apis, [this, sid](int v) {
+            if (v == 2 && !hw_render_.VulkanAvailable()) Toast("Este equipo no tiene Vulkan; se usará OpenGL.", GuideId::Troya, 4);
+            settings_.gpu_api[sid] = v;
+            SaveConfig();
+        }, "chip");
+        const std::vector<int> ks = GpuResSteps(*sys, api_now);
+        const int stored = settings_.GpuRes(sys->id);
+        // La automática dice exactamente cuál usa (antes decía una y usaba otra).
+        std::vector<std::string> names{TrFmt("Automática · %s", ResLabel(res_now, sys).c_str())};
+        int sel = 0;
+        for (size_t i = 0; i < ks.size(); ++i) {
+            names.push_back(ResLabel(ks[i], sys));
+            if (stored > 0 && ResHeight(ks[i]) <= ResHeight(stored)) sel = static_cast<int>(i) + 1;
+        }
+        std::string help = "La automática elige la que va fluida en tu equipo. Si un juego va lento, Ñoño te ofrece bajarla y la recuerda solo para ese juego.";
+#ifdef __ANDROID__
+        help = "En el celular la automática llega como mucho a 2× para que los juegos 3D vayan fluidos. Si un juego va lento, Ñoño te ofrece bajarla y la recuerda solo para ese juego.";
+#endif
+        p.Choice("res", "Resolución", help, sel, names, [this, sid, ks](int v) {
+            settings_.gpu_res[sid] = v <= 0 || v > static_cast<int>(ks.size()) ? 0 : ks[v - 1];
+            SaveConfig();
+        }, "resolucion");
+    }
+
+    // Opciones de su emulador que tocan la imagen.
+    if (const std::vector<CoreOption>* defs = CoreDefsFor(*sys)) {
+        bool header = false;
+        for (const auto& info : KnownOptions(sys->id)) {
+            auto d = std::find_if(defs->begin(), defs->end(), [&](const CoreOption& o) { return o.key == info.key; });
+            if (d == defs->end() || d->values.empty()) continue;
+            if (!header) {
+                p.Section("Opciones de su emulador", "Se aplican al momento o al volver a abrir el juego.");
+                header = true;
+            }
+            const SystemDef* sp = sys;
+            NativeCoreOptionRow(this, p, *sys, *d, &info, CoreOptionValue(*sys, *d),
+                                [this, sp, key = d->key](const std::string& v) { SetCoreOptionFor(*sp, key, v); });
+        }
+    }
+
+    p.Section("Para toda la app (todas las consolas)");
+    p.Toggle("ambiente", "Fondo ambiente", "Llena los bordes con los colores del juego, suaves y desenfocados.", settings_.ambient,
+             [this](bool v) { settings_.ambient = v; SaveConfig(); });
+    p.Toggle("vsync", "Sincronización vertical", "Evita que la imagen se corte. Déjala activada salvo que sepas lo que haces.", settings_.vsync,
+             [this](bool v) { settings_.vsync = v; ApplyVsync(); SaveConfig(); });
+}
+
+void App::NativePageCore(NPage& p) {
+    const SystemDef* sys = SystemById(core_tab_system_);
+    if (!sys) sys = &Systems().front();
+    p.Section("");
+    p.Systems("consola", sys->id, NativeSystemList(false), [this](const std::string& v) {
+        if (SystemById(v)) core_tab_system_ = v;
+    });
+    const std::vector<CoreOption>* defs = CoreDefsFor(*sys);
+    std::string name, version;
+    if (core_.CoreLoaded() && core_file_ == CoreFile(*sys)) {
+        name = core_.SystemInfo().library_name ? core_.SystemInfo().library_name : "";
+        version = core_.SystemInfo().library_version ? core_.SystemInfo().library_version : "";
+    } else if (auto it = core_cache_.find(CoreFile(*sys)); it != core_cache_.end()) {
+        name = it->second.name;
+        version = it->second.version;
+    }
+    p.Guide("samy", TrFmt("El corazón de %s es %s %s. Estas opciones son suyas; la mayoría se nota al momento y otras al reiniciar el juego.",
+                          Tr(sys->full).c_str(), name.c_str(), version.c_str()));
+    if (!sys->bios.empty()) {
+        const std::vector<std::string> have = BiosFound(*sys);
+        std::string status;
+        if (have.empty()) status = Tr(sys->bios_required ? "Falta. " : "No hay (es opcional). ");
+        else {
+            status = Tr("Tienes: ");
+            for (size_t i = 0; i < have.size(); ++i) status += (i ? ", " : "") + have[i];
+            status += ". ";
+        }
+        std::string names;
+        for (size_t i = 0; i < sys->bios.size(); ++i) names += std::string(i ? ", " : "") + sys->bios[i].name;
+        p.Info(TrFmt("BIOS de %s", Tr(sys->full).c_str()), status + Tr(sys->bios_note) + " " + Tr("Nombres que reconoce: ") + names + ".", "chip");
+        p.Info("Cómo agregarla", "Compártela desde WhatsApp, Drive o Archivos con «Abrir con» Satronho Emulation, o ponla en una carpeta de juegos: la reconozco sola.",
+               "info");
+    }
+    if (!defs) {
+        p.Info("Estas opciones aparecen cuando el emulador de esta consola está instalado.", "", "info");
+        return;
+    }
+    std::vector<CoreCategory> cats;
+    if (core_.CoreLoaded() && core_file_ == CoreFile(*sys)) cats = core_.Categories();
+    else if (auto it = core_cache_.find(CoreFile(*sys)); it != core_cache_.end()) cats = it->second.categories;
+    const SystemDef* sp = sys;
+    auto row = [&](const CoreOption& o) {
+        if (!o.visible || o.values.size() < 2) return;
+        NativeCoreOptionRow(this, p, *sys, o, nullptr, CoreOptionValue(*sys, o),
+                            [this, sp, key = o.key](const std::string& v) { SetCoreOptionFor(*sp, key, v); });
+    };
+    if (cats.empty()) {
+        p.Section("Opciones");
+        for (const auto& o : *defs) row(o);
+    } else {
+        for (const auto& c : cats) {
+            bool any = false;
+            for (const auto& o : *defs) any |= o.category == c.key && o.visible && o.values.size() >= 2;
+            if (!any) continue;
+            p.Section(c.label);
+            for (const auto& o : *defs)
+                if (o.category == c.key) row(o);
+        }
+        bool header = false;
+        for (const auto& o : *defs) {
+            if (!o.category.empty() || !o.visible || o.values.size() < 2) continue;
+            if (!header) {
+                p.Section("General");
+                header = true;
+            }
+            row(o);
+        }
+    }
+    p.Section("");
+    std::vector<std::pair<std::string, std::string>> defaults;
+    for (const auto& o : *defs) defaults.push_back({o.key, o.def});
+    p.Action("restablecer", "Restablecer opciones del núcleo", "", "refrescar", [this, sp, defaults] {
+        for (const auto& [k, v] : defaults) SetCoreOptionFor(*sp, k, v);
+    }, "", "¿Volver a las opciones de fábrica de este emulador?");
 }
 
 } // namespace Satronho

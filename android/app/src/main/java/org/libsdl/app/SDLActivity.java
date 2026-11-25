@@ -57,7 +57,9 @@ import java.util.Locale;
 /**
     SDL Activity
 */
-public class SDLActivity extends Activity implements View.OnSystemUiVisibilityChangeListener {
+// Satronho (build 25): ComponentActivity en vez de Activity, para poner encima las pantallas nativas
+// (Jetpack Compose necesita su ciclo de vida). ComponentActivity es una Activity: SDL no cambia.
+public class SDLActivity extends androidx.activity.ComponentActivity implements View.OnSystemUiVisibilityChangeListener {
     private static final String TAG = "SDL";
     private static final int SDL_MAJOR_VERSION = 3;
     private static final int SDL_MINOR_VERSION = 4;
