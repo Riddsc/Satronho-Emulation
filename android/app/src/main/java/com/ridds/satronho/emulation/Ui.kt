@@ -298,9 +298,35 @@ object SatronhoUi {
     }
 
     private var dispositivosAnotados = ""
+    private val ofrecidos = HashSet<Int>()
+    @Volatile private var grupo: Map<Int, Int> = emptyMap() // dispositivo de Android → mando del puente
 
     fun revisarMandos() {
         mandoFisico = try { InputDevice.getDeviceIds().any { esMandoFisico(InputDevice.getDevice(it)) } } catch (_: Throwable) { false }
+        // Puente de mandos (como Satronho NX): cada mando que ve Android se le ofrece a C++; si SDL no
+        // lo toma en unos segundos, C++ lo conecta como mando virtual y le mandamos botones y palancas.
+        try {
+            // Un mismo mando a veces aparece como dos dispositivos (botones por un lado, palancas por el
+            // otro): se juntan por fabricante y modelo y todo va al primero.
+            val todos = InputDevice.getDeviceIds().filter { esMandoFisico(InputDevice.getDevice(it)) }.sorted()
+            val nuevoGrupo = HashMap<Int, Int>()
+            val primeros = HashMap<Long, Int>()
+            for (id in todos) {
+                val d = InputDevice.getDevice(id) ?: continue
+                val clave = if (d.vendorId != 0 && d.productId != 0) (d.vendorId.toLong() shl 16) or d.productId.toLong() else -id.toLong() - 1
+                nuevoGrupo[id] = primeros.getOrPut(clave) { id }
+            }
+            grupo = nuevoGrupo
+            val ahora = nuevoGrupo.values.toSet()
+            for (id in ahora - ofrecidos) {
+                val d = InputDevice.getDevice(id)
+                val nombre = (d?.name ?: "Mando").replace('|', ' ')
+                orden("mando_android|ofrecer|$id|$nombre|${d?.vendorId ?: 0}|${d?.productId ?: 0}")
+            }
+            for (id in ofrecidos - ahora) orden("mando_android|quitar|$id")
+            ofrecidos.clear()
+            ofrecidos.addAll(ahora)
+        } catch (_: Throwable) {}
         // Al registro (C++ anota cada orden): qué ve Android, para entender un mando que no funciona.
         try {
             val lista = InputDevice.getDeviceIds().toList().mapNotNull { InputDevice.getDevice(it) }.filter { !it.isVirtual }.joinToString(" ; ") {
@@ -312,6 +338,95 @@ object SatronhoUi {
                 orden("dispositivos|$lista")
             }
         } catch (_: Throwable) {}
+    }
+
+    // ------------------------------------------------------------ puente de mandos
+
+    /** Botón de Android → botón de mando de SDL (SDL_GamepadButton); -1 si no es de mando. */
+    private fun botonSdl(codigo: Int): Int = when (codigo) {
+        KeyEvent.KEYCODE_BUTTON_A -> 0
+        KeyEvent.KEYCODE_BUTTON_B -> 1
+        KeyEvent.KEYCODE_BUTTON_X -> 2
+        KeyEvent.KEYCODE_BUTTON_Y -> 3
+        KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BACK -> 4
+        KeyEvent.KEYCODE_BUTTON_MODE -> 5
+        KeyEvent.KEYCODE_BUTTON_START -> 6
+        KeyEvent.KEYCODE_BUTTON_THUMBL -> 7
+        KeyEvent.KEYCODE_BUTTON_THUMBR -> 8
+        KeyEvent.KEYCODE_BUTTON_L1 -> 9
+        KeyEvent.KEYCODE_BUTTON_R1 -> 10
+        KeyEvent.KEYCODE_DPAD_UP -> 11
+        KeyEvent.KEYCODE_DPAD_DOWN -> 12
+        KeyEvent.KEYCODE_DPAD_LEFT -> 13
+        KeyEvent.KEYCODE_DPAD_RIGHT -> 14
+        else -> -1
+    }
+
+    /** Un botón de un mando del puente: va a C++. Devuelve true si era de ese mando (no sigue a SDL). */
+    fun puenteTecla(ev: KeyEvent): Boolean {
+        val id = grupo[ev.deviceId] ?: return false
+        if (id !in estado.puente) return false
+        if (ev.action != KeyEvent.ACTION_DOWN && ev.action != KeyEvent.ACTION_UP) return true
+        if (ev.repeatCount > 0) return true
+        val abajo = ev.action == KeyEvent.ACTION_DOWN
+        when (ev.keyCode) {
+            KeyEvent.KEYCODE_BUTTON_L2 -> orden("mando_android|e|$id|4|${if (abajo) 32767 else -32768}")
+            KeyEvent.KEYCODE_BUTTON_R2 -> orden("mando_android|e|$id|5|${if (abajo) 32767 else -32768}")
+            else -> {
+                val b = botonSdl(ev.keyCode)
+                if (b < 0) return false // «atrás» del sistema y otras teclas siguen su camino
+                orden("mando_android|b|$id|$b|${if (abajo) 1 else 0}")
+            }
+        }
+        return true
+    }
+
+    private val ultimosEjes = HashMap<Long, Int>()
+
+    /** Palancas, gatillos y cruceta (hat) de un mando del puente. */
+    fun puenteMovimiento(ev: MotionEvent): Boolean {
+        val id = grupo[ev.deviceId] ?: return false
+        if (id !in estado.puente) return false
+        val d = ev.device ?: return true
+        fun tiene(eje: Int) = d.getMotionRange(eje) != null
+        fun eje(sdl: Int, valor: Int) {
+            val clave = id.toLong() * 100 + sdl
+            if (ultimosEjes[clave] == valor) return
+            ultimosEjes[clave] = valor
+            orden("mando_android|e|$id|$sdl|$valor")
+        }
+        fun palanca(v: Float) = (v.coerceIn(-1f, 1f) * 32767f).toInt()
+        fun gatillo(v: Float) = (-32768f + v.coerceIn(0f, 1f) * 65535f).toInt()
+        if (tiene(MotionEvent.AXIS_X)) {
+            eje(0, palanca(ev.getAxisValue(MotionEvent.AXIS_X)))
+            eje(1, palanca(ev.getAxisValue(MotionEvent.AXIS_Y)))
+        }
+        // Palanca derecha: Z/RZ en la mayoría; RX/RY en algunos.
+        if (tiene(MotionEvent.AXIS_Z) || tiene(MotionEvent.AXIS_RZ)) {
+            eje(2, palanca(ev.getAxisValue(MotionEvent.AXIS_Z)))
+            eje(3, palanca(ev.getAxisValue(MotionEvent.AXIS_RZ)))
+        } else if (tiene(MotionEvent.AXIS_RX)) {
+            eje(2, palanca(ev.getAxisValue(MotionEvent.AXIS_RX)))
+            eje(3, palanca(ev.getAxisValue(MotionEvent.AXIS_RY)))
+        }
+        val l2 = maxOf(ev.getAxisValue(MotionEvent.AXIS_LTRIGGER), ev.getAxisValue(MotionEvent.AXIS_BRAKE))
+        val r2 = maxOf(ev.getAxisValue(MotionEvent.AXIS_RTRIGGER), ev.getAxisValue(MotionEvent.AXIS_GAS))
+        if (tiene(MotionEvent.AXIS_LTRIGGER) || tiene(MotionEvent.AXIS_BRAKE)) eje(4, gatillo(l2))
+        if (tiene(MotionEvent.AXIS_RTRIGGER) || tiene(MotionEvent.AXIS_GAS)) eje(5, gatillo(r2))
+        // Cruceta como «hat»: se convierte en los cuatro botones de la cruceta.
+        if (tiene(MotionEvent.AXIS_HAT_X)) {
+            val hx = ev.getAxisValue(MotionEvent.AXIS_HAT_X)
+            val hy = ev.getAxisValue(MotionEvent.AXIS_HAT_Y)
+            fun boton(sdl: Int, abajo: Boolean) {
+                val clave = id.toLong() * 100 + 50 + sdl
+                val v = if (abajo) 1 else 0
+                if (ultimosEjes[clave] == v) return
+                ultimosEjes[clave] = v
+                orden("mando_android|b|$id|$sdl|$v")
+            }
+            boton(11, hy < -0.5f); boton(12, hy > 0.5f); boton(13, hx < -0.5f); boton(14, hx > 0.5f)
+        }
+        return true
     }
 
     /** ¿Los botones del mando son para moverse por lo nativo (y no para el juego)? */

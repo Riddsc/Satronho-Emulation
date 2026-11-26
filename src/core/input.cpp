@@ -555,15 +555,7 @@ void Input::HandleEvent(const SDL_Event& e) {
             char guid[64] = {};
             SDL_GUIDToString(SDL_GetJoystickGUIDForID(e.jdevice.which), guid, sizeof(guid));
             Log::Warn("Mando sin mapa: %s · %s", n ? n : "?", guid);
-#ifdef __ANDROID__
-            // En Android los botones llegan ya ordenados como un mando (A=0, B=1, X=2, Y=3, Select=4,
-            // Home=5, Start=6, palancas 7-8, L1/R1 9-10, cruceta 11-14): con este mapa sale en
-            // Controles y se juega, aunque SDL no lo haya reconocido solo.
-            const std::string mapa = std::string(guid) + "," + (n ? n : "Mando") +
-                ",a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,leftstick:b7,rightstick:b8,leftshoulder:b9,rightshoulder:b10,"
-                "dpup:b11,dpdown:b12,dpleft:b13,dpright:b14,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,";
-            if (SDL_AddGamepadMapping(mapa.c_str()) >= 0) Log::Info("Le puse un mapa de mando: %s", n ? n : "?");
-#endif
+            // En Android lo toma el puente de mandos (Input::BridgeTick), como hace Satronho NX.
         }
         break;
     case SDL_EVENT_GAMEPAD_REMOVED: {
@@ -1093,6 +1085,119 @@ std::string Input::KeyLabel(SDL_Scancode sc) {
         return n && *n ? n : "?";
     }
     }
+}
+
+
+
+// ---------------------------------------------------------------- puente de mandos (Android)
+
+// ¿SDL ya lee este mando como mando de verdad? Por nombre, o por fabricante y modelo (por USB SDL
+// a veces le pone otro nombre).
+bool Input::RealGamepadFor(const Bridge& b) const {
+    int n = 0;
+    bool found = false;
+    if (SDL_JoystickID* js = SDL_GetJoysticks(&n)) {
+        for (int i = 0; i < n && !found; ++i) {
+            // Solo cuenta si SDL lo lee como mando de verdad; si lo ve sin mapa, va por el puente.
+            if (SDL_IsJoystickVirtual(js[i]) || !SDL_IsGamepad(js[i])) continue;
+            const char* jn = SDL_GetJoystickNameForID(js[i]);
+            if (jn && b.name == jn) found = true;
+            if (b.vendor && b.product && SDL_GetJoystickVendorForID(js[i]) == b.vendor && SDL_GetJoystickProductForID(js[i]) == b.product)
+                found = true;
+        }
+        SDL_free(js);
+    }
+    return found;
+}
+
+void Input::BridgeOffer(int android_id, const std::string& name, int vendor, int product) {
+    for (const auto& b : bridges_)
+        if (b.android_id == android_id) return;
+    Bridge b;
+    b.android_id = android_id;
+    b.name = name.empty() ? "Mando" : name;
+    b.vendor = vendor;
+    b.product = product;
+    b.since = SDL_GetTicks();
+    bridges_.push_back(b);
+    Log::Info("Android ve un mando: %s (id %d)", b.name.c_str(), android_id);
+}
+
+void Input::BridgeDetach(Bridge& b) {
+    if (b.joy) SDL_CloseJoystick(b.joy);
+    if (b.jid) SDL_DetachVirtualJoystick(b.jid);
+    b.joy = nullptr;
+    b.jid = 0;
+}
+
+void Input::BridgeRemove(int android_id) {
+    for (size_t i = 0; i < bridges_.size(); ++i) {
+        if (bridges_[i].android_id != android_id) continue;
+        if (bridges_[i].jid) Log::Info("Puente de mando quitado: %s", bridges_[i].name.c_str());
+        BridgeDetach(bridges_[i]);
+        bridges_.erase(bridges_.begin() + i);
+        return;
+    }
+}
+
+void Input::BridgeTick() {
+    const Uint64 now = SDL_GetTicks();
+    for (auto& b : bridges_) {
+        if (b.sdl_has_it) continue;
+        if (b.jid) {
+            // SDL lo tomó por su cuenta: se usa el suyo (con vibración y todo) y se quita el puente.
+            if (RealGamepadFor(b)) {
+                Log::Info("SDL ya toma %s: quito el puente", b.name.c_str());
+                BridgeDetach(b);
+                b.sdl_has_it = true;
+            }
+            continue;
+        }
+        // SDL revisa los mandos cada ~3 s: se le da tiempo antes de decidir.
+        if (now - b.since < 4000) continue;
+        if (RealGamepadFor(b)) {
+            b.sdl_has_it = true;
+            continue;
+        }
+        SDL_VirtualJoystickDesc desc;
+        SDL_INIT_INTERFACE(&desc);
+        desc.type = SDL_JOYSTICK_TYPE_GAMEPAD;
+        desc.naxes = SDL_GAMEPAD_AXIS_COUNT;
+        desc.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
+        desc.name = b.name.c_str();
+        b.jid = SDL_AttachVirtualJoystick(&desc);
+        if (b.jid) b.joy = SDL_OpenJoystick(b.jid);
+        if (b.joy) {
+            // Gatillos sueltos en 0 (el centro de un eje de gatillo en SDL es -32768).
+            SDL_SetJoystickVirtualAxis(b.joy, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, -32768);
+            SDL_SetJoystickVirtualAxis(b.joy, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, -32768);
+            Log::Info("Puente de mando (como Satronho NX): %s", b.name.c_str());
+        } else {
+            Log::Warn("No pude hacer el puente de %s: %s", b.name.c_str(), SDL_GetError());
+            BridgeDetach(b);
+            b.sdl_has_it = true; // no insistir cada cuadro
+        }
+    }
+}
+
+void Input::BridgeButton(int android_id, int button, bool down) {
+    if (button < 0 || button >= SDL_GAMEPAD_BUTTON_COUNT) return;
+    for (auto& b : bridges_)
+        if (b.android_id == android_id && b.joy) SDL_SetJoystickVirtualButton(b.joy, button, down);
+}
+
+void Input::BridgeAxis(int android_id, int axis, int value) {
+    if (axis < 0 || axis >= SDL_GAMEPAD_AXIS_COUNT) return;
+    value = std::clamp(value, -32768, 32767);
+    for (auto& b : bridges_)
+        if (b.android_id == android_id && b.joy) SDL_SetJoystickVirtualAxis(b.joy, axis, static_cast<Sint16>(value));
+}
+
+std::vector<int> Input::BridgedIds() const {
+    std::vector<int> out;
+    for (const auto& b : bridges_)
+        if (b.joy) out.push_back(b.android_id);
+    return out;
 }
 
 } // namespace Satronho

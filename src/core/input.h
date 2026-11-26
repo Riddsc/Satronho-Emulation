@@ -160,7 +160,30 @@ public:
     bool stick_dpad = true;
     bool log_buttons = false;
 
+    // Android, «puente» como Satronho NX: un mando que Android ve (Bluetooth o USB) pero SDL no toma
+    // (p. ej. TERIOS T12) se lee directo de Android (Kotlin) y entra como un mando virtual de SDL. Así
+    // sale en Controles y se juega igual que los demás. Si SDL lo toma después, el puente se quita.
+    void BridgeOffer(int android_id, const std::string& name, int vendor = 0, int product = 0); // Kotlin lo ve como mando
+    void BridgeRemove(int android_id);
+    void BridgeButton(int android_id, int button, bool down);  // SDL_GamepadButton
+    void BridgeAxis(int android_id, int axis, int value);      // SDL_GamepadAxis, -32768..32767
+    void BridgeTick();                                         // cada cuadro: decide y conecta
+    std::vector<int> BridgedIds() const;
+
 private:
+    struct Bridge {
+        int android_id = -1;
+        std::string name;
+        int vendor = 0, product = 0;
+        Uint64 since = 0;
+        SDL_JoystickID jid = 0;
+        SDL_Joystick* joy = nullptr;
+        bool sdl_has_it = false; // SDL lo toma solo: no hace falta el puente
+    };
+    std::vector<Bridge> bridges_;
+    bool RealGamepadFor(const Bridge& b) const;
+    void BridgeDetach(Bridge& b);
+
     struct Open {
         SDL_Gamepad* pad;
         SDL_JoystickID id;

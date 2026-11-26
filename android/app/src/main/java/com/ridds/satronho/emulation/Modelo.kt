@@ -74,6 +74,7 @@ data class Estado(
     val avisoCalor: Boolean = true,
     val novedadTitulo: String = "",
     val actualizacion: Actualizacion? = null,
+    val puente: Set<Int> = emptySet(),
 ) {
     val enJuego get() = modo == "juego"
 }
@@ -204,7 +205,8 @@ object Leer {
             o.optBoolean("capturando"), md, o.optString("chip"), o.optBoolean("aviso_calor", true), o.optString("novedad_titulo"),
             o.optJSONObject("actualizacion")?.let {
                 Actualizacion(it.optInt("build"), it.optInt("actual"), it.optString("estado"), it.optDouble("avance", -1.0).toFloat())
-            })
+            },
+            o.optJSONArray("puente")?.let { a -> (0 until a.length()).map { a.getInt(it) }.toSet() } ?: emptySet())
     }
 
     fun biblioteca(texto: String): Biblioteca {

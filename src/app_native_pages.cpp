@@ -722,6 +722,14 @@ bool App::NativeCommandExtra(const std::vector<std::string>& a) {
     } else if (cmd == "ajustes_cerrar") {
         native_page_.clear();
         input_.CancelCapture();
+    } else if (cmd == "mando_android") {
+        // Puente de mandos (como Satronho NX): ver Input::BridgeOffer.
+        const std::string sub = arg(1);
+        const int id = std::atoi(arg(2).c_str());
+        if (sub == "ofrecer") input_.BridgeOffer(id, arg(3), std::atoi(arg(4).c_str()), std::atoi(arg(5).c_str()));
+        else if (sub == "quitar") input_.BridgeRemove(id);
+        else if (sub == "b") input_.BridgeButton(id, std::atoi(arg(3).c_str()), arg(4) == "1");
+        else if (sub == "e") input_.BridgeAxis(id, std::atoi(arg(3).c_str()), std::atoi(arg(4).c_str()));
     } else if (cmd == "actualizar") {
         // Tarjeta de build nueva: se baja, se instala encima y la app se vuelve a abrir.
         if (updater_.GetState() == Updater::State::Available) updater_.Install();

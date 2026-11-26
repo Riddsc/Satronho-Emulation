@@ -91,7 +91,9 @@ void App::NativeCommand(const std::string& line) {
     const auto a = Split(line, '|');
     const std::string& cmd = a[0];
     auto arg = [&](size_t i) -> std::string { return i < a.size() ? a[i] : std::string(); };
-    if (cmd != "ajuste" && cmd != "preguntar") Log::Info("Interfaz nativa: %s", line.c_str());
+    // Al registro, menos lo que llega muchas veces por segundo (botones y palancas del puente de mandos).
+    const bool mando_evento = cmd == "mando_android" && (arg(1) == "b" || arg(1) == "e");
+    if (cmd != "ajuste" && cmd != "preguntar" && !mando_evento) Log::Info("Interfaz nativa: %s", line.c_str());
     if (NativeCommandPhone(a)) return;
     if (NativeCommandExtra(a)) return;
 
@@ -260,6 +262,12 @@ std::string App::NativeStateJson() {
         native_page_json_.clear();
     }
     s += NativeExtrasJson();
+    // Mandos que llegan por el puente (Kotlin les manda sus botones y palancas a C++).
+    {
+        std::string ids;
+        for (int id : input_.BridgedIds()) ids += (ids.empty() ? "" : ",") + std::to_string(id);
+        s += ",\"puente\":[" + ids + "]";
+    }
     NativeMeterJson(s);
     s += "}";
     return s;
@@ -329,6 +337,7 @@ void App::NativeTick() {
         return;
     }
     for (const auto& c : NativeUi::TakeCommands()) NativeCommand(c);
+    input_.BridgeTick();
     // Con la interfaz de siempre encima (editor del control, Ajustes) el control puede cambiar.
     if (NativeNeedsImGui()) native_touch_cache_.clear();
     // Desde la barra de abajo de la interfaz de siempre se volvió a la biblioteca: vuelve la nativa.
