@@ -72,9 +72,14 @@ data class Estado(
     val medidor: Medidor? = null,
     val chip: String = "",
     val avisoCalor: Boolean = true,
+    val novedadTitulo: String = "",
+    val actualizacion: Actualizacion? = null,
 ) {
     val enJuego get() = modo == "juego"
 }
+
+/** Una build nueva del hub: «disponible», «bajando» (con su avance) o «instalando». */
+data class Actualizacion(val build: Int, val actual: Int, val estado: String, val avance: Float)
 
 data class Juego(
     val clave: String, val titulo: String, val sistema: String, val etiquetas: String, val portada: String,
@@ -196,7 +201,10 @@ object Leer {
         }
         return Estado(o.optString("modo", "biblioteca"), o.optBoolean("imgui"), o.optInt("build"), o.optBoolean("guias", true),
             o.optString("idioma"), tema, cargando, juego, tactil, pagina, cf, bv, o.optString("novedad"), zp, pr,
-            o.optBoolean("capturando"), md, o.optString("chip"), o.optBoolean("aviso_calor", true))
+            o.optBoolean("capturando"), md, o.optString("chip"), o.optBoolean("aviso_calor", true), o.optString("novedad_titulo"),
+            o.optJSONObject("actualizacion")?.let {
+                Actualizacion(it.optInt("build"), it.optInt("actual"), it.optString("estado"), it.optDouble("avance", -1.0).toFloat())
+            })
     }
 
     fun biblioteca(texto: String): Biblioteca {

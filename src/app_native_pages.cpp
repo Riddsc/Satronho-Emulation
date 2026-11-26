@@ -326,8 +326,13 @@ std::string App::NativeSettingsJson() {
         p.Info("Guías", "Samy, Troya, Ñoño y Juana son los perros de Ridds. MechaRidds es Ridds.", "patita");
     } else if (pg == "novedades") {
         title = "Novedades";
-        subtitle = "Lo que trae cada build";
+        subtitle = TrFmt("Estás en la build %d", build_);
         icon = "novedades";
+        if (updater_.Supported() && updater_.GetState() == Updater::State::Available && updater_.LatestBuild() > build_) {
+            p.Section("Hay una build nueva", "Se instala encima: tus juegos, partidas y ajustes no se tocan.");
+            p.Action("actualizar", TrFmt("¡Ya salió la build %d!", updater_.LatestBuild()), "Toca y Juana la baja e instala por ti.", "cargar",
+                     [this] { updater_.Install(); }, "primario", "", "Actualizar ahora");
+        }
         const Json& builds = news_["builds"];
         int n = 0;
         for (const auto& b : builds.arr) {
@@ -643,7 +648,23 @@ std::string App::NativeExtrasJson() {
         s += ",\"bienvenida\":{\"paso\":" + std::to_string(welcome_step_) + ",\"guia\":" + Quote(guide) + ",\"texto\":" + Quote(text) +
              ",\"titulo\":" + Quote(Tr(welcome_step_ == 0 ? "¡Bienvenido a Satronho Emulation!" : welcome_step_ == 1 ? "Tu equipo" : "Tus juegos")) + "}";
     }
-    if (show_whats_new_ && !show_welcome_) s += ",\"novedad\":" + Quote(TrFmt("¡Ya llegó la build %d! Mira lo nuevo.", build_));
+    if (show_whats_new_ && !show_welcome_) {
+        s += ",\"novedad\":" + Quote(TrFmt("¡Ya llegó la build %d! Mira lo nuevo.", build_));
+        // El título de esta build (la primera entrada de novedades.json), para la tarjeta de Juana.
+        const Json& builds = news_["builds"];
+        if (!builds.arr.empty()) s += ",\"novedad_titulo\":" + Quote(Tr(builds.arr.front()["titulo"].String()));
+    }
+    // Una build nueva del hub: tarjeta de Juana con «Actualizar» y su avance.
+    {
+        const Updater::State ust = updater_.GetState();
+        const bool mostrar = ust == Updater::State::Downloading || ust == Updater::State::Ready ||
+                             (ust == Updater::State::Available && !update_card_later_);
+        if (mostrar && !show_welcome_ && updater_.LatestBuild() > build_) {
+            s += ",\"actualizacion\":{\"build\":" + std::to_string(updater_.LatestBuild()) + ",\"actual\":" + std::to_string(build_) +
+                 ",\"estado\":" + Quote(ust == Updater::State::Available ? "disponible" : ust == Updater::State::Downloading ? "bajando" : "instalando") +
+                 ",\"avance\":" + NPage::Num(ust == Updater::State::Downloading ? updater_.Progress() : -1.0f) + "}";
+        }
+    }
     // Un .zip con varios juegos: ¿cuál?
     if (archive_pick_.Archived()) {
         s += ",\"zip\":{\"titulo\":" + Quote(TrFmt("«%s» trae varios juegos adentro. ¿Cuál abrimos?", archive_pick_.title.c_str())) + ",\"opciones\":[";
@@ -701,6 +722,13 @@ bool App::NativeCommandExtra(const std::vector<std::string>& a) {
     } else if (cmd == "ajustes_cerrar") {
         native_page_.clear();
         input_.CancelCapture();
+    } else if (cmd == "actualizar") {
+        // Tarjeta de build nueva: se baja, se instala encima y la app se vuelve a abrir.
+        if (updater_.GetState() == Updater::State::Available) updater_.Install();
+    } else if (cmd == "actualizacion_despues") {
+        update_card_later_ = true;
+    } else if (cmd == "enviar_registro") {
+        SendLog();
     } else if (cmd == "ajuste") {
         auto it = native_setters_.find(arg(1));
         if (it != native_setters_.end()) {

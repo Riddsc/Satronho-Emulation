@@ -1913,6 +1913,13 @@ void App::SendLog() {
     std::string text = Fmt("Registro de Satronho Emulation · build %d\n\n", build_);
     const std::string before = TailOf(prev, 60 * 1024);
     if (!before.empty()) text += "=== Sesión anterior (si la app se cerró o se trabó, está aquí) ===\n" + before + "\n";
+#ifdef __ANDROID__
+    // Lo que anotó Android del último cierre inesperado (Cierres.kt lo deja en la carpeta interna).
+    if (const char* interna = SDL_GetAndroidInternalStoragePath()) {
+        const std::string cierre = TailOf(fs::path(interna) / "ultimo-cierre.txt", 30 * 1024);
+        if (!cierre.empty()) text += "=== Último cierre inesperado (Android) ===\n" + cierre + "\n";
+    }
+#endif
     text += "=== Esta sesión ===\n" + TailOf(Paths::LogFile(), 60 * 1024);
     // Copia como archivo en «Satronho Games» (o en la carpeta de datos), por si se prefiere adjuntarlo.
     const fs::path dir = Paths::PublicRoot().empty() ? Paths::User() : Paths::PublicRoot();

@@ -304,16 +304,51 @@ object Nx {
         return md.digest().joinToString("") { "%02x".format(it) }
     }
 
-    /** ¿Hay una NX más nueva que la que instaló el hub? (una vez por sesión). */
+    /** La tarjeta de MechaRidds en la biblioteca («Hay una Satronho NX más nueva»). */
+    var avisoNueva by mutableStateOf(false)
+        private set
+
+    /**
+     * ¿Hay una NX más nueva que la del teléfono? Una vez por sesión, al abrir el hub. Se compara la
+     * huella (sha256) del APK publicado con la del APK instalado de verdad: así sirve aunque NX no la
+     * haya instalado el hub o se haya reinstalado todo.
+     */
     fun revisarNueva(ctx: Context) {
-        if (revisoNueva) return
+        if (revisoNueva || !androidSirve()) return
         revisoNueva = true
         enHilo {
-            val guardado = prefs(ctx).getString("sha", "") ?: ""
-            if (guardado.isEmpty() || !instalado(ctx)) return@enHilo
+            if (!instalado(ctx)) return@enHilo
             val remoto = leerTexto(enlaceApk() + ".sha256")?.trim()?.take(64) ?: return@enHilo
-            if (remoto.length == 64 && remoto != guardado) enPantalla { hayNueva = true }
+            if (remoto.length != 64) return@enHilo
+            val local = try {
+                sha256(File(ctx.packageManager.getApplicationInfo(PAQUETE, 0).sourceDir))
+            } catch (e: Throwable) {
+                prefs(ctx).getString("sha", "") ?: ""
+            }
+            if (local.isEmpty() || local == remoto) return@enHilo
+            // Ya se ofreció esta misma versión y dijo «Después»: no se insiste hasta que salga otra.
+            val omitida = prefs(ctx).getString("omitida", "") ?: ""
+            enPantalla {
+                hayNueva = true
+                if (omitida != remoto) avisoNueva = true
+            }
+            ultimaRemota = remoto
         }
+    }
+
+    @Volatile private var ultimaRemota = ""
+
+    /** «Después» en la tarjeta: se esconde y no vuelve a salir para esta misma versión. */
+    fun despuesNueva(ctx: Context) {
+        avisoNueva = false
+        if (ultimaRemota.isNotEmpty()) prefs(ctx).edit().putString("omitida", ultimaRemota).apply()
+    }
+
+    /** «Actualizar» en la tarjeta: abre el asistente de NX (que muestra el avance) y empieza a bajarla. */
+    fun actualizarDesdeAviso(ctx: Context) {
+        avisoNueva = false
+        asistente = Asistente(null)
+        instalarNx(ctx)
     }
 
     fun instalarNx(ctx: Context) {
