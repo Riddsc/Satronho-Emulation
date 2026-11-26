@@ -250,8 +250,8 @@ void App::DrawGameBar() {
             int& effect = own ? own->effect : settings_.effect;
             bool changed = false;
             if (sub("Tamaño de la imagen")) {
-                const char* n[] = {"Ajustar (sin deformar)", "Entero (píxeles perfectos)", "Estirar"};
-                for (int i = 0; i < 3; ++i)
+                const char* n[] = {"Ajustar (sin deformar)", "Entero (píxeles perfectos)", "Estirar todo", "Inteligente (recomendado)"};
+                for (int i = 0; i < 4; ++i)
                     if (item(n[i], nullptr, scale == i)) { scale = i; changed = true; }
                 ImGui::EndMenu();
             }

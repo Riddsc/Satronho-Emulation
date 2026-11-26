@@ -90,6 +90,8 @@ data class Juego(
     val ruta: String = "", val programa: String = "",
     /** Sello de la última sesión («60 fps»), como en Satronho NX. */
     val sello: String = "",
+    /** Juegos de Switch: «base», «actualizacion» o «dlc» (vacío si todavía no se sabe). */
+    val nxTipo: String = "",
 )
 
 data class Consola(
@@ -219,7 +221,7 @@ object Leer {
             juegos.add(Juego(g.optString("clave"), g.optString("titulo"), g.optString("sistema"), g.optString("etiquetas"),
                 g.optString("portada"), g.optBoolean("favorito"), g.optBoolean("oculto"), g.optLong("tiempo"),
                 g.optString("tiempo_texto"), g.optLong("ultima"), g.optString("ultima_texto"), g.optBoolean("continuar"),
-                g.optInt("tono"), g.optString("ruta"), g.optString("programa"), g.optString("sello")))
+                g.optInt("tono"), g.optString("ruta"), g.optString("programa"), g.optString("sello"), g.optString("nx_tipo")))
         }
         val consolas = ArrayList<Consola>()
         val ca = o.optJSONArray("consolas") ?: JSONArray()
@@ -259,7 +261,8 @@ object Leer {
             "explorador" -> Explorar(o.optBoolean("raiz"))
             "ir" -> Ir(o.optString("pagina"), o.optString("arg"))
             "consola" -> VerConsola(o.optString("id"))
-            "nx" -> PedidoNx(o.optString("clave"), o.optString("ruta"), o.optString("titulo"))
+            "nx" -> PedidoNx(o.optString("clave"), o.optString("ruta"), o.optString("titulo"),
+                o.optJSONArray("extras")?.let { a -> (0 until a.length()).map { a.getString(it) } } ?: emptyList())
             "respaldo" -> PedidoRespaldo(o.optString("ruta"), o.optBoolean("todos"), o.optBoolean("hecho"))
             "restaurar" -> PedidoRestaurar
             else -> null
@@ -272,6 +275,7 @@ data class Explorar(val raiz: Boolean)
 /** Un guía llevó a otra pantalla de Ajustes («ir»). */
 data class Ir(val pagina: String, val arg: String = "")
 /** C++ pide jugar un juego de Switch con Satronho NX. */
-data class PedidoNx(val clave: String, val ruta: String, val titulo: String)
+/** Abrir un juego de Switch; [extras] son su actualización y sus DLC (NX los carga con él). */
+data class PedidoNx(val clave: String, val ruta: String, val titulo: String, val extras: List<String> = emptyList())
 /** Un guía llevó a una consola de la biblioteca. */
 data class VerConsola(val id: String)

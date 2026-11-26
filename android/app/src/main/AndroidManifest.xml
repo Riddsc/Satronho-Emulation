@@ -37,6 +37,9 @@
         android:appCategory="game"
         android:hardwareAccelerated="true">
 
+        <!-- Modo juego de Android 13+ (build 27): el panel de juegos ofrece «Rendimiento». -->
+        <meta-data android:name="android.game_mode_config" android:resource="@xml/game_mode_config" />
+
         <activity
             android:name=".SatronhoActivity"
             android:label="Satronho Emulation"

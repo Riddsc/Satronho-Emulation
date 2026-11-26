@@ -6,16 +6,23 @@
 #include "app.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdarg>
 #include <cstdio>
+#include <chrono>
 #include <ctime>
 #include <fstream>
+#include <iterator>
 
 #include "native_page.h"
 #include "sys/android.h"
 #include "sys/native_ui.h"
 #include "util/i18n.h"
 #include "util/log.h"
+#include "util/json.h"
+#include "util/process.h"
+#include "util/archive.h"
+#include "util/net.h"
 
 namespace Satronho {
 
@@ -388,15 +395,181 @@ std::string App::NativeOrganizeJson() const {
 
 // ---------------------------------------------------------------- Satronho NX
 
+// Ids de título de Switch: juego base 0100XXXXXXXXX000, su actualización …800 y sus DLC
+// (base + 0x1000 + n). De la lista que trae un archivo se saca qué es y de qué juego.
+static void ClassifySwitchContent(const std::string& ids, std::string* tipo, std::string* app) {
+    tipo->clear();
+    app->clear();
+    bool has_base = false, has_update = false, has_dlc = false;
+    unsigned long long base = 0, update = 0, dlc = 0;
+    size_t a = 0;
+    while (a < ids.size()) {
+        size_t b = ids.find(',', a);
+        if (b == std::string::npos) b = ids.size();
+        const std::string one = ids.substr(a, b - a);
+        a = b + 1;
+        if (one.size() != 16) continue;
+        char* end = nullptr;
+        const unsigned long long id = std::strtoull(one.c_str(), &end, 16);
+        if (!end || *end || id == 0) continue;
+        if ((id & 0x1FFFull) == 0) { has_base = true; base = id; }
+        else if ((id & 0xFFFull) == 0x800) { has_update = true; update = id & ~0xFFFull; }
+        else if (id & 0x1000ull) { has_dlc = true; dlc = (id & ~0xFFFull) - 0x1000ull; }
+    }
+    auto hex = [](unsigned long long v) {
+        char s[20];
+        std::snprintf(s, sizeof(s), "%016llX", v);
+        return std::string(s);
+    };
+    if (has_base) { *tipo = "base"; *app = hex(base); }
+    else if (has_update) { *tipo = "actualizacion"; *app = hex(update); }
+    else if (has_dlc) { *tipo = "dlc"; *app = hex(dlc); }
+}
+
+void App::ClassifyNxByName() {
+    if (!NxAvailable()) return;
+    for (const auto& g : library_.SnapshotAll()) {
+        if (g.system != NxSystem().id || !library_.GameOption(g.key, "nx_tipo").empty()) continue;
+        // Ids de 16 cifras hexadecimales que empiezan con 01 (todos los de Switch).
+        const std::string name = Paths::ToUtf8(g.path.filename());
+        std::string ids;
+        for (size_t i = 0; i + 16 <= name.size(); ++i) {
+            if (name[i] != '0' || name[i + 1] != '1') continue;
+            if (i > 0 && std::isxdigit(static_cast<unsigned char>(name[i - 1]))) continue;
+            if (i + 16 < name.size() && std::isxdigit(static_cast<unsigned char>(name[i + 16]))) continue;
+            bool hex = true;
+            for (size_t k = i; k < i + 16; ++k) hex = hex && std::isxdigit(static_cast<unsigned char>(name[k]));
+            if (!hex) continue;
+            std::string id = name.substr(i, 16);
+            for (auto& c : id) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+            ids += (ids.empty() ? "" : ",") + id;
+            i += 15;
+        }
+        std::string tipo, app;
+        ClassifySwitchContent(ids, &tipo, &app);
+        if (tipo.empty()) continue;
+        library_.SetGameOption(g.key, "nx_tipo", tipo);
+        library_.SetGameOption(g.key, "nx_app", app);
+    }
+}
+
 void App::LaunchExternal(const Game& g) {
     if (!NxAvailable()) {
         Toast("Los juegos de Switch se juegan con Satronho NX, en el celular.", GuideId::MechaRidds, 5);
         return;
     }
     const std::string nombre = library_.GameOption(g.key, "nombre");
+    // Su actualización y sus DLC van con él (como en la biblioteca de NX): sin la actualización, un juego
+    // base que la necesita no arranca («No ExeFS»).
+    std::string extras;
+    for (const auto& p : library_.NxParts(g.key)) extras += (extras.empty() ? "" : ",") + NativeUi::Quote(p.path_utf8);
+#ifdef __ANDROID__
     NativeUi::Emit("{\"t\":\"nx\",\"clave\":" + NativeUi::Quote(g.key) + ",\"ruta\":" + NativeUi::Quote(g.path_utf8) + ",\"titulo\":" +
-                   NativeUi::Quote(nombre.empty() ? g.title : nombre) + "}");
-    Log::Info("Satronho NX: abrir %s", g.path_utf8.c_str());
+                   NativeUi::Quote(nombre.empty() ? g.title : nombre) + ",\"extras\":[" + extras + "]}");
+#else
+    LaunchNxDesktop(g);
+#endif
+    Log::Info("Satronho NX: abrir %s (%d archivos extra)", g.path_utf8.c_str(), static_cast<int>(library_.NxParts(g.key).size()));
+}
+
+// ---------------------------------------------------------------- Satronho NX en PC
+
+#ifdef _WIN32
+// Busca satronho-nx.exe dentro de la carpeta donde se descomprimió NX.
+static fs::path FindNxExe(const fs::path& dir) {
+    std::error_code ec;
+    if (!fs::exists(dir, ec)) return {};
+    for (auto it = fs::recursive_directory_iterator(dir, ec); !ec && it != fs::recursive_directory_iterator(); it.increment(ec)) {
+        if (it->is_regular_file(ec) && it->path().filename() == L"satronho-nx.exe") return it->path();
+    }
+    return {};
+}
+#endif
+
+void App::LaunchNxDesktop(const Game& g) {
+#ifdef _WIN32
+    if (nx_desk_state_ == 1 || nx_desk_state_ == 2) {
+        Toast("Satronho NX ya se está preparando. Un momento.", GuideId::MechaRidds, 4);
+        return;
+    }
+    if (nx_desk_state_ == 3) {
+        Toast("Satronho NX ya está abierto con otro juego.", GuideId::MechaRidds, 4);
+        return;
+    }
+    if (nx_desk_worker_.joinable()) nx_desk_worker_.join();
+    nx_desk_key_ = g.key;
+    nx_desk_shown_ = 0;
+    const fs::path dir = Paths::User() / "satronho-nx";
+    const std::string game = g.path_utf8;
+    nx_desk_state_ = FindNxExe(dir).empty() ? 1 : 2;
+    if (nx_desk_state_ == 1)
+        Toast("Bajo Satronho NX para tus juegos de Switch (una sola vez, unos 90 MB). Te aviso cuando esté.", GuideId::MechaRidds, 7);
+    nx_desk_worker_ = std::thread([this, dir, game] {
+        fs::path exe = FindNxExe(dir);
+        if (exe.empty()) {
+            // De dónde se baja: remoto/nx.json («windows»), o el de respaldo.
+            std::string url = "https://github.com/Riddsc/satronho-nx/releases/download/build-56/satronho-nx-windows-x86_64-pgo.zip";
+            const fs::path cfg = Paths::User() / "cache" / "nx.json";
+            std::error_code ec;
+            fs::create_directories(cfg.parent_path(), ec);
+            if (Net::Download("https://raw.githubusercontent.com/Riddsc/Satronho-Emulation/main/remoto/nx.json", cfg)) {
+                std::ifstream in(cfg, std::ios::binary);
+                const std::string text((std::istreambuf_iterator<char>(in)), {});
+                const std::string w = Json::Parse(text)["windows"].String();
+                if (w.rfind("https://", 0) == 0) url = w;
+            }
+            const fs::path zip = Paths::User() / "cache" / "satronho-nx.zip";
+            if (!Net::Download(url, zip) || !Archive::ExtractAll(zip, dir)) {
+                Log::Warn("Satronho NX (PC): no se pudo bajar o descomprimir %s", url.c_str());
+                nx_desk_state_ = 5;
+                return;
+            }
+            fs::remove(zip, ec);
+            exe = FindNxExe(dir);
+            if (exe.empty()) {
+                nx_desk_state_ = 5;
+                return;
+            }
+        }
+        // satronho-nx.exe -f -g "juego": pantalla completa y directo al juego. NX busca la actualización
+        // y los DLC en sus carpetas de juegos.
+        nx_desk_state_ = 3;
+        const long long secs = Process::RunAndWait(exe, {"-f", "-g", game});
+        if (secs < 0) {
+            Log::Warn("Satronho NX (PC): no se pudo abrir %s", Paths::ToUtf8(exe).c_str());
+            nx_desk_state_ = 5;
+            return;
+        }
+        nx_desk_secs_ = secs;
+        nx_desk_state_ = 4;
+    });
+#else
+    (void)g;
+    Toast("Los juegos de Switch se juegan con Satronho NX, en el celular y en Windows.", GuideId::MechaRidds, 5);
+#endif
+}
+
+void App::PollNxDesktop() {
+    const int st = nx_desk_state_;
+    if (st == nx_desk_shown_) return;
+    nx_desk_shown_ = st;
+    if (st == 4) {
+        const long long s = nx_desk_secs_;
+        if (const Game* g = FindGame(nx_desk_key_)) {
+            library_.MarkPlayed(g->key);
+            if (s >= 5) library_.AddPlaytime(g->key, s);
+            games_dirty_ = true;
+            Log::Info("Satronho NX (PC): %s, %lld s", g->title.c_str(), s);
+        }
+        nx_desk_state_ = 0;
+        nx_desk_shown_ = 0;
+    } else if (st == 5) {
+        Toast("No pude bajar o abrir Satronho NX. Revisa tu internet y vuelve a intentarlo.", GuideId::Nono, 6);
+        nx_desk_state_ = 0;
+        nx_desk_shown_ = 0;
+    } else if (st == 3) {
+        Toast("¡A jugar en Satronho NX! Al cerrarlo vuelves aquí y anoto el tiempo.", GuideId::MechaRidds, 5);
+    }
 }
 
 bool App::NativeCommandPhone(const std::vector<std::string>& a) {
@@ -426,6 +599,22 @@ bool App::NativeCommandPhone(const std::vector<std::string>& a) {
             if (!arg(4).empty() && !covers_.HasCustom(*g)) covers_.SetCustom(*g, Paths::FromUtf8(arg(4)));
             games_dirty_ = true;
             native_lib_t_ = -10;
+        }
+        return true;
+    }
+    if (cmd == "nx_contenido") {
+        // nx_contenido|clave|ids (títulos que trae el archivo, en hex, separados por comas): juego base,
+        // actualización o DLC. Las actualizaciones y DLC se esconden y van con su juego al abrirlo.
+        if (const Game* g = FindGame(arg(1))) {
+            std::string tipo, app;
+            ClassifySwitchContent(arg(2), &tipo, &app);
+            if (!tipo.empty()) {
+                library_.SetGameOption(g->key, "nx_tipo", tipo);
+                library_.SetGameOption(g->key, "nx_app", app);
+                Log::Info("Satronho NX: %s es %s de %s", g->path_utf8.c_str(), tipo.c_str(), app.c_str());
+                games_dirty_ = true;
+                native_lib_t_ = -10;
+            }
         }
         return true;
     }

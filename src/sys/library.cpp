@@ -456,9 +456,43 @@ void Library::ScanLoop() {
 
 bool Library::TakeChanged() { return changed_.exchange(false); }
 
-std::vector<Game> Library::Snapshot() const {
+std::vector<Game> Library::SnapshotAll() const {
     std::lock_guard lock(mutex_);
     return games_;
+}
+
+std::vector<Game> Library::Snapshot() const {
+    std::lock_guard lock(mutex_);
+    // Juegos base de Switch presentes (su id de aplicación), para esconder sus actualizaciones y DLC.
+    std::set<std::string> bases;
+    for (const auto& g : games_)
+        if (meta_.Get(g.key + ".ajuste.nx_tipo") == "base") bases.insert(meta_.Get(g.key + ".ajuste.nx_app"));
+    if (bases.empty()) return games_;
+    std::vector<Game> out;
+    out.reserve(games_.size());
+    for (const auto& g : games_) {
+        const std::string tipo = meta_.Get(g.key + ".ajuste.nx_tipo");
+        if ((tipo == "actualizacion" || tipo == "dlc") && bases.count(meta_.Get(g.key + ".ajuste.nx_app"))) continue;
+        out.push_back(g);
+    }
+    return out;
+}
+
+std::vector<Game> Library::NxParts(const std::string& base_key) const {
+    std::lock_guard lock(mutex_);
+    std::vector<Game> out;
+    const std::string app = meta_.Get(base_key + ".ajuste.nx_app");
+    if (app.empty()) return out;
+    for (const auto& g : games_) {
+        if (g.key == base_key || meta_.Get(g.key + ".ajuste.nx_app") != app) continue;
+        const std::string tipo = meta_.Get(g.key + ".ajuste.nx_tipo");
+        if (tipo == "actualizacion" || tipo == "dlc") out.push_back(g);
+    }
+    // La actualización primero (NX toma la más nueva que encuentre).
+    std::stable_sort(out.begin(), out.end(), [&](const Game& a, const Game& b) {
+        return meta_.Get(a.key + ".ajuste.nx_tipo") == "actualizacion" && meta_.Get(b.key + ".ajuste.nx_tipo") != "actualizacion";
+    });
+    return out;
 }
 
 size_t Library::Count() const {

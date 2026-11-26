@@ -3,6 +3,29 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Build 27 publicada (26 nov): pantalla inteligente, Switch completo, NX en PC, fluidez y visuales
+
+Ridds pidió todo en la 27, sin APK de prueba. Qué trae y dónde está:
+- **Pantalla completa inteligente** (`ScaleMode::Smart` = 3, la de fábrica; migración una vez con
+  `video.inteligente_27`): en `ApplyGpuChoice` activa la pantalla ancha de CD, Sueño y 64 (solo GLideN64) si
+  la persona no tocó esa opción; las demás «Ajustar» con fondo ambiente siempre. «Estirar todo» = Stretch.
+  `SideFill` (Gráficos » Costados): difuminado o marco de Satronho (shader `kAmbFs` con `u_frame`, color de
+  la consola en `Settings::frame_color`). NX no se estira (deformaría 16:9 → 19,5:9).
+- **Prueba del teléfono** (`VideoOutGl::Benchmark`, `App::RunPhoneTest`): ms por imagen 1280×720 con un
+  sombreado pesado → `telefono.potencia` 0-3 → topes de la resolución automática en Android. Se repite si
+  cambia la tarjeta o desde Ajustes » Rendimiento. **Calibrar con registros reales** (línea «Prueba del teléfono»).
+- **Switch completo**: NX dice qué trae cada archivo (`satronhoContentIds`, «contenido») o se saca del
+  nombre (`[0100…]`, `ClassifyNxByName`); `nx_tipo`/`nx_app` en la biblioteca; `Library::Snapshot` esconde
+  actualizaciones y DLC con base presente; `NxParts` los manda como `extras` → NX los registra
+  (`satronho_files`). NX (rama android 20fb08b) también cambia «Your ROM is encrypted» por el motivo real.
+- **NX en PC (Windows)**: `NxAvailable()` también en Windows; `LaunchNxDesktop` baja el .zip de
+  `remoto/nx.json` («windows», hoy build-56 PGO) a `user/satronho-nx`, abre `satronho-nx.exe -f -g juego`
+  (`util/process`) y anota el tiempo al cerrarlo. NX de PC busca actualización/DLC en sus propias carpetas.
+- **Fluidez**: `sys/perf_hint` (APerformanceHint por dlsym, Android 13+), `setSustainedPerformanceMode` en
+  juego, `game_mode_config.xml`; 64 con `EnableShadersStorage`; «precargar» desde el carrusel (lee núcleo y
+  juego). **Visuales**: marco por consola, portada real de Switch, nueva `TarjetaCarga` (cartucho que entra).
+- **Guías**: MechaRidds 300, Samy 230, Troya 225, Ñoño 175, Juana 70 (de 1000) en C++, Kotlin y NX.
+
 ## Build 27 en prueba (rama `build-27`, Release `prueba-27`): mando TERIOS T12
 
 Ridds probó la 26 con un mando Bluetooth «TERIOS Gamepad T12» (Pixel 6 Pro, Android 17): en Satronho NX

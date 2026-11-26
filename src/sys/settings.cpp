@@ -14,7 +14,10 @@ namespace Satronho {
 
 void Settings::Load(const Ini& ini) {
     fullscreen = ini.GetBool("video.pantalla_completa", fullscreen);
-    scale_mode = std::clamp(ini.GetInt("video.escala", scale_mode), 0, 2);
+    scale_mode = std::clamp(ini.GetInt("video.escala", scale_mode), 0, 3);
+    side_fill = std::clamp(ini.GetInt("video.costados", side_fill), 0, 1);
+    // Build 27: «Inteligente» pasa a ser la de fábrica; quien tenía la de antes («Ajustar») la recibe una vez.
+    if (!ini.GetBool("video.inteligente_27", false) && scale_mode == static_cast<int>(ScaleMode::Fit)) scale_mode = static_cast<int>(ScaleMode::Smart);
     filter = std::clamp(ini.GetInt("video.filtro", filter), 0, 2);
     effect = std::clamp(ini.GetInt("video.efecto", effect), 0, 4);
     effect_strength = std::clamp(ini.GetFloat("video.intensidad", effect_strength), 0.0f, 1.0f);
@@ -44,7 +47,7 @@ void Settings::Load(const Ini& ini) {
         if (!ini.Values().count(b + "propio")) continue;
         VideoOverride v;
         v.on = ini.GetBool(b + "propio", false);
-        v.scale_mode = std::clamp(ini.GetInt(b + "escala", scale_mode), 0, 2);
+        v.scale_mode = std::clamp(ini.GetInt(b + "escala", scale_mode), 0, 3);
         v.filter = std::clamp(ini.GetInt(b + "filtro", filter), 0, 2);
         v.effect = std::clamp(ini.GetInt(b + "efecto", effect), 0, 4);
         v.effect_strength = std::clamp(ini.GetFloat(b + "intensidad", effect_strength), 0.0f, 1.0f);
@@ -120,6 +123,8 @@ void Settings::Load(const Ini& ini) {
 void Settings::Save(Ini& ini) const {
     ini.SetBool("video.pantalla_completa", fullscreen);
     ini.SetInt("video.escala", scale_mode);
+    ini.SetInt("video.costados", side_fill);
+    ini.SetBool("video.inteligente_27", true);
     ini.SetInt("video.filtro", filter);
     ini.SetInt("video.efecto", effect);
     ini.SetFloat("video.intensidad", effect_strength);

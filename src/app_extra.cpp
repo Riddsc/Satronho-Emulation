@@ -1161,6 +1161,21 @@ int App::NearestResStep(const SystemDef& sys, int api) const {
     return best ? best : 1;
 }
 
+void App::RunPhoneTest(bool tell) {
+    if (!gl_) return;
+    const float ms = video_gl_.Benchmark();
+    // Menos tiempo, más potencia. Los cortes salen de teléfonos de gama baja (~10 ms), media (~4 ms)
+    // y alta (~1,5 ms); si un juego va lento igual, Ñoño baja ese juego solo (SlowLower).
+    const int power = ms < 0 ? 1 : ms < 1.6f ? 3 : ms < 4.0f ? 2 : ms < 10.0f ? 1 : 0;
+    ini_.SetInt("telefono.potencia", power);
+    ini_.Set("telefono.prueba_ms", Fmt("%.2f", ms));
+    SaveConfig();
+    Log::Info("Prueba del teléfono: %.2f ms por imagen → potencia %d", ms, power);
+    if (tell) phone_test_tell_ = true;
+}
+
+int App::PhonePower() const { return std::clamp(ini_.GetInt("telefono.potencia", 1), 0, 3); }
+
 int App::GpuResFor(const SystemDef& sys, int api) const {
     int res = game_res_ > 0 ? game_res_ : settings_.GpuRes(sys.id);
     const std::vector<int> steps = GpuResSteps(sys, api);
@@ -1187,7 +1202,13 @@ int App::GpuResFor(const SystemDef& sys, int api) const {
     // En el celular la automática no pasa de 2×: las pantallas son muy altas (1440 píxeles o más) y
     // con eso pedía 8×, demasiado para un teléfono en juegos 3D (Vigilante 8 se congelaba). Quien
     // quiera más la sube a mano.
-    cap = sys.id == "sueno" ? 960 : sys.id == "portatil" ? 544 : 2 * 240;
+    // Build 27: el tope sale de la prueba del teléfono (potencia 0 a 3) en vez de ser fijo.
+    {
+        const int p = PhonePower();
+        if (sys.id == "sueno") cap = p >= 3 ? 1440 : p >= 1 ? 960 : 480;
+        else if (sys.id == "portatil") cap = p >= 2 ? 816 : p >= 1 ? 544 : 272;
+        else cap = p >= 3 ? 3 * 240 : p >= 1 ? 2 * 240 : 240;
+    }
 #endif
     const int nearest = NearestResStep(sys, api);
     if (ResHeight(nearest) <= cap) return nearest;
@@ -1244,6 +1265,23 @@ void App::ApplyGpuChoice(const SystemDef& sys) {
     const bool needs_gl = sys.id == "portatil" || sys.id == "sueno";
     hw_render_.SetWanted(api == 2 ? RETRO_HW_CONTEXT_VULKAN : (api == 1 || needs_gl) ? RETRO_HW_CONTEXT_OPENGL_CORE : RETRO_HW_CONTEXT_NONE);
     const char* api_name = api == 1 ? "OpenGL" : api == 2 ? "Vulkan" : "procesador";
+    // «Inteligente»: pantalla ancha de verdad (se ve más a los lados, sin deformar) en las consolas
+    // 3D que la tienen. Solo si la persona no eligió otra cosa en las opciones del núcleo.
+    if (settings_.ForSystem(sys.id).scale_mode == static_cast<int>(ScaleMode::Smart)) {
+        auto smart = [&](const char* key, const char* value) {
+            if (ini_.Get("nucleo." + sys.id + "." + key).empty()) core_.SetOption(key, value);
+        };
+        if (sys.id == "cd") {
+            smart("beetle_psx_hw_widescreen_hack", "enabled");
+            smart("beetle_psx_hw_widescreen_hack_aspect_ratio", "16:9");
+        } else if (sys.id == "sueno") {
+            smart("flycast_widescreen_hack", "enabled");
+        } else if (sys.id == "n64" && api == 1) {
+            // Solo GLideN64 (OpenGL) abre la vista sin estirar; con los otros dibujos queda en 4:3.
+            smart("mupen64plus-aspect", "16:9 adjusted");
+        }
+        Log::Info("%s: pantalla completa inteligente", sys.name.c_str());
+    }
     if (sys.id == "sueno") {
         core_.SetOption("flycast_internal_resolution", Fmt("%dx%d", res * 4 / 3, res));
         // Sin la BIOS original, la interna de Flycast (abre casi todo).

@@ -352,6 +352,10 @@ private:
     void ApplyVsync();
     std::vector<uint8_t> CurrentFrameRGBA(unsigned* w, unsigned* h);
     void ApplyGpuChoice(const SystemDef& sys); // motor y resolución de CD y 64
+    // Prueba del teléfono (Ñoño, build 27): mide la tarjeta gráfica y guarda la potencia (0 a 3), con la
+    // que la resolución automática de las consolas 3D elige lo mejor que aguanta a 60 fps.
+    void RunPhoneTest(bool tell);
+    int PhonePower() const;
     // Más de 2 jugadores: conecta el adaptador de varios jugadores de la consola (Four Score,
     // Multitap, Team Player, 6Player). Devuelve cuántos jugadores quedaron.
     int ApplyPlayers(const SystemDef& sys, bool in_game);
@@ -367,6 +371,17 @@ private:
     std::string NativeOrganizeJson() const;
     std::string NxFilesJson() const;
     void LaunchExternal(const Game& g);
+    // Juegos de Switch con el id en el nombre («… [0100633007D48800]»): se sabe sin preguntarle a NX si
+    // son juego, actualización o DLC (en PC es la única forma).
+    void ClassifyNxByName();
+    // Satronho NX en PC (Windows): se baja de sus Releases a la carpeta de datos y se abre con el juego.
+    void LaunchNxDesktop(const Game& g);
+    void PollNxDesktop();               // cada cuadro: avisos y tiempo jugado al volver de NX
+    std::thread nx_desk_worker_;
+    std::atomic<int> nx_desk_state_{0};  // 0 nada, 1 bajando, 2 abriendo, 3 jugando, 4 volvió, 5 error
+    std::atomic<long long> nx_desk_secs_{0};
+    std::string nx_desk_key_;
+    int nx_desk_shown_ = 0;
     bool NativeCommandPhone(const std::vector<std::string>& a);
     void SyncBiosFolder();
     // Respaldos de partidas (app_backup.cpp).
@@ -454,7 +469,9 @@ private:
     int confirm_ = 0;
     bool confirm_dont_ask_ = false;
     bool show_whats_new_ = false;     // Juana muestra lo nuevo después de actualizar
-    bool update_card_later_ = false;  // «Después» en la tarjeta de build nueva (hasta cerrar la app)
+    bool update_card_later_ = false;
+    bool phone_test_tell_ = false;
+    std::string prefetched_key_;       // el último juego precargado desde el carrusel     // Ñoño cuenta el resultado de la prueba del teléfono  // «Después» en la tarjeta de build nueva (hasta cerrar la app)
 
     // Conversación con los guías.
     struct ChatMsg {

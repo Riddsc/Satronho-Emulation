@@ -12,7 +12,12 @@ namespace Satronho {
 
 class Ini;
 
-enum class ScaleMode { Fit = 0, Integer = 1, Stretch = 2 };
+// Inteligente (build 27, la de fábrica): pantalla ancha en las consolas 3D que la tienen, y en las
+// demás el juego lo más grande posible sin deformarse, con los costados llenos (fondo ambiente o marco).
+enum class ScaleMode { Fit = 0, Integer = 1, Stretch = 2, Smart = 3 };
+// Con qué se llenan los costados en «Inteligente» y «Ajustar»: los colores del juego difuminados o el
+// marco de Satronho con el color de la consola.
+enum class SideFill { Ambient = 0, Frame = 1 };
 enum class Filter { Pixel = 0, SharpSmooth = 1, Smooth = 2 };
 enum class Effect { None = 0, Scanlines = 1, Crt = 2, Lcd = 3, Auto = 4 };
 
@@ -28,7 +33,9 @@ struct VideoOverride {
 struct Settings {
     // Video
     bool fullscreen = false;
-    int scale_mode = static_cast<int>(ScaleMode::Fit);
+    int scale_mode = static_cast<int>(ScaleMode::Smart);
+    int side_fill = static_cast<int>(SideFill::Ambient);
+    unsigned frame_color = 0x7C6CFF; // color de la consola del juego abierto (para el marco)
     int filter = static_cast<int>(Filter::SharpSmooth);
     int effect = static_cast<int>(Effect::None);
     float effect_strength = 0.45f;

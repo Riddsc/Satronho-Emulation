@@ -47,7 +47,12 @@ public:
     bool Scanning() const { return scanning_; }
     bool TakeChanged();             // true una vez tras terminar un escaneo
 
+    // Los juegos que se muestran. Las actualizaciones y DLC de Switch cuyo juego base está en la
+    // biblioteca no salen aparte: van con su juego (NxParts). SnapshotAll los trae todos.
     std::vector<Game> Snapshot() const;
+    std::vector<Game> SnapshotAll() const;
+    // Actualización y DLC de un juego de Switch (mismo «nx_app»), para abrirlos juntos en Satronho NX.
+    std::vector<Game> NxParts(const std::string& base_key) const;
     Game* Find(const std::string& key);
     static Game MakeGame(const fs::path& file);
     // La clave de un archivo (sin abrirlo): sirve para pasar los datos de un juego que se mudó.

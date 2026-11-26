@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cstdarg>
 #include <cstdio>
+#include <thread>
+#include <fstream>
 
 #include "app.h"
 #include "native_page.h"
@@ -130,6 +132,14 @@ std::string App::NativeSettingsJson() {
                  settings_.autosave_exit, [this](bool v) { settings_.autosave_exit = v; SaveConfig(); });
         p.Toggle("rumble", "Vibración del mando", "Los juegos que vibran hacen vibrar tu mando.", settings_.rumble,
                  [this](bool v) { settings_.rumble = v; SaveConfig(); });
+#ifdef __ANDROID__
+        {
+            const char* names[] = {"básica", "media", "alta", "muy alta"};
+            p.Section("Prueba del teléfono", "Ñoño mide la tarjeta gráfica y con eso elige la resolución automática de las consolas 3D.");
+            p.Action("prueba", TrFmt("Potencia %s (%s ms)", Tr(names[PhonePower()]), ini_.Get("telefono.prueba_ms").c_str()),
+                     "Vuelve a probar si cambiaste algo (o si un juego 3D va lento).", "chip", [this] { RunPhoneTest(true); }, "", "", "Probar otra vez");
+        }
+#endif
         p.Section("Si algo falla");
         p.Action("registro", "Enviar el registro", "MechaRidds junta lo que pasó (esta vez y la anterior) para mandarlo por WhatsApp o correo.",
                  "compartir", [this] { SendLog(); }, "primario");
@@ -722,6 +732,28 @@ bool App::NativeCommandExtra(const std::vector<std::string>& a) {
     } else if (cmd == "ajustes_cerrar") {
         native_page_.clear();
         input_.CancelCapture();
+    } else if (cmd == "precargar") {
+        // Arranque rápido: el carrusel se detuvo en un juego. Se lee ya su núcleo y el principio del
+        // juego para que estén en memoria cuando toques Jugar (la primera lectura del celular es lenta).
+        if (const Game* g = FindGame(arg(1))) {
+            const SystemDef* sd = SystemById(g->system);
+            if (sd && !sd->external && g->key != prefetched_key_) {
+                prefetched_key_ = g->key;
+                std::vector<fs::path> files{Paths::Cores() / CoreFile(*sd), g->path};
+                std::thread([files] {
+                    std::vector<char> buf(1 << 20);
+                    for (const auto& f : files) {
+                        std::ifstream in(f, std::ios::binary);
+                        size_t total = 0;
+                        // Hasta 96 MB por archivo (los discos grandes no hace falta leerlos enteros).
+                        while (in && total < (96u << 20)) {
+                            in.read(buf.data(), static_cast<std::streamsize>(buf.size()));
+                            total += static_cast<size_t>(in.gcount());
+                        }
+                    }
+                }).detach();
+            }
+        }
     } else if (cmd == "mando_android") {
         // Puente de mandos (como Satronho NX): ver Input::BridgeOffer.
         const std::string sub = arg(1);

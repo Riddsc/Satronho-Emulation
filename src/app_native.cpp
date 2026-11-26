@@ -288,7 +288,9 @@ std::string App::NativeLibraryJson() {
         const std::string nombre = library_.GameOption(g.key, "nombre");
         const bool externo = g.system == NxSystem().id;
         g_json += "{\"clave\":" + Quote(g.key) + ",\"titulo\":" + Quote(nombre.empty() ? g.title : nombre) + ",\"sistema\":" + Quote(g.system) +
-                  (externo ? ",\"ruta\":" + Quote(g.path_utf8) + ",\"programa\":" + Quote(library_.GameOption(g.key, "programa")) : std::string()) +
+                  (externo ? ",\"ruta\":" + Quote(g.path_utf8) + ",\"programa\":" + Quote(library_.GameOption(g.key, "programa")) +
+                                 ",\"nx_tipo\":" + Quote(library_.GameOption(g.key, "nx_tipo"))
+                           : std::string()) +
                   ",\"etiquetas\":" + Quote([&] {
                       std::string t;
                       for (const auto& x : g.tags) t += (t.empty() ? "" : " ") + x;
