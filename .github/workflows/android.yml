@@ -2,12 +2,12 @@ name: Android
 
 # APK de Satronho Emulation (arm64, Android 8 o más nuevo). Desde la rama de trabajo solo compila;
 # llamado desde «Build» en main, sube el APK al mismo Release que la versión de Windows.
-# Desde las ramas build-25 y build-26 sube el APK a un Release de prueba («prueba-25», «prueba-26», marcado como prueba: la app
+# Desde las ramas build-25, build-26 y build-27 sube el APK a un Release de prueba («prueba-25», «prueba-26», marcado como prueba: la app
 # no lo ofrece como actualización) para probar en el celular antes de publicar.
 # No se usan artifacts de Actions: los núcleos van en la caché y el APK directo al Release.
 on:
   push:
-    branches: [etapa-2, build-25, build-26]
+    branches: [etapa-2, build-25, build-26, build-27]
     paths:
       - "src/**"
       - "android/**"
@@ -132,7 +132,7 @@ jobs:
 
       - name: APK
         env:
-          SATRONHO_BUILD: ${{ inputs.build || (github.ref == 'refs/heads/build-25' && '25') || (github.ref == 'refs/heads/build-26' && '26') || '0' }}
+          SATRONHO_BUILD: ${{ inputs.build || (github.ref == 'refs/heads/build-25' && '25') || (github.ref == 'refs/heads/build-26' && '26') || (github.ref == 'refs/heads/build-27' && '27') || '0' }}
         run: |
           cd android
           gradle --no-daemon assembleRelease
@@ -149,8 +149,8 @@ jobs:
           sha256sum "$APK" | cut -d' ' -f1 > "$APK.sha256"
           gh release upload "${{ inputs.tag }}" "$APK" "$APK.sha256" --clobber
 
-      - name: Subir la prueba (ramas build-25 y build-26)
-        if: inputs.tag == '' && (github.ref == 'refs/heads/build-25' || github.ref == 'refs/heads/build-26')
+      - name: Subir la prueba (ramas build-25, build-26 y build-27)
+        if: inputs.tag == '' && (github.ref == 'refs/heads/build-25' || github.ref == 'refs/heads/build-26' || github.ref == 'refs/heads/build-27')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

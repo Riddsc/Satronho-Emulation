@@ -103,6 +103,15 @@ void Input::Init() {
         players[pl].want_pos = pl;
     }
     int count = 0;
+    // Para el registro: todo lo que SDL ve como mando, sea o no un mando que sabe leer.
+    if (SDL_JoystickID* js = SDL_GetJoysticks(&count)) {
+        for (int i = 0; i < count; ++i) {
+            const char* n = SDL_GetJoystickNameForID(js[i]);
+            Log::Info("SDL ve: %s (%s)", n ? n : "?", SDL_IsGamepad(js[i]) ? "mando" : "sin mapa");
+        }
+        SDL_free(js);
+    }
+    count = 0;
     SDL_JoystickID* ids = SDL_GetGamepads(&count);
     for (int i = 0; i < count; ++i) {
         if (SDL_Gamepad* pad = SDL_OpenGamepad(ids[i])) {
@@ -537,6 +546,24 @@ void Input::HandleEvent(const SDL_Event& e) {
                 Log::Info("Mando conectado: %s (%s)", SDL_GetGamepadName(pad), FamilyName(FamilyOf(SDL_GetGamepadType(pad))));
                 ResolvePads();
             }
+        }
+        break;
+    case SDL_EVENT_JOYSTICK_ADDED:
+        // Para el registro: un mando que SDL ve pero no sabe leer como mando (sin mapa) no aparece en Controles.
+        if (!SDL_IsGamepad(e.jdevice.which)) {
+            const char* n = SDL_GetJoystickNameForID(e.jdevice.which);
+            char guid[64] = {};
+            SDL_GUIDToString(SDL_GetJoystickGUIDForID(e.jdevice.which), guid, sizeof(guid));
+            Log::Warn("Mando sin mapa: %s · %s", n ? n : "?", guid);
+#ifdef __ANDROID__
+            // En Android los botones llegan ya ordenados como un mando (A=0, B=1, X=2, Y=3, Select=4,
+            // Home=5, Start=6, palancas 7-8, L1/R1 9-10, cruceta 11-14): con este mapa sale en
+            // Controles y se juega, aunque SDL no lo haya reconocido solo.
+            const std::string mapa = std::string(guid) + "," + (n ? n : "Mando") +
+                ",a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,leftstick:b7,rightstick:b8,leftshoulder:b9,rightshoulder:b10,"
+                "dpup:b11,dpdown:b12,dpleft:b13,dpright:b14,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,";
+            if (SDL_AddGamepadMapping(mapa.c_str()) >= 0) Log::Info("Le puse un mapa de mando: %s", n ? n : "?");
+#endif
         }
         break;
     case SDL_EVENT_GAMEPAD_REMOVED: {
