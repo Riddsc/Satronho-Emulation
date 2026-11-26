@@ -181,6 +181,14 @@ object SatronhoUi {
             else ActivityInfo.SCREEN_ORIENTATION_FULL_USER
             if (modo == "juego") tarjeta = null
             if (modo != "juego" && modoAnterior == "juego") pilaAjustes.clear()
+            // Modo juego de Android: velocidad pareja del procesador mientras se juega (no sube y baja
+            // de golpe con el calor). Fuera del juego, el teléfono vuelve a lo normal.
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 24 && act.getSystemService(android.os.PowerManager::class.java)?.isSustainedPerformanceModeSupported == true)
+                    act.window.setSustainedPerformanceMode(modo == "juego")
+            } catch (e: Throwable) {
+                Log.w(TAG, "Sin modo de rendimiento sostenido", e)
+            }
         }
         // En el juego los botones del mando van a SDL: lo nativo no se queda con el foco.
         if (modo == "juego" || imgui) {

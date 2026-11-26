@@ -2990,7 +2990,7 @@ void App::DrawPauseMenu() {
         changed |= Segmented("##qf", q_filter, {"Píxel", "Nítido", "Suave"}, S(300));
         RowEnd();
         RowBegin("Tamaño", nullptr);
-        changed |= Segmented("##qs", q_scale, {"Ajustar", "Entero", "Estirar"}, S(300));
+        changed |= Segmented("##qs", q_scale, {"Ajustar", "Entero", "Estirar todo", "Inteligente"}, S(400));
         RowEnd();
         RowBegin("Medidor", nullptr);
         changed |= Segmented("##qm", &settings_.meter, {"Apagado", "Compacto", "Detallado"}, S(300));

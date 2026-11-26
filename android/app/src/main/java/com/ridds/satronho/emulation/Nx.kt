@@ -84,6 +84,8 @@ object Nx {
         val claves: Boolean = false,
         val firmware: String = "",
         val version: String = "",
+        val contenido: Boolean = false, // NX dice qué trae un archivo (base, actualización, DLC)
+        val extras: Boolean = false,    // NX carga la actualización y los DLC que le pasa el hub
     )
 
     /** El asistente en pantalla: para qué juego es (o null si se abrió desde Ajustes). */
@@ -167,7 +169,8 @@ object Nx {
         val b = llamarTal(ctx, "estado") ?: return EstadoNx(instalado = true)
         // Ocupada (con un juego abierto): sí habla con el hub; se queda lo último que se supo.
         if (b.getBoolean("ocupado")) return estadoNx.copy(instalado = true, responde = true)
-        return EstadoNx(true, true, b.getBoolean("claves"), b.getString("firmware") ?: "", b.getString("version") ?: "")
+        return EstadoNx(true, true, b.getBoolean("claves"), b.getString("firmware") ?: "", b.getString("version") ?: "",
+            b.getBoolean("contenido"), b.getBoolean("extras"))
     }
 
     private fun enHilo(trabajo: () -> Unit) = hilo.execute {
@@ -217,6 +220,13 @@ object Nx {
                 .setDataAndType(u, "application/octet-stream")
                 .setClassName(PAQUETE, EMULACION)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            // Su actualización y sus DLC (NX los registra antes de abrir el juego, como en su biblioteca).
+            val extras = ArrayList<String>()
+            for (ruta in p.extras) {
+                val e = File(ruta)
+                if (e.exists()) try { extras.add(uriDe(ctx, e).toString()) } catch (t: Throwable) { Log.w(TAG, "Sin permiso para $ruta", t) }
+            }
+            if (extras.isNotEmpty()) i.putStringArrayListExtra("satronho_files", extras)
             // Mientras NX revisa y abre el juego, el hub no le pregunta nada (al volver se acorta).
             calmaHasta = System.currentTimeMillis() + 30_000
             ctx.startActivity(i)
@@ -475,11 +485,24 @@ object Nx {
     // ------------------------------------------------------------ nombre e ícono reales
 
     /** Los juegos de Switch salen con su nombre e ícono de verdad: se los pide a NX (necesita las claves). */
+    /** Ids de título que trae el nombre del archivo («… [0100633007D48800][v1].nsp»). */
+    private val idEnNombre = Regex("(?i)(?<![0-9a-f])(01[0-9a-f]{14})(?![0-9a-f])")
+
     fun revisarJuegos(ctx: Context, b: Biblioteca) {
-        val faltan = b.juegos.filter { it.sistema == "nx" && it.programa.isEmpty() && it.ruta.isNotEmpty() && consultados.add(it.clave) }
+        // Faltan: nombre e ícono (los que no tienen programa) o saber si es juego, actualización o DLC.
+        val faltan = b.juegos.filter {
+            it.sistema == "nx" && it.ruta.isNotEmpty() && (it.programa.isEmpty() || it.nxTipo.isEmpty()) && consultados.add(it.clave)
+        }
         if (faltan.isEmpty() || !androidSirve()) return
         enHilo {
             // Si mientras tanto se abrió un juego, esto espera a que vuelvas (esperarCalma en llamar).
+            // Lo que dice el nombre del archivo no necesita a NX.
+            val sinNx = ArrayList<Juego>()
+            for (g in faltan) {
+                if (g.nxTipo.isNotEmpty()) continue
+                val ids = idEnNombre.findAll(File(g.ruta).name).map { it.groupValues[1].uppercase() }.toList()
+                if (ids.isNotEmpty()) SatronhoUi.orden("nx_contenido|${g.clave}|${ids.joinToString(",")}") else sinNx.add(g)
+            }
             if (!instalado(ctx)) { faltan.forEach { consultados.remove(it.clave) }; return@enHilo }
             val e = consultar(ctx)
             if (!e.claves) { faltan.forEach { consultados.remove(it.clave) }; return@enHilo }
@@ -487,7 +510,14 @@ object Nx {
             for (g in faltan) {
                 val f = File(g.ruta)
                 if (!f.exists()) continue
-                val r = llamar(ctx, "info", uriDe(ctx, f).toString()) ?: continue
+                val uri = uriDe(ctx, f).toString()
+                // Juego, actualización o DLC (los dos últimos se esconden y van con su juego).
+                if (g in sinNx && e.contenido) {
+                    val ids = llamar(ctx, "contenido", uri)?.getString("ids") ?: ""
+                    if (ids.isNotEmpty()) SatronhoUi.orden("nx_contenido|${g.clave}|$ids")
+                }
+                if (g.programa.isNotEmpty()) continue
+                val r = llamar(ctx, "info", uri) ?: continue
                 if (!r.getBoolean("valido")) continue
                 val titulo = (r.getString("titulo") ?: "").replace('|', ' ')
                 val programa = (r.getString("programa") ?: "").replace('|', ' ')

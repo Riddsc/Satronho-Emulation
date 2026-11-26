@@ -21,6 +21,9 @@ class VideoOutGl {
 public:
     bool Init();
     void Shutdown();
+    // Prueba de la tarjeta gráfica (la de Ñoño, build 27): milisegundos que tarda en dibujar una
+    // imagen 1280×720 con un sombreado pesado (promedio de varias). -1 si no se pudo medir.
+    float Benchmark();
     void Upload(const CoreHost& core);
     void Draw(const CoreHost& core, const HwRender* hw, const Settings& s, int win_w, int win_h, bool handheld);
     // Esquina (abajo a la izquierda, en píxeles) del área del juego: la barra de menús deja su espacio.
@@ -47,7 +50,7 @@ private:
         GLint rect, uv, tex, src_size, out_size, mode, effect, strength, lines, tex_size;
     } u_{};
     struct AmbUniforms {
-        GLint rect, uv, tex, tint, vignette;
+        GLint rect, uv, tex, tint, vignette, frame;
     } a_{};
 };
 

@@ -358,7 +358,8 @@ std::string CommonValueLabel(const std::string& v, const std::string& label) {
 // Imagen de Satronho: explicación de cada valor.
 const char* kScaleHelp[] = {"La imagen llena la pantalla sin deformarse (puede quedar una franja a los lados).",
                             "Solo tamaños exactos (2×, 3×…): píxeles perfectos, con un borde alrededor.",
-                            "Llena toda la pantalla aunque se deforme."};
+                            "Llena toda la pantalla aunque se deforme.",
+                            "Pantalla ancha en las consolas 3D que la tienen; en las demás, lo más grande sin deformarse, con los costados llenos."};
 const char* kFilterHelp[] = {"Píxeles duros y cuadrados. Perfecto con tamaño entero; en otros tamaños algunos píxeles salen más gruesos.",
                              "Píxeles cuadrados y parejos a cualquier tamaño, sin bordes temblorosos. El recomendado.",
                              "Todo suavizado: sin píxeles visibles, pero más borroso."};
@@ -513,8 +514,11 @@ void App::DrawSettingsVideo() {
         ImGui::Dummy({0, S(4)});
     }
     RowBegin("Tamaño", nullptr);
-    changed |= Segmented("##escala", &scale, {"Ajustar", "Entero", "Estirar"}, S(340));
-    ChoiceNote(kScaleHelp[std::clamp(scale, 0, 2)]);
+    changed |= Segmented("##escala", &scale, {"Ajustar", "Entero", "Estirar todo", "Inteligente"}, S(420));
+    ChoiceNote(kScaleHelp[std::clamp(scale, 0, 3)]);
+    RowEnd();
+    RowBegin("Costados", "Lo que llena los lados de la pantalla cuando el juego no la ocupa entera.");
+    changed |= Segmented("##costados", &settings_.side_fill, {"Colores del juego", "Marco de Satronho"}, S(340));
     RowEnd();
     RowBegin("Filtro", "Cómo se agrandan los píxeles.");
     changed |= Segmented("##filtro", &filter, {"Píxel exacto", "Nítido suave", "Suave"}, S(340));
@@ -841,8 +845,10 @@ void App::NativePageGraphics(NPage& p) {
         if (which == 1) return o.on ? o.filter : settings_.filter;
         return o.on ? o.effect : settings_.effect;
     };
-    p.Choice("escala", "Tamaño", "Ajustar: lo más grande posible con su forma. Entero: píxeles parejos. Estirar: toda la pantalla.", ref_int(0),
-             {"Ajustar", "Entero", "Estirar"}, [this, ref_int](int v) { ref_int(0) = std::clamp(v, 0, 2); SaveConfig(); });
+    p.Choice("escala", "Tamaño", "Inteligente: pantalla ancha en las 3D y lo más grande sin deformar en las demás. Estirar todo: llena la pantalla aunque se deforme.",
+             ref_int(0), {"Ajustar", "Entero", "Estirar todo", "Inteligente"}, [this, ref_int](int v) { ref_int(0) = std::clamp(v, 0, 3); SaveConfig(); });
+    p.Choice("costados", "Costados", "Lo que llena los lados cuando el juego no ocupa toda la pantalla.", settings_.side_fill,
+             {"Colores del juego", "Marco de Satronho"}, [this](int v) { settings_.side_fill = std::clamp(v, 0, 1); SaveConfig(); });
     p.Choice("filtro", "Filtro", "Cómo se agrandan los píxeles.", ref_int(1), {"Píxel exacto", "Nítido suave", "Suave"},
              [this, ref_int](int v) { ref_int(1) = std::clamp(v, 0, 2); SaveConfig(); });
     p.Choice("efecto", "Efecto de pantalla", "Auto: CRT en las de TV, LCD en portátiles y limpio en las 3D.", ref_int(2),

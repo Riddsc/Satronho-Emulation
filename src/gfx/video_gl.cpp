@@ -78,7 +78,23 @@ out vec4 o_color;
 uniform sampler2D u_tex;
 uniform vec4 u_tint;
 uniform float u_vignette;
+uniform vec4 u_frame; // marco de Satronho: color de la consola (w = 1 encendido)
 void main() {
+    if (u_frame.w > 0.5) {
+        // Marco: el color de la consola muy oscuro, de arriba a abajo, con las franjas diagonales de
+        // Satronho y viñeta. El juego va encima, en el centro.
+        vec3 base = u_frame.rgb * 0.20 + vec3(10.0, 8.0, 18.0) / 255.0;
+        vec3 top = u_frame.rgb * 0.34 + vec3(10.0, 8.0, 18.0) / 255.0;
+        vec3 f = mix(top, base, v_pos.y);
+        float stripe = step(0.5, fract((gl_FragCoord.x + gl_FragCoord.y) / 36.0));
+        f *= 1.0 + stripe * 0.10;
+        vec2 d0 = v_pos * 2.0 - 1.0;
+        float dist0 = sqrt(dot(d0, d0) * 0.7);
+        float a0 = clamp((dist0 - 0.45) / 0.7, 0.0, 1.0);
+        f *= 1.0 - a0 * a0 * 0.6;
+        o_color = vec4(f, 1.0);
+        return;
+    }
     vec3 c = vec3(0.0);
     float wsum = 0.0;
     for (int y = -2; y <= 2; ++y)
@@ -122,6 +138,7 @@ bool VideoOutGl::Init() {
     a_.tex = Gl::GetUniformLocation(amb_prog_, "u_tex");
     a_.tint = Gl::GetUniformLocation(amb_prog_, "u_tint");
     a_.vignette = Gl::GetUniformLocation(amb_prog_, "u_vignette");
+    a_.frame = Gl::GetUniformLocation(amb_prog_, "u_frame");
     return true;
 }
 
@@ -264,8 +281,10 @@ void VideoOutGl::Draw(const CoreHost& core, const HwRender* hw, const Settings& 
     Gl::BindVertexArray(vao_);
     Gl::ActiveTexture(GL_TEXTURE0);
 
-    // Fondo ambiente.
-    if (s.ambient && s.scale_mode != static_cast<int>(ScaleMode::Stretch)) {
+    // Fondo ambiente o marco de Satronho (en «Inteligente» siempre, para que nunca queden franjas negras).
+    const bool smart = s.scale_mode == static_cast<int>(ScaleMode::Smart);
+    const bool frame = s.side_fill == static_cast<int>(SideFill::Frame);
+    if ((s.ambient || smart) && s.scale_mode != static_cast<int>(ScaleMode::Stretch) && (dw < W - 1 || dh < H - 1)) {
         EnsureSmall();
         if (core.FrameSerial() - ambient_serial_ >= 4 || !ambient_serial_) {
             ambient_serial_ = core.FrameSerial();
@@ -296,6 +315,9 @@ void VideoOutGl::Draw(const CoreHost& core, const HwRender* hw, const Settings& 
         Gl::Uniform4f(a_.uv, 0, 0, 1, 1);
         Gl::Uniform4f(a_.tint, 120 / 255.0f, 120 / 255.0f, 135 / 255.0f, 1);
         Gl::Uniform1f(a_.vignette, 1.0f);
+        Gl::Uniform4f(a_.frame, ((s.frame_color >> 16) & 0xFF) / 255.0f, ((s.frame_color >> 8) & 0xFF) / 255.0f,
+                      (s.frame_color & 0xFF) / 255.0f, frame ? 1.0f : 0.0f);
+        if (frame) SetRect(a_.rect, 0, 0, W, H, W, H);
         Gl::DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     Gl::Viewport(area_x_, area_y_, win_w, win_h);
@@ -337,6 +359,66 @@ void VideoOutGl::Draw(const CoreHost& core, const HwRender* hw, const Settings& 
     Gl::BindTexture(GL_TEXTURE_2D, 0);
     Gl::UseProgram(0);
     Gl::BindVertexArray(0);
+}
+
+// ---------------------------------------------------------------- prueba de la tarjeta gráfica
+
+namespace {
+const char* kBenchFs = R"(in vec2 v_uv;
+in vec2 v_pos;
+out vec4 o_color;
+uniform float u_seed;
+void main() {
+    vec2 p = v_pos * 7.0 + u_seed;
+    vec3 c = vec3(0.0);
+    for (int i = 0; i < 48; ++i) {
+        p = vec2(p.x * 0.9 + sin(p.y + float(i)) * 0.3, p.y * 0.9 + cos(p.x - float(i)) * 0.3);
+        c += vec3(sin(p.x), cos(p.y), sin(p.x + p.y)) * 0.02;
+    }
+    o_color = vec4(abs(c), 1.0);
+}
+)";
+} // namespace
+
+float VideoOutGl::Benchmark() {
+    const GLuint prog = Gl::Program(kVs, kBenchFs, "prueba");
+    if (!prog) return -1;
+    GLuint tex = 0, fbo = 0;
+    Gl::GenTextures(1, &tex);
+    Gl::BindTexture(GL_TEXTURE_2D, tex);
+    Gl::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    Gl::GenFramebuffers(1, &fbo);
+    Gl::BindFramebuffer(GL_FRAMEBUFFER, fbo);
+    Gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+    float ms = -1;
+    if (Gl::CheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
+        Gl::Disable(GL_BLEND);
+        Gl::Disable(GL_SCISSOR_TEST);
+        Gl::Viewport(0, 0, 1280, 720);
+        Gl::UseProgram(prog);
+        Gl::BindVertexArray(vao_);
+        Gl::Uniform4f(Gl::GetUniformLocation(prog, "u_rect"), -1, 1, 1, -1);
+        Gl::Uniform4f(Gl::GetUniformLocation(prog, "u_uv"), 0, 0, 1, 1);
+        const GLint seed = Gl::GetUniformLocation(prog, "u_seed");
+        unsigned char px[4];
+        // Una de calentamiento (el controlador compila y prepara) y después 12 medidas.
+        Gl::Uniform1f(seed, 0.5f);
+        Gl::DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        Gl::ReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, px);
+        const Uint64 t0 = SDL_GetTicksNS();
+        constexpr int kPasses = 12;
+        for (int i = 0; i < kPasses; ++i) {
+            Gl::Uniform1f(seed, 1.0f + i);
+            Gl::DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+        Gl::ReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, px);
+        ms = static_cast<float>(SDL_GetTicksNS() - t0) / 1e6f / kPasses;
+    }
+    Gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
+    Gl::DeleteFramebuffers(1, &fbo);
+    Gl::DeleteTextures(1, &tex);
+    Gl::DeleteProgram(prog);
+    return ms;
 }
 
 } // namespace Satronho

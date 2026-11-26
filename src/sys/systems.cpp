@@ -169,7 +169,9 @@ std::vector<SystemDef> Build() {
     n64.cpu_need = 3;
     // El dibujo lo elige Satronho (App::ApplyGpuChoice): GLideN64 con OpenGL, ParaLLEl-RDP con
     // Vulkan o Angrylion con el procesador. Por defecto (sin tarjeta gráfica), Angrylion.
+    // Build 27: GLideN64 guarda los sombreados que ya preparó (la segunda partida no tironea al empezar).
     n64.core_defaults = {{"mupen64plus-rdp-plugin", "angrylion"},
+                         {"mupen64plus-EnableShadersStorage", "True"},
                          {"mupen64plus-rsp-plugin", "parallel"},
                          {"mupen64plus-alt-map", "True"}};
     v.push_back(n64);
@@ -336,7 +338,8 @@ const SystemDef& NxSystem() {
 }
 
 bool NxAvailable() {
-#ifdef __ANDROID__
+    // En el celular (app aparte que el hub abre) y en Windows (satronho-nx.exe, que el hub baja).
+#if defined(__ANDROID__) || defined(_WIN32)
     return true;
 #else
     return false;

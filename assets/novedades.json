@@ -3,15 +3,47 @@
     {
       "version": "Esta build",
       "fecha": "26 de noviembre de 2026",
-      "titulo": "Mandos Bluetooth que antes no se veían",
+      "titulo": "Pantalla completa inteligente, juegos de Switch completos, mandos Bluetooth y Satronho NX en PC",
       "cambios": [
         {
+          "tipo": "nuevo",
+          "texto": "Pantalla completa inteligente (la de fábrica): las consolas 3D que lo permiten (CD, Sueño y 64 con OpenGL) se abren a pantalla ancha de verdad, sin deformarse, y las demás se ven lo más grandes posible con los costados llenos de los colores del juego. Si prefieres, «Estirar todo» llena la pantalla aunque deforme."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Marco de Satronho: en Gráficos » Costados puedes cambiar el difuminado por un marco con el color de cada consola y las franjas de Satronho."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Prueba del teléfono: la primera vez, Ñoño mide tu teléfono y elige la mejor resolución que aguanta cada consola 3D a 60 fps. Puedes repetirla en Ajustes » Rendimiento."
+        },
+        {
           "tipo": "arreglo",
-          "texto": "Mandos Bluetooth que antes salían como «Sin mando» (por ejemplo el TERIOS T12) ahora se leen directo del teléfono, como en Satronho NX: salen en Controles con su nombre y se juegan con botones, palancas, gatillos y cruceta."
+          "texto": "Juegos de Switch completos: el juego, su actualización y sus DLC salen en una sola portada y se abren juntos en Satronho NX. Antes, juegos como Hollow Knight fallaban desde el hub y su actualización aparecía como otro juego."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Satronho NX en PC: los juegos de Switch salen en la biblioteca de Windows. La primera vez, MechaRidds baja Satronho NX y desde ahí se abren con un clic; al cerrarlo vuelves y queda anotado el tiempo."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Mandos Bluetooth que antes salían como «Sin mando» (por ejemplo el TERIOS T12) ahora se leen directo del teléfono, como en Satronho NX: salen en Controles y se juegan con botones, palancas, gatillos y cruceta. Con un mando conectado, el control en pantalla se esconde solo."
         },
         {
           "tipo": "mejora",
-          "texto": "El registro anota qué mandos ve el teléfono y cuáles toma Satronho, para arreglar rápido uno que no funcione."
+          "texto": "Más fluidez en el celular: modo juego de Android (el teléfono mantiene la velocidad pareja mientras juegas y acepta el modo «Rendimiento» del panel de juegos), el 64 guarda los gráficos que ya preparó y el carrusel va leyendo el juego en el que te detienes para que abra más rápido."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Nueva pantalla de carga: el cartucho de tu juego entra en su consola Satronho, se ilumina con su color y un guía te acompaña con un consejo."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Los juegos de Switch muestran su portada real con la calidad original, y si un juego no carga, Ñoño dice el motivo real (claves, actualización que falta…) en vez de «ROM encriptada»."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "MechaRidds se queda con su lugar: aparece en el 30 % de los consejos y avisos, y el resto se reparte entre Samy y Troya (65 %), Ñoño (25 %) y Juana (10 %)."
         }
       ]
     },

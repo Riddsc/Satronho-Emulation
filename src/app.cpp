@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Ridds (Satronho Emulation)
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app.h"
+#include "sys/perf_hint.h"
 #include "sys/android.h"
 #include "sys/native_ui.h"
 #include "util/i18n.h"
@@ -235,6 +236,14 @@ bool App::Init() {
             const char* ver = reinterpret_cast<const char*>(Gl::GetString(GL_VERSION));
             const char* gpu = reinterpret_cast<const char*>(Gl::GetString(GL_RENDERER));
             Log::Info("Motor gráfico: OpenGL %s · %s", ver ? ver : "?", gpu ? gpu : "?");
+#ifdef __ANDROID__
+            // La primera vez (o si cambió la tarjeta, por ejemplo con otro teléfono): la prueba de Ñoño.
+            if (ini_.Get("telefono.gpu") != (gpu ? gpu : "")) {
+                RunPhoneTest(false);
+                ini_.Set("telefono.gpu", gpu ? gpu : "");
+                phone_test_tell_ = true;
+            }
+#endif
         } else {
             Log::Warn("OpenGL 3.3 no está disponible (%s); sigo con el motor clásico", SDL_GetError());
             if (gl_ctx_) SDL_GL_DestroyContext(gl_ctx_);
@@ -443,6 +452,7 @@ void App::UpdateScale() {
 
 void App::Shutdown() {
     if (in_game_) StopGame();
+    if (nx_desk_worker_.joinable()) nx_desk_worker_.detach(); // NX sigue abierto por su cuenta
     int w, h;
     const bool maximized = SDL_GetWindowFlags(window_) & SDL_WINDOW_MAXIMIZED;
     if (!maximized && !(SDL_GetWindowFlags(window_) & SDL_WINDOW_FULLSCREEN)) {
@@ -706,11 +716,13 @@ void App::Frame() {
 #endif
 
     if (library_.TakeChanged()) {
+        ClassifyNxByName();
         games_dirty_ = true;
         if (settings_.covers && !qa_.count("fresh")) covers_.QueueDownloads(library_.Snapshot());
     }
     covers_.Pump();
     PollUpdater();
+    PollNxDesktop();
 
     // El cursor se esconde mientras se juega.
     // En Satronho Dual el mouse es el lápiz de la pantalla táctil: no se esconde.
@@ -737,7 +749,12 @@ void App::Frame() {
     if ((in_game_ && !menu_open_ && confirm_ == 0) || input_.Capturing()) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    if (in_game_ && !paused_ && !menu_open_ && !native_menu_ && native_page_.empty() && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0 && !(touch_mode_ && bar_open_)) EmulateTick(dt);
+    if (in_game_ && !paused_ && !menu_open_ && !native_menu_ && native_page_.empty() && confirm_ == 0 && !touch_edit_ && !bar_menu_active_ && overlay_page_ < 0 && !(touch_mode_ && bar_open_)) {
+        // Modo juego de Android: cuánto tardó el cuadro de verdad (el sistema ajusta el procesador).
+        const Uint64 work0 = SDL_GetTicksNS();
+        EmulateTick(dt);
+        PerfHint::Report(static_cast<int64_t>(SDL_GetTicksNS() - work0));
+    }
     else if (in_game_) input_.ApplyRumble(core_, false); // en pausa o con el menú, el mando no vibra
     if (in_game_) {
         if (gl_) video_gl_.Upload(core_);
@@ -830,6 +847,12 @@ void App::Frame() {
 }
 
 void App::PollUpdater() {
+    if (phone_test_tell_ && !show_welcome_ && !in_game_) {
+        phone_test_tell_ = false;
+        const char* names[] = {"básica", "media", "alta", "muy alta"};
+        Toast(TrFmt("Probé tu teléfono: potencia %s. Ya elegí la resolución de cada consola para que vayan a 60 fps.", Tr(names[PhonePower()])),
+              GuideId::Nono, 7);
+    }
     const Updater::State st = updater_.GetState();
     if (st == last_update_state_) return;
     last_update_state_ = st;
@@ -861,6 +884,7 @@ void App::PollUpdater() {
 
 Settings App::VideoSettings() const {
     Settings v = settings_.ForSystem(sys_->id);
+    v.frame_color = sys_->color; // el marco de Satronho lleva el color de la consola
     // «Según la consola»: CRT en las de TV en 2D, LCD en las portátiles y nada en las 3D (CD, 64,
     // Anillo y Dual se ven mejor limpias, sobre todo a alta resolución).
     const bool three_d = sys_->gpu || sys_->id == "anillo" || sys_->id == "dual";
@@ -1380,6 +1404,8 @@ bool App::StartGame(const fs::path& rom) {
         Toast("¡A jugar! Select + Start (o el botón Guía) abren el menú.", GuideId::Samy, 3.0);
     else
         Toast("¡A jugar! Esc abre el menú.", GuideId::Samy, 3.0);
+    // Modo juego de Android: cada cuadro debe durar lo que pide la consola (60 o 50 por segundo).
+    PerfHint::Begin(static_cast<int64_t>(1e9 / core_.Fps()));
     return true;
 }
 
@@ -1394,6 +1420,7 @@ void App::CommitPlaytime() {
 
 void App::StopGame() {
     if (!in_game_) return;
+    PerfHint::End();
     // Ranura automática: al volver, «Continuar» sigue justo aquí.
     if (settings_.autosave_exit && core_.GameLoaded() && emu_frames_ > 30) SaveSlot(0, true);
     input_.ClearGameCodes();

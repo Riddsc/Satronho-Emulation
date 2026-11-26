@@ -83,6 +83,8 @@ set(SATRONHO_SOURCES
   src/util/json.cpp
   src/util/log.cpp
   src/util/net.cpp
+  src/util/process.cpp
+  src/sys/perf_hint.cpp
   src/util/archive.cpp
   src/util/chd.cpp
   src/util/shortcut.cpp

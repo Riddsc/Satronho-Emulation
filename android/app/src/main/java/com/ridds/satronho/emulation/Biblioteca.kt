@@ -291,13 +291,14 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
     }
 }
 
-// Reparto de las apariciones de los guías (de 100): Samy 32, Troya 26, Ñoño 16, Juana 14, MechaRidds 12.
-private val repartoGuias = listOf("samy" to 32, "troya" to 26, "nono" to 16, "juana" to 14, "mecharidds" to 12)
+// Reparto de las apariciones de los guías (de 1000, build 27): MechaRidds 300 y el resto (700) 65 % Samy y
+// Troya, 25 % Ñoño y 10 % Juana. El mismo reparto que C++ (PickGuide) y que Satronho NX.
+private val repartoGuias = listOf("mecharidds" to 300, "samy" to 230, "troya" to 225, "nono" to 175, "juana" to 70)
 
 /** Elige el próximo consejo: primero el guía (según el reparto) y luego uno de sus consejos. */
-private fun elegirConsejo(b: Biblioteca, actual: Int): Int {
+internal fun elegirConsejo(b: Biblioteca, actual: Int): Int {
     if (b.consejos.isEmpty()) return 0
-    var r = kotlin.random.Random.nextInt(100)
+    var r = kotlin.random.Random.nextInt(repartoGuias.sumOf { it.second })
     var guia = repartoGuias.first().first
     for ((g, peso) in repartoGuias) {
         if (r < peso) { guia = g; break }
@@ -543,6 +544,9 @@ private fun Carrusel(lista: List<Juego>, b: Biblioteca, menuJuego: String, abrir
                 ultimoCarrusel = it.clave
                 prefsCarrusel(ctx).edit().putString("ultimo", it.clave).apply()
             }
+            // Arranque rápido: si te quedas en este juego, su núcleo y el juego se van leyendo ya.
+            kotlinx.coroutines.delay(700)
+            SatronhoUi.orden("precargar|${it.clave}")
         }
     }
     // El fondo y los datos siguen a la portada donde el carrusel se detiene, no a cada una que pasa

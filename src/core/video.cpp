@@ -208,8 +208,15 @@ void VideoOut::Draw(const CoreHost& core, const Settings& s, int win_w, int win_
     }
     dest_ = {std::floor((W - dw) * 0.5f), std::floor((H - dh) * 0.5f), dw, dh};
 
-    // Fondo ambiente.
-    if (s.ambient && s.scale_mode != static_cast<int>(ScaleMode::Stretch)) {
+    // Fondo ambiente o marco de Satronho (en «Inteligente» siempre, para que no queden franjas negras).
+    const bool smart = s.scale_mode == static_cast<int>(ScaleMode::Smart);
+    if (s.side_fill == static_cast<int>(SideFill::Frame) && s.scale_mode != static_cast<int>(ScaleMode::Stretch)) {
+        const Uint8 cr = (s.frame_color >> 16) & 0xFF, cg = (s.frame_color >> 8) & 0xFF, cb = s.frame_color & 0xFF;
+        SDL_SetRenderDrawBlendMode(r_, SDL_BLENDMODE_NONE);
+        SDL_SetRenderDrawColor(r_, static_cast<Uint8>(10 + cr * 0.22f), static_cast<Uint8>(8 + cg * 0.22f), static_cast<Uint8>(18 + cb * 0.22f), 255);
+        SDL_RenderFillRect(r_, nullptr);
+        if (vignette_) SDL_RenderTexture(r_, vignette_, nullptr, nullptr);
+    } else if ((s.ambient || smart) && s.scale_mode != static_cast<int>(ScaleMode::Stretch)) {
         UpdateAmbient(core);
         if (ambient_) {
             const float cover = std::max(W / dw, H / dh) * 1.15f;

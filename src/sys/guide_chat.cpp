@@ -183,12 +183,13 @@ enum Intent {
 } // namespace
 
 int PickGuide(unsigned r) {
-    // De 1000: MechaRidds 400; el resto (600) → Samy y Troya 195 cada uno, Ñoño 150, Juana 60.
+    // De 1000 (build 27, pedido de Ridds): MechaRidds 300; el resto (700) se reparte 65 % Samy y Troya,
+    // 25 % Ñoño y 10 % Juana → Samy 230, Troya 225, Ñoño 175, Juana 70.
     const unsigned v = r % 1000;
-    if (v < 400) return Mecha;
-    if (v < 595) return Samy;
-    if (v < 790) return Troya;
-    if (v < 940) return Nono;
+    if (v < 300) return Mecha;
+    if (v < 530) return Samy;
+    if (v < 755) return Troya;
+    if (v < 930) return Nono;
     return Juana;
 }
 
