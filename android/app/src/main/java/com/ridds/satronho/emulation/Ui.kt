@@ -6,6 +6,7 @@ import android.content.pm.ActivityInfo
 import android.util.Log
 import android.view.Choreographer
 import android.view.InputDevice
+import org.libsdl.app.SDLControllerManager
 import android.view.MotionEvent
 import android.os.Looper
 import android.os.Handler
@@ -285,7 +286,7 @@ object SatronhoUi {
     private fun esMandoFisico(d: InputDevice?): Boolean {
         if (d == null || d.isVirtual) return false
         // Mandos que se presentan como teclado (TERIOS T12 y parecidos): la misma regla que SDL.
-        if (org.libsdl.app.SDLControllerManager.isKeyboardGamepad(d)) return true
+        if (SDLControllerManager.isKeyboardGamepad(d)) return true
         val s = d.sources
         val fuente = (s and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
             (s and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
@@ -302,7 +303,7 @@ object SatronhoUi {
         mandoFisico = try { InputDevice.getDeviceIds().any { esMandoFisico(InputDevice.getDevice(it)) } } catch (_: Throwable) { false }
         // Al registro (C++ anota cada orden): qué ve Android, para entender un mando que no funciona.
         try {
-            val lista = InputDevice.getDeviceIds().mapNotNull { InputDevice.getDevice(it) }.filter { !it.isVirtual }.joinToString(" ; ") {
+            val lista = InputDevice.getDeviceIds().toList().mapNotNull { InputDevice.getDevice(it) }.filter { !it.isVirtual }.joinToString(" ; ") {
                 val b = it.hasKeys(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B)
                 "${it.name} [fuentes=0x${Integer.toHexString(it.sources)} A=${b[0]} B=${b[1]} mando=${esMandoFisico(it)}]"
             }
@@ -328,7 +329,7 @@ object SatronhoUi {
         val esMando = (fuente and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
             (fuente and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK ||
             (fuente and InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD ||
-            org.libsdl.app.SDLControllerManager.isKeyboardGamepad(ev.device)
+            SDLControllerManager.isKeyboardGamepad(ev.device)
         if (!esMando || !quiereMando()) return false
         val v = vista ?: return false
         val codigo = when (ev.keyCode) {
