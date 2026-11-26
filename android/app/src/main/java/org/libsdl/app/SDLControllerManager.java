@@ -148,8 +148,24 @@ public class SDLControllerManager
 
         return ((sources & InputDevice.SOURCE_CLASS_JOYSTICK) != 0 ||
                 ((sources & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD) ||
-                ((sources & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD)
+                ((sources & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) ||
+                isKeyboardGamepad(device)
         );
+    }
+
+    /**
+     * Satronho: algunos mandos Bluetooth baratos (p. ej. «TERIOS Gamepad T12 Keyboard») se presentan
+     * como teclado: Android no les pone SOURCE_GAMEPAD, pero sus botones mandan KEYCODE_BUTTON_A/B.
+     * SDL los ignoraba y el hub decía «Sin mando». Se aceptan si son externos (Bluetooth/USB), no
+     * virtuales y tienen de verdad los botones A y B de un mando (un teclado normal no los tiene).
+     */
+    static public boolean isKeyboardGamepad(InputDevice device) {
+        if (device == null || device.isVirtual()) return false;
+        int sources = device.getSources();
+        if ((sources & InputDevice.SOURCE_KEYBOARD) != InputDevice.SOURCE_KEYBOARD) return false;
+        if (Build.VERSION.SDK_INT >= 29 && !device.isExternal()) return false;
+        boolean[] has = device.hasKeys(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B);
+        return has.length == 2 && has[0] && has[1];
     }
 
 }

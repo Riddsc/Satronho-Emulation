@@ -284,6 +284,8 @@ object SatronhoUi {
     /** Un mando de verdad: no virtual, con botones o palancas de mando (como lo revisa Satronho NX). */
     private fun esMandoFisico(d: InputDevice?): Boolean {
         if (d == null || d.isVirtual) return false
+        // Mandos que se presentan como teclado (TERIOS T12 y parecidos): la misma regla que SDL.
+        if (org.libsdl.app.SDLControllerManager.isKeyboardGamepad(d)) return true
         val s = d.sources
         val fuente = (s and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
             (s and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
@@ -294,8 +296,21 @@ object SatronhoUi {
         return botones || palancas
     }
 
+    private var dispositivosAnotados = ""
+
     fun revisarMandos() {
         mandoFisico = try { InputDevice.getDeviceIds().any { esMandoFisico(InputDevice.getDevice(it)) } } catch (_: Throwable) { false }
+        // Al registro (C++ anota cada orden): qué ve Android, para entender un mando que no funciona.
+        try {
+            val lista = InputDevice.getDeviceIds().mapNotNull { InputDevice.getDevice(it) }.filter { !it.isVirtual }.joinToString(" ; ") {
+                val b = it.hasKeys(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B)
+                "${it.name} [fuentes=0x${Integer.toHexString(it.sources)} A=${b[0]} B=${b[1]} mando=${esMandoFisico(it)}]"
+            }
+            if (lista != dispositivosAnotados) {
+                dispositivosAnotados = lista
+                orden("dispositivos|$lista")
+            }
+        } catch (_: Throwable) {}
     }
 
     /** ¿Los botones del mando son para moverse por lo nativo (y no para el juego)? */
@@ -312,7 +327,8 @@ object SatronhoUi {
         val fuente = ev.source
         val esMando = (fuente and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
             (fuente and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK ||
-            (fuente and InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD
+            (fuente and InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD ||
+            org.libsdl.app.SDLControllerManager.isKeyboardGamepad(ev.device)
         if (!esMando || !quiereMando()) return false
         val v = vista ?: return false
         val codigo = when (ev.keyCode) {

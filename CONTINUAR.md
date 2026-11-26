@@ -3,6 +3,17 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Build 27 en prueba (rama `build-27`, Release `prueba-27`): mando TERIOS T12
+
+Ridds probó la 26 con un mando Bluetooth «TERIOS Gamepad T12» (Pixel 6 Pro, Android 17): en Satronho NX
+funciona (se asigna como «TERIOS Gamepad T12 Keyboard 0»), pero en el hub Controles dice «Sin mando».
+No se sabe aún por qué SDL no lo toma; se hizo todo lo que lo cubre y se anota lo necesario:
+- `SDLControllerManager.isKeyboardGamepad`: acepta como mando un dispositivo externo tipo teclado con
+  botones A y B de mando (SDL antes lo ignoraba). La usan también `Ui.kt` (esconder el control, navegar).
+- `Input`: si SDL ve un mando sin mapa, en Android le pone uno genérico (`SDL_AddGamepadMapping`).
+- Registro: «SDL ve: …» al iniciar, «Mando sin mapa: …», y la orden `dispositivos|…` (lo que ve Android:
+  nombre, fuentes, A/B). **Si sigue sin verse, pedirle «Enviar el registro» con el mando conectado.**
+
 ## Build 26 publicada (25 nov, noche)
 
 Ridds confirmó que Switch ya abre a la primera y pidió sacar la build con: aviso automático de NX
