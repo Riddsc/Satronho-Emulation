@@ -3,6 +3,24 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Build 26 publicada (25 nov, noche)
+
+Ridds confirmó que Switch ya abre a la primera y pidió sacar la build con: aviso automático de NX
+más nueva, más estética Satronho en lo de actualizaciones, y que el control en pantalla se esconda
+con un mando Bluetooth (lo va a probar).
+- `TarjetaSatronho` (`Ventanas.kt`): tarjeta con degradado del guía, logo e insignia. La usan
+  `TarjetaActualizacion` (C++ manda `actualizacion` en el estado; órdenes `actualizar` y
+  `actualizacion_despues`), `TarjetaNxNueva`, `TarjetaNovedad` (con `novedad_titulo`) y `TarjetaCierre`.
+- NX más nueva: `Nx.revisarNueva` al abrir el hub compara el sha256 del APK instalado
+  (`sourceDir`) con el `.sha256` publicado; «Después» no vuelve a avisar de esa misma versión.
+- `Cierres.kt`: guarda errores de Kotlin y lee `getHistoricalProcessExitReasons` (Android 11+) en
+  `ultimo-cierre.txt`; `SendLog` lo incluye; Ñoño avisa al abrir. Motivo: Ridds vio que la app se
+  cerraba al abrirla justo después de actualizar (se arregló desinstalando todo); sin registro no se
+  encontró la causa. **Si vuelve a pasar, pedirle «Enviar el registro».**
+- Control en pantalla: `SatronhoUi.mandoFisico` (InputManager, misma regla que NX) lo esconde en
+  modo «Automático». NX ya lo hacía (`hide_overlay_on_controller_input`, activado por defecto).
+- **Falta probar**: mando Bluetooth (hub y NX), tarjeta de build nueva cuando salga la 27, aviso de NX.
+
 ## Build 26: arreglo de «No bootable game present!» (25 nov, tarde)
 
 Ridds probó la prueba 26 (video): al tocar Jugar en un juego de Switch, NX se abría y se cerraba con
