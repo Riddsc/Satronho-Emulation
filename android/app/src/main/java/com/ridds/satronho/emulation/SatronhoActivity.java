@@ -22,6 +22,7 @@ import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
@@ -71,6 +72,8 @@ public class SatronhoActivity extends SDLActivity {
     public boolean dispatchKeyEvent(KeyEvent event) {
         // Mando físico fuera del juego (o con el cajón/Ajustes abiertos): mueve lo nativo.
         if (event.getKeyCode() != KeyEvent.KEYCODE_BACK && SatronhoUi.INSTANCE.getActiva() && SatronhoUi.INSTANCE.teclaMando(event)) return true;
+        // Puente de mandos: un mando que SDL no toma (como hace Satronho NX, se lee directo de Android).
+        if (SatronhoUi.INSTANCE.getActiva() && SatronhoUi.INSTANCE.puenteTecla(event)) return true;
         if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && SatronhoUi.INSTANCE.getActiva()) {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
                 if (event.getRepeatCount() == 0) mAtrasNativo = !SatronhoUi.INSTANCE.getEstado().getImgui();
@@ -85,6 +88,13 @@ public class SatronhoActivity extends SDLActivity {
             }
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    /** Palancas y gatillos de un mando del puente (los demás siguen a SDL). */
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        if (SatronhoUi.INSTANCE.getActiva() && SatronhoUi.INSTANCE.puenteMovimiento(event)) return true;
+        return super.dispatchGenericMotionEvent(event);
     }
 
     /** La orientación la elige Satronho (Ajustes), no SDL según el tamaño de la ventana. */

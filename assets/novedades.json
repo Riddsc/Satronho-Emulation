@@ -7,11 +7,11 @@
       "cambios": [
         {
           "tipo": "arreglo",
-          "texto": "Mandos Bluetooth que Android presenta como teclado (por ejemplo el TERIOS T12) ahora salen en Controles y se juegan. Y si el teléfono ve un mando que Satronho no reconocía, ahora le pone los botones de un mando normal para que funcione igual."
+          "texto": "Mandos Bluetooth que antes salían como «Sin mando» (por ejemplo el TERIOS T12) ahora se leen directo del teléfono, como en Satronho NX: salen en Controles con su nombre y se juegan con botones, palancas, gatillos y cruceta."
         },
         {
           "tipo": "mejora",
-          "texto": "El registro anota qué mandos ve el teléfono y cuáles reconoce Satronho, para arreglar rápido uno que no funcione."
+          "texto": "El registro anota qué mandos ve el teléfono y cuáles toma Satronho, para arreglar rápido uno que no funcione."
         }
       ]
     },

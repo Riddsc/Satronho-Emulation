@@ -7,10 +7,14 @@ trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
 Ridds probó la 26 con un mando Bluetooth «TERIOS Gamepad T12» (Pixel 6 Pro, Android 17): en Satronho NX
 funciona (se asigna como «TERIOS Gamepad T12 Keyboard 0»), pero en el hub Controles dice «Sin mando».
-No se sabe aún por qué SDL no lo toma; se hizo todo lo que lo cubre y se anota lo necesario:
+Ridds lo comprobó a la vez (NX lo reconoce, el hub no) y pidió basarse en lo que hace NX. Solución: **puente
+de mandos** (`Input::Bridge*`): Kotlin le ofrece a C++ cada mando que ve Android (misma regla que NX:
+`esMandoFisico`, agrupado por fabricante/modelo); si en 4 s SDL no lo lee como mando (por nombre o VID/PID),
+C++ crea un mando virtual de SDL (`SDL_AttachVirtualJoystick`) y Kotlin le manda botones (`puenteTecla`) y
+palancas/gatillos/hat (`puenteMovimiento`, desde `SatronhoActivity.dispatchGenericMotionEvent`). Si SDL lo
+toma después, se quita el puente. El estado trae `puente` con los ids. Además:
 - `SDLControllerManager.isKeyboardGamepad`: acepta como mando un dispositivo externo tipo teclado con
   botones A y B de mando (SDL antes lo ignoraba). La usan también `Ui.kt` (esconder el control, navegar).
-- `Input`: si SDL ve un mando sin mapa, en Android le pone uno genérico (`SDL_AddGamepadMapping`).
 - Registro: «SDL ve: …» al iniciar, «Mando sin mapa: …», y la orden `dispositivos|…` (lo que ve Android:
   nombre, fuentes, A/B). **Si sigue sin verse, pedirle «Enviar el registro» con el mando conectado.**
 
