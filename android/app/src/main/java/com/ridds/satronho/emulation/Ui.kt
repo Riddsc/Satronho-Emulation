@@ -6,6 +6,11 @@ import android.content.pm.ActivityInfo
 import android.util.Log
 import android.view.Choreographer
 import android.view.InputDevice
+import android.view.MotionEvent
+import android.os.Looper
+import android.os.Handler
+import android.hardware.input.InputManager
+import android.content.Context
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -79,6 +84,15 @@ object SatronhoUi {
         }
         actividad = act
         superficie = sdlSurface
+        // Mandos de verdad (Bluetooth o USB): con uno conectado se esconde el control en pantalla.
+        try {
+            (act.getSystemService(Context.INPUT_SERVICE) as InputManager).registerInputDeviceListener(escuchaMandos, Handler(Looper.getMainLooper()))
+        } catch (e: Throwable) {
+            Log.e(TAG, "Sin aviso de mandos", e)
+        }
+        revisarMandos()
+        // ¿Hay una Satronho NX más nueva? (una vez por sesión, en segundo plano).
+        Nx.revisarNueva(act)
         Imagenes.assets = act.assets
         val v = ComposeView(act).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
@@ -257,6 +271,33 @@ object SatronhoUi {
         return false // en la biblioteca, C++ pregunta si cerrar la app
     }
 
+    /** Hay un mando físico conectado (Bluetooth o USB): el control en pantalla se esconde solo. */
+    var mandoFisico by mutableStateOf(false)
+        private set
+
+    private val escuchaMandos = object : InputManager.InputDeviceListener {
+        override fun onInputDeviceAdded(id: Int) = revisarMandos()
+        override fun onInputDeviceRemoved(id: Int) = revisarMandos()
+        override fun onInputDeviceChanged(id: Int) = revisarMandos()
+    }
+
+    /** Un mando de verdad: no virtual, con botones o palancas de mando (como lo revisa Satronho NX). */
+    private fun esMandoFisico(d: InputDevice?): Boolean {
+        if (d == null || d.isVirtual) return false
+        val s = d.sources
+        val fuente = (s and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
+            (s and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+        if (!fuente) return false
+        val botones = d.hasKeys(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_X,
+            KeyEvent.KEYCODE_BUTTON_Y, KeyEvent.KEYCODE_BUTTON_START).any { it }
+        val palancas = d.motionRanges.any { it.axis == MotionEvent.AXIS_X || it.axis == MotionEvent.AXIS_Z || it.axis == MotionEvent.AXIS_HAT_X }
+        return botones || palancas
+    }
+
+    fun revisarMandos() {
+        mandoFisico = try { InputDevice.getDeviceIds().any { esMandoFisico(InputDevice.getDevice(it)) } } catch (_: Throwable) { false }
+    }
+
     /** ¿Los botones del mando son para moverse por lo nativo (y no para el juego)? */
     fun quiereMando(): Boolean {
         if (!activa) return false
@@ -309,7 +350,16 @@ private fun Raiz() {
                 e.zip?.let { VentanaZip(it) }
                 e.progreso?.let { VentanaProgreso(it) }
                 e.bienvenida?.let { PantallaBienvenida(it) }
-                if (e.novedad.isNotEmpty() && e.bienvenida == null && !e.enJuego) TarjetaNovedad(e.novedad)
+                // Tarjetas de Satronho en la biblioteca, una a la vez: build nueva, NX más nueva, cierre, novedades.
+                if (!e.enJuego && e.bienvenida == null && SatronhoUi.pilaAjustes.isEmpty() && Nx.asistente == null) {
+                    val cierre = Cierres.pendiente
+                    when {
+                        e.actualizacion != null -> TarjetaActualizacion(e.actualizacion)
+                        cierre != null -> TarjetaCierre(cierre)
+                        Nx.avisoNueva -> TarjetaNxNueva()
+                        e.novedad.isNotEmpty() -> TarjetaNovedad(e.novedad, e.novedadTitulo, e.build)
+                    }
+                }
                 e.confirmar?.let { VentanaConfirmar(it) }
                 CapaAvisos(e.enJuego)
                 SatronhoUi.tarjeta?.let { TarjetaGuia(it, e.enJuego) }

@@ -38,6 +38,18 @@
           "texto": "La vista carrusel ya no cierra la app al ocultar o mostrar juegos."
         },
         {
+          "tipo": "mejora",
+          "texto": "Avisos con la cara de Satronho: cuando sale una build nueva, Juana te muestra una tarjeta con «Actualizar» y la barra de avance mientras se baja; y si hay una Satronho NX más nueva, MechaRidds te avisa al abrir el hub y la instala encima con un toque."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Con un mando Bluetooth o USB conectado, el control en pantalla se esconde solo (en el hub y en Satronho NX). Si lo quieres ver igual, en el menú del juego elige «Siempre»."
+        },
+        {
+          "tipo": "nuevo",
+          "texto": "Si la app se cierra de golpe, al abrirla otra vez Ñoño te avisa y con un toque mandas el registro (ya trae lo que anotó Android), para arreglarlo más rápido."
+        },
+        {
           "tipo": "arreglo",
           "texto": "Los juegos de Switch ya abren a la primera: antes Satronho NX a veces se cerraba con «No bootable game present!» y había que tocar Jugar varias veces. Además, al volver de NX el carrusel sigue en el juego que estabas jugando."
         }

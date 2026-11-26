@@ -54,6 +54,8 @@ public class SatronhoActivity extends SDLActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         sInstance = this;
+        // Cierres inesperados: se anotan, y si la vez anterior terminó mal Ñoño lo avisa.
+        Cierres.INSTANCE.instalar(this);
         prepareFiles();
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

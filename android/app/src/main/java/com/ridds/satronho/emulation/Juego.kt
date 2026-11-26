@@ -94,7 +94,9 @@ fun PantallaJuego(e: Estado) {
         e.medidor?.let { if (!ajustes) LineaMedidor(it) }
         if (e.chip.isNotEmpty() && !ajustes) ChipEstado(e.chip)
         if (e.tactil.editar) EditorTactil(e.tactil, juego)
-        else if (e.tactil.visible && !juego.menu && !ajustes) ControlTactil(e.tactil, juego)
+        // «Automático» (modo 0): con un mando Bluetooth o USB conectado, el control en pantalla se esconde,
+        // aunque el mando todavía no le haya llegado a SDL. Con «Siempre» (1) se sigue viendo.
+        else if (e.tactil.visible && !(e.tactil.modo == 0 && SatronhoUi.mandoFisico) && !juego.menu && !ajustes) ControlTactil(e.tactil, juego)
         CajonJuego(juego, e.tactil)
     }
 }

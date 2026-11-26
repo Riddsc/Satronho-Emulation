@@ -32,6 +32,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -61,6 +62,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -155,29 +158,133 @@ fun PantallaBienvenida(b: Bienvenida) {
     }
 }
 
-/** Juana avisa que llegó una build nueva. */
+// ------------------------------------------------------------------ tarjetas de Satronho (builds, NX, cierres)
+
+/**
+ * La tarjeta de Satronho para avisos importantes de la biblioteca: build nueva, NX más nueva, lo
+ * nuevo de esta build o un cierre inesperado. Borde con el degradado del guía y el acento, el
+ * logo de Satronho Emulation de fondo, la insignia («Build 27», «NX») y un guía que habla.
+ */
 @Composable
-fun TarjetaNovedad(texto: String) {
-    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), contentAlignment = Alignment.BottomStart) {
+fun TarjetaSatronho(
+    guia: String,
+    titulo: String,
+    texto: String,
+    insignia: String = "",
+    avance: Float? = null,
+    contenido: (@Composable ColumnScope.() -> Unit)? = null,
+    botones: @Composable () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    val color = Guias.color(guia)
+    val forma = RoundedCornerShape(22.dp)
+    // Entra deslizándose desde abajo, como las tarjetas de Satronho NX.
+    val entrada = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { entrada.animateTo(1f, tween(380, easing = FastOutSlowInEasing)) }
+    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), contentAlignment = Alignment.BottomCenter) {
         Surface(
-            shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp,
-            modifier = Modifier.widthIn(max = 380.dp).padding(bottom = 70.dp).border(1.dp, Guias.color("juana").copy(alpha = 0.5f), RoundedCornerShape(18.dp)),
+            shape = forma, color = cs.surface, shadowElevation = 12.dp,
+            modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth().padding(bottom = 70.dp)
+                .graphicsLayer { translationY = (1f - entrada.value) * 120f; alpha = entrada.value }
+                .border(1.5.dp, Brush.linearGradient(listOf(color, cs.primary, color.copy(alpha = 0.4f))), forma),
         ) {
-            Column(Modifier.padding(14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar("juana", 34.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text("Juana", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = Guias.color("juana"))
-                        Text(texto, style = MaterialTheme.typography.bodyMedium)
+            Box {
+                // Brillo del color del guía arriba y el logo de Satronho, tenue, en la esquina.
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(color.copy(alpha = 0.16f), Color.Transparent))))
+                Logo(96.dp, Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp).alpha(0.16f))
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Avatar(guia, 46.dp, Modifier.border(2.dp, color, CircleShape))
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(Guias.nombre(guia), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = color)
+                                if (insignia.isNotEmpty()) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        insignia, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White,
+                                        modifier = Modifier.clip(RoundedCornerShape(50)).background(Brush.horizontalGradient(listOf(color, cs.primary)))
+                                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                                    )
+                                }
+                            }
+                            Text(titulo, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
                     }
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { SatronhoUi.orden("novedades_visto") }) { Text(t("Cerrar")) }
-                    TextButton(onClick = { SatronhoUi.orden("novedades_visto"); SatronhoUi.abrirAjustes("novedades") }) { Text(t("Ver novedades")) }
+                    if (texto.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(texto, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+                    }
+                    contenido?.invoke(this)
+                    if (avance != null) {
+                        Spacer(Modifier.height(10.dp))
+                        if (avance >= 0f) LinearProgressIndicator(progress = { avance }, color = color, modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)))
+                        else LinearProgressIndicator(color = color, modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)))
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) { botones() }
                 }
             }
         }
+    }
+}
+
+/** Juana avisa que llegó una build nueva (ya instalada): qué trae y dónde verlo. */
+@Composable
+fun TarjetaNovedad(texto: String, tituloBuild: String, build: Int) {
+    TarjetaSatronho("juana", texto, tituloBuild, insignia = if (build > 0) TrFmtKt("Build %d", build) else "") {
+        TextButton(onClick = { SatronhoUi.orden("novedades_visto") }) { Text(t("Cerrar")) }
+        Spacer(Modifier.width(6.dp))
+        Button(onClick = { SatronhoUi.orden("novedades_visto"); SatronhoUi.abrirAjustes("novedades") }) { Text(t("Ver novedades")) }
+    }
+}
+
+/** Salió una build nueva del hub: Juana la baja e instala con un toque (con su avance). */
+@Composable
+fun TarjetaActualizacion(a: Actualizacion) {
+    val texto = when (a.estado) {
+        "bajando" -> t("Bajándola… no cierres la app. Al terminar, Android te pregunta si la instalas: dile que sí.")
+        "instalando" -> t("Confirma la instalación en la ventana de Android. Satronho se vuelve a abrir solo.")
+        else -> t("Se instala encima: tus juegos, partidas y ajustes no se tocan.")
+    }
+    TarjetaSatronho(
+        "juana", TrFmtKt("¡Ya salió la build %d!", a.build), texto, insignia = TrFmtKt("Build %d", a.build),
+        avance = if (a.estado == "disponible") null else a.avance,
+    ) {
+        if (a.estado == "disponible") {
+            TextButton(onClick = { SatronhoUi.abrirAjustes("novedades") }) { Text(t("Novedades")) }
+            TextButton(onClick = { SatronhoUi.orden("actualizacion_despues") }) { Text(t("Después")) }
+            Spacer(Modifier.width(6.dp))
+            Button(onClick = { SatronhoUi.orden("actualizar") }) { Text(t("Actualizar")) }
+        }
+    }
+}
+
+/** Hay una Satronho NX más nueva que la del teléfono: MechaRidds la instala encima. */
+@Composable
+fun TarjetaNxNueva() {
+    val ctx = LocalContext.current
+    TarjetaSatronho(
+        "mecharidds", t("Hay una Satronho NX más nueva"),
+        t("Trae arreglos para tus juegos de Switch. Se instala encima; no pierdes partidas, claves ni firmware."), insignia = "NX",
+    ) {
+        TextButton(onClick = { Nx.despuesNueva(ctx) }) { Text(t("Después")) }
+        Spacer(Modifier.width(6.dp))
+        Button(onClick = { Nx.actualizarDesdeAviso(ctx) }) { Text(t("Actualizar")) }
+    }
+}
+
+/** La última vez la app se cerró de golpe: Ñoño ofrece mandar el registro para arreglarlo. */
+@Composable
+fun TarjetaCierre(c: Cierres.Cierre) {
+    TarjetaSatronho(
+        "nono", t("La última vez Satronho se cerró de golpe"),
+        t("Ya guardé lo que pasó. Si mandas el registro a Ridds, lo arregla más rápido."),
+        insignia = c.cuando,
+    ) {
+        TextButton(onClick = { Cierres.visto() }) { Text(t("Cerrar")) }
+        Spacer(Modifier.width(6.dp))
+        Button(onClick = { Cierres.visto(); SatronhoUi.orden("enviar_registro") }) { Text(t("Enviar el registro")) }
     }
 }
 

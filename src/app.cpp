@@ -835,7 +835,8 @@ void App::PollUpdater() {
     last_update_state_ = st;
     switch (st) {
     case Updater::State::Available:
-        Toast("¡Salió la build " + std::to_string(updater_.LatestBuild()) + "! Ve a Novedades para actualizar.", GuideId::Juana, 7);
+        // En el celular lo avisa la tarjeta de Juana (con su botón «Actualizar»).
+        if (!NativeMode()) Toast("¡Salió la build " + std::to_string(updater_.LatestBuild()) + "! Ve a Novedades para actualizar.", GuideId::Juana, 7);
         break;
     case Updater::State::Ready:
         if (updater_.LaunchInstaller()) {

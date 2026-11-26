@@ -454,6 +454,7 @@ private:
     int confirm_ = 0;
     bool confirm_dont_ask_ = false;
     bool show_whats_new_ = false;     // Juana muestra lo nuevo después de actualizar
+    bool update_card_later_ = false;  // «Después» en la tarjeta de build nueva (hasta cerrar la app)
 
     // Conversación con los guías.
     struct ChatMsg {
