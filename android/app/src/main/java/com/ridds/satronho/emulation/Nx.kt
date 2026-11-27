@@ -108,7 +108,7 @@ object Nx {
     private var lanzado: Pair<String, Long>? = null
     private var esperandoInstalacion = false
     private var revisoNueva = false
-    private val consultados = HashSet<String>()
+    private val consultados: MutableSet<String> = java.util.Collections.synchronizedSet(HashSet<String>())
     /**
      * Hasta cuándo no se le pregunta nada a NX: mientras abre un juego y un momento después de volver.
      * Las preguntas al HubProvider usan el núcleo de NX; si llegaban justo cuando NX revisaba el juego
@@ -211,7 +211,9 @@ object Nx {
     fun lanzar(ctx: Context, p: PedidoNx) {
         val f = File(p.ruta)
         if (!f.exists()) {
+            // Se muestra en el asistente (antes el aviso quedaba escondido y tocar Jugar no hacía nada).
             problema = t("No encuentro el archivo del juego. ¿Lo moviste o lo borraste?")
+            asistente = Asistente(p)
             return
         }
         try {
@@ -230,7 +232,12 @@ object Nx {
             // Mientras NX revisa y abre el juego, el hub no le pregunta nada (al volver se acorta).
             calmaHasta = System.currentTimeMillis() + 30_000
             ctx.startActivity(i)
-            lanzado = p.clave to System.currentTimeMillis()
+            val ahora = System.currentTimeMillis()
+            lanzado = p.clave to ahora
+            // También en el teléfono: si Android cierra el hub mientras juegas en NX, al volver se
+            // sigue sabiendo qué jugabas y desde cuándo (antes ese tiempo se perdía).
+            prefs(ctx).edit().putString("lanzado_clave", p.clave).putLong("lanzado_desde", ahora).apply()
+            problema = ""
             asistente = null
         } catch (e: Throwable) {
             Log.e(TAG, "No se pudo abrir NX", e)
@@ -252,11 +259,20 @@ object Nx {
     /** La actividad volvió: si veníamos de un juego de NX, se anota su tiempo. */
     fun alVolver(ctx: Context) {
         // De vuelta en el hub: se espera un momento antes de preguntarle algo a NX (que termine de cerrar el juego).
+        if (lanzado == null) {
+            // El hub se cerró mientras jugabas en NX: se recupera lo que se anotó al abrir el juego.
+            val pr = prefs(ctx)
+            val clave = pr.getString("lanzado_clave", "") ?: ""
+            val desde = pr.getLong("lanzado_desde", 0L)
+            if (clave.isNotEmpty() && desde > 0) lanzado = clave to desde
+        }
         if (lanzado != null) calmaHasta = System.currentTimeMillis() + 2000
         lanzado?.let { (clave, desde) ->
             val s = (System.currentTimeMillis() - desde) / 1000
-            if (s >= 5) SatronhoUi.orden("nx_volvio|$clave|$s")
+            // Más de un día seguido no es una partida (el teléfono se quedó con NX abierto o cambió la hora).
+            if (s in 5..86_400) SatronhoUi.tiempoNx(clave, s)
             lanzado = null
+            prefs(ctx).edit().remove("lanzado_clave").remove("lanzado_desde").apply()
         }
         if (esperandoInstalacion && instalado(ctx)) {
             esperandoInstalacion = false

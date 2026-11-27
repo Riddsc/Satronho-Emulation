@@ -2,6 +2,57 @@
   "builds": [
     {
       "version": "Esta build",
+      "fecha": "27 de noviembre de 2026",
+      "titulo": "Arreglos: tus juegos, partidas y portadas se mueven sin perder nada",
+      "cambios": [
+        {
+          "tipo": "arreglo",
+          "texto": "Ordenar en Satronho Games ya no pierde «Continuar» ni los estados guardados: se van con su juego."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Juegos de varios discos (.m3u): al ordenarlos se llevan también las pistas de cada disco, con sus carpetas. Si algo falla, el juego vuelve completo a donde estaba."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Al mover un juego conserva todo: sesiones, nombre e ícono de Switch, tus portadas propias y las bajadas."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Mudar la carpeta de datos ya no borra una partida que solo se parecía: si en el destino hay una distinta, queda apartada como «.anterior»."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Satronho NX en PC se actualiza solo cuando sale una nueva, comprueba la descarga y nunca queda a medias."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Celular: el tiempo jugado en Satronho NX ya no se pierde si Android cierra el hub mientras juegas, y si el juego de Switch ya no está, Ñoño te lo dice."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Dos mandos iguales que entran por el puente (como dos TERIOS T12) ahora son dos jugadores, no uno."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Archivos con emojis en el nombre (por ejemplo los que llegan por WhatsApp) ya abren en el celular."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Respaldos: entran las partidas de discos dentro de un .zip con otro nombre, la partida del juego abierto se guarda antes de respaldar, y no se restaura con un juego abierto. Los estados de otro núcleo (Mega del PC al celular) no se pasan porque no cargarían."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "El carrusel solo precarga el juego en el que te quedas, no todos por los que pasas."
+        },
+        {
+          "tipo": "mejora",
+          "texto": "Más textos traducidos (errores al abrir un juego, atajos, discos .chd) y las novedades del celular dicen el número de build."
+        }
+      ]
+    },
+    {
+      "version": "Build 27",
       "fecha": "26 de noviembre de 2026",
       "titulo": "Pantalla completa inteligente, juegos de Switch completos, mandos Bluetooth y Satronho NX en PC",
       "cambios": [

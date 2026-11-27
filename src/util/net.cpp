@@ -36,6 +36,12 @@ bool Download(const std::string& url, const fs::path& file) {
 #ifdef _WIN32
     using Fn = HRESULT(WINAPI*)(LPUNKNOWN, LPCWSTR, LPCWSTR, DWORD, LPBINDSTATUSCALLBACK);
     static HMODULE urlmon = LoadLibraryW(L"urlmon.dll");
+    // Sin la caché de Internet Explorer: si no, remoto/nx.json y otros archivos que cambian
+    // podían llegar viejos.
+    using DelFn = BOOL(WINAPI*)(LPCWSTR);
+    static HMODULE wininet = LoadLibraryW(L"wininet.dll");
+    if (wininet)
+        if (auto del = reinterpret_cast<DelFn>(GetProcAddress(wininet, "DeleteUrlCacheEntryW"))) del(Wide(url).c_str());
     if (urlmon) {
         if (auto fn = reinterpret_cast<Fn>(GetProcAddress(urlmon, "URLDownloadToFileW")))
             ok = SUCCEEDED(fn(nullptr, Wide(url).c_str(), part.c_str(), 0, nullptr));

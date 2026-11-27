@@ -40,12 +40,15 @@ jobs:
 
       # Los núcleos tardan mucho en compilar y casi nunca cambian: se guardan en caché. La clave
       # cambia sola si se toca un script de núcleo (otra versión) o la versión de llvm-mingw.
+      # Build 28: se restaura y se guarda por separado. Así la caché solo se guarda si están TODOS los
+      # núcleos; antes, si uno fallaba (los descargados tienen continue-on-error), quedaba guardada sin
+      # él y las builds siguientes salían sin esa consola sin avisar.
       - name: Caché de los núcleos
         id: cache-cores
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: build/cores
-          key: cores-${{ env.LLVM_MINGW_VERSION }}-${{ hashFiles('scripts/build-core-*.sh', 'cmake/llvm-mingw.cmake') }}
+          key: cores-v2-${{ env.LLVM_MINGW_VERSION }}-${{ hashFiles('scripts/build-core-*.sh', 'cmake/llvm-mingw.cmake') }}
 
       - name: Caché de llvm-mingw
         id: cache-mingw
@@ -119,6 +122,27 @@ jobs:
         if: steps.cache-cores.outputs.cache-hit != 'true'
         continue-on-error: true
         run: scripts/build-core-descargado.sh ppsspp windows build/cores
+
+      - name: Revisar los núcleos
+        id: cores-ok
+        run: |
+          faltan=""
+          for c in nestopia mgba blastem bsnes mednafen_psx_hw mupen64plus_next melondsds mednafen_saturn flycast ppsspp; do
+            [ -s "build/cores/${c}_libretro.dll" ] || faltan="$faltan $c"
+          done
+          if [ -n "$faltan" ]; then
+            echo "::warning::Faltan núcleos:$faltan (esta build sale sin ellos y la caché no se guarda; se reintentan en la próxima)"
+            echo "completos=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "completos=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Guardar la caché de los núcleos
+        if: steps.cache-cores.outputs.cache-hit != 'true' && steps.cores-ok.outputs.completos == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/cores
+          key: ${{ steps.cache-cores.outputs.cache-primary-key }}
 
       - name: Archivos de sistema de la PSP
         run: scripts/ppsspp-assets.sh assets/system/PPSSPP

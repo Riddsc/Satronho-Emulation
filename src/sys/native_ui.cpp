@@ -94,45 +94,15 @@ std::string Quote(const std::string& s) {
 } // namespace Satronho::NativeUi
 
 #ifdef __ANDROID__
+#include "sys/jni_text.h"
 // ---------------------------------------------------------------- lado de Kotlin (object Puente)
 
 using namespace Satronho::NativeUi;
 
 namespace {
-std::string ToStd(JNIEnv* env, jstring s) {
-    if (!s) return {};
-    const char* chars = env->GetStringUTFChars(s, nullptr);
-    std::string out = chars ? chars : "";
-    if (chars) env->ReleaseStringUTFChars(s, chars);
-    return out;
-}
-
-// NewStringUTF de Java no acepta UTF-8 de 4 bytes (emojis): se arma desde UTF-16.
-jstring ToJava(JNIEnv* env, const std::string& s) {
-    std::u16string u;
-    u.reserve(s.size());
-    for (size_t i = 0; i < s.size();) {
-        const auto c = static_cast<unsigned char>(s[i]);
-        uint32_t cp;
-        int n;
-        if (c < 0x80) { cp = c; n = 1; }
-        else if ((c >> 5) == 0x6) { cp = c & 0x1F; n = 2; }
-        else if ((c >> 4) == 0xE) { cp = c & 0x0F; n = 3; }
-        else if ((c >> 3) == 0x1E) { cp = c & 0x07; n = 4; }
-        else { ++i; continue; }
-        if (i + n > s.size()) break;
-        for (int k = 1; k < n; ++k) cp = (cp << 6) | (static_cast<unsigned char>(s[i + k]) & 0x3F);
-        i += n;
-        if (cp >= 0x10000) {
-            cp -= 0x10000;
-            u += static_cast<char16_t>(0xD800 + (cp >> 10));
-            u += static_cast<char16_t>(0xDC00 + (cp & 0x3FF));
-        } else {
-            u += static_cast<char16_t>(cp);
-        }
-    }
-    return env->NewString(reinterpret_cast<const jchar*>(u.data()), static_cast<jsize>(u.size()));
-}
+// Siempre por UTF-16 (ver sys/jni_text.h): así los emojis de nombres y rutas llegan bien.
+std::string ToStd(JNIEnv* env, jstring s) { return Satronho::Jni::ToUtf8(env, s); }
+jstring ToJava(JNIEnv* env, const std::string& s) { return Satronho::Jni::FromUtf8(env, s); }
 } // namespace
 
 extern "C" {

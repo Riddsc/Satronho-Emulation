@@ -23,6 +23,7 @@
 #include "util/process.h"
 #include "util/archive.h"
 #include "util/net.h"
+#include "util/hash.h"
 #include "util/move.h"
 
 namespace Satronho {
@@ -519,7 +520,7 @@ static fs::path FindNxExe(const fs::path& dir) {
 
 void App::LaunchNxDesktop(const Game& g) {
 #ifdef _WIN32
-    if (nx_desk_state_ == 1 || nx_desk_state_ == 2) {
+    if (nx_desk_state_ == 1 || nx_desk_state_ == 2 || nx_desk_state_ == 6) {
         Toast("Satronho NX ya se está preparando. Un momento.", GuideId::MechaRidds, 4);
         return;
     }
@@ -532,34 +533,86 @@ void App::LaunchNxDesktop(const Game& g) {
     nx_desk_shown_ = 0;
     const fs::path dir = Paths::User() / "satronho-nx";
     const std::string game = g.path_utf8;
-    nx_desk_state_ = FindNxExe(dir).empty() ? 1 : 2;
-    if (nx_desk_state_ == 1)
-        Toast("Bajo Satronho NX para tus juegos de Switch (una sola vez, unos 90 MB). Te aviso cuando esté.", GuideId::MechaRidds, 7);
+    nx_desk_state_ = 2;
     nx_desk_worker_ = std::thread([this, dir, game] {
+        // De dónde se baja: remoto/nx.json («windows»), o el de respaldo. Desde la build 28 se anota
+        // en la carpeta de NX de qué enlace salió; si remoto/nx.json cambia (otra build de NX), se
+        // baja la nueva. Antes, con NX ya bajado, nunca se actualizaba.
+        const std::string legacy = "https://github.com/Riddsc/satronho-nx/releases/download/build-56/satronho-nx-windows-x86_64-pgo.zip";
+        std::string url = legacy;
+        bool remote_ok = false;
+        std::error_code ec;
+        const fs::path cache = Paths::User() / "cache";
+        fs::create_directories(cache, ec);
+        const fs::path cfg = cache / "nx.json";
+        if (Net::Download("https://raw.githubusercontent.com/Riddsc/Satronho-Emulation/main/remoto/nx.json", cfg)) {
+            std::ifstream in(cfg, std::ios::binary);
+            const std::string text((std::istreambuf_iterator<char>(in)), {});
+            const std::string w = Json::Parse(text)["windows"].String();
+            if (w.rfind("https://", 0) == 0) {
+                url = w;
+                remote_ok = true;
+            }
+        }
+        const fs::path stamp = dir / ".satronho-origen";
         fs::path exe = FindNxExe(dir);
-        if (exe.empty()) {
-            // De dónde se baja: remoto/nx.json («windows»), o el de respaldo.
-            std::string url = "https://github.com/Riddsc/satronho-nx/releases/download/build-56/satronho-nx-windows-x86_64-pgo.zip";
-            const fs::path cfg = Paths::User() / "cache" / "nx.json";
-            std::error_code ec;
-            fs::create_directories(cfg.parent_path(), ec);
-            if (Net::Download("https://raw.githubusercontent.com/Riddsc/Satronho-Emulation/main/remoto/nx.json", cfg)) {
-                std::ifstream in(cfg, std::ios::binary);
-                const std::string text((std::istreambuf_iterator<char>(in)), {});
-                const std::string w = Json::Parse(text)["windows"].String();
-                if (w.rfind("https://", 0) == 0) url = w;
+        std::string installed;
+        {
+            std::ifstream in(stamp, std::ios::binary);
+            std::getline(in, installed);
+        }
+        // Lo bajó la build 27 (sin anotar): solo pudo ser la build 56 de NX.
+        if (!exe.empty() && installed.empty()) installed = legacy;
+        if (exe.empty() || (remote_ok && installed != url)) {
+            nx_desk_state_ = exe.empty() ? 1 : 6;
+            // Se baja y descomprime aparte; solo si todo salió bien reemplaza al anterior. Así un corte
+            // nunca deja un NX a medias.
+            const fs::path zip = cache / "satronho-nx.zip";
+            const fs::path fresh = Paths::User() / "satronho-nx.nuevo";
+            fs::remove_all(fresh, ec);
+            bool ok = Net::Download(url, zip);
+            if (ok) {
+                // Huella (si está publicada junto al .zip, como la del APK).
+                const fs::path sha_file = cache / "satronho-nx.zip.sha256";
+                if (Net::Download(url + ".sha256", sha_file)) {
+                    std::ifstream in(sha_file, std::ios::binary);
+                    std::string expected;
+                    in >> expected;
+                    for (auto& c : expected) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                    if (expected.size() == 64 && Hash::Sha256File(zip) != expected) {
+                        Log::Warn("Satronho NX (PC): la huella del .zip no coincide");
+                        ok = false;
+                    }
+                }
+                fs::remove(sha_file, ec);
             }
-            const fs::path zip = Paths::User() / "cache" / "satronho-nx.zip";
-            if (!Net::Download(url, zip) || !Archive::ExtractAll(zip, dir)) {
-                Log::Warn("Satronho NX (PC): no se pudo bajar o descomprimir %s", url.c_str());
-                nx_desk_state_ = 5;
-                return;
-            }
+            ok = ok && Archive::ExtractAll(zip, fresh) && !FindNxExe(fresh).empty();
             fs::remove(zip, ec);
+            if (ok) {
+                std::ofstream(fresh / ".satronho-origen", std::ios::binary) << url << "\n";
+                const fs::path old = Paths::User() / "satronho-nx.viejo";
+                fs::remove_all(old, ec);
+                if (fs::exists(dir, ec)) fs::rename(dir, old, ec);
+                if (!ec) fs::rename(fresh, dir, ec);
+                if (ec) {
+                    // No se pudo cambiar (¿una carpeta abierta?): se deja el de antes.
+                    std::error_code e2;
+                    if (!fs::exists(dir, e2) && fs::exists(old, e2)) fs::rename(old, dir, e2);
+                    ok = false;
+                }
+                fs::remove_all(old, ec);
+            }
+            fs::remove_all(fresh, ec);
             exe = FindNxExe(dir);
-            if (exe.empty()) {
-                nx_desk_state_ = 5;
-                return;
+            if (!ok) {
+                Log::Warn("Satronho NX (PC): no se pudo bajar o descomprimir %s", url.c_str());
+                if (exe.empty()) {
+                    nx_desk_state_ = 5;
+                    return;
+                }
+                Log::Info("Satronho NX (PC): sigo con la versión que ya estaba");
+            } else {
+                Log::Info("Satronho NX (PC): listo desde %s", url.c_str());
             }
         }
         // satronho-nx.exe -f -g "juego": pantalla completa y directo al juego. NX busca la actualización
@@ -584,7 +637,11 @@ void App::PollNxDesktop() {
     const int st = nx_desk_state_;
     if (st == nx_desk_shown_) return;
     nx_desk_shown_ = st;
-    if (st == 4) {
+    if (st == 1) {
+        Toast("Bajo Satronho NX para tus juegos de Switch (una sola vez, unos 90 MB). Te aviso cuando esté.", GuideId::MechaRidds, 7);
+    } else if (st == 6) {
+        Toast("Hay una Satronho NX más nueva: la bajo antes de abrir tu juego. Un momento.", GuideId::MechaRidds, 7);
+    } else if (st == 4) {
         const long long s = nx_desk_secs_;
         if (const Game* g = FindGame(nx_desk_key_)) {
             library_.MarkPlayed(g->key);

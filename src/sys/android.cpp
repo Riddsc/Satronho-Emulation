@@ -9,6 +9,8 @@
 
 #include <SDL3/SDL.h>
 
+#include "sys/jni_text.h"
+
 namespace Satronho::Android {
 
 namespace {
@@ -28,7 +30,7 @@ struct Call {
         if (env && env->ExceptionCheck()) env->ExceptionClear();
     }
     jmethodID M(const char* name, const char* sig) { return cls ? env->GetStaticMethodID(cls, name, sig) : nullptr; }
-    jstring S(const std::string& s) { return env->NewStringUTF(s.c_str()); }
+    jstring S(const std::string& s) { return Jni::FromUtf8(env, s); }
 };
 } // namespace
 
@@ -50,12 +52,10 @@ std::vector<std::string> Roots() {
     if (!m) return out;
     auto js = static_cast<jstring>(c.env->CallStaticObjectMethod(c.cls, m));
     if (!js) return out;
-    const char* chars = c.env->GetStringUTFChars(js, nullptr);
-    std::stringstream ss(chars ? chars : "");
+    std::stringstream ss(Jni::ToUtf8(c.env, js));
     std::string line;
     while (std::getline(ss, line))
         if (!line.empty()) out.push_back(line);
-    c.env->ReleaseStringUTFChars(js, chars);
     c.env->DeleteLocalRef(js);
     return out;
 }
@@ -112,9 +112,7 @@ std::string CallString(const char* name) {
     if (!m) return {};
     auto js = static_cast<jstring>(c.env->CallStaticObjectMethod(c.cls, m));
     if (!js) return {};
-    const char* chars = c.env->GetStringUTFChars(js, nullptr);
-    std::string out = chars ? chars : "";
-    c.env->ReleaseStringUTFChars(js, chars);
+    std::string out = Jni::ToUtf8(c.env, js);
     c.env->DeleteLocalRef(js);
     return out;
 }

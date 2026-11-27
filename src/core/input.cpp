@@ -489,8 +489,8 @@ void Input::AssignCaptured(SDL_Scancode key, int pad_code) {
                 for (const auto& [name, m] : profs)
                     for (const auto& [id, label] : sys->buttons)
                         if (m.keys[id] == key && conflict_.empty())
-                            conflict_ = "Ojo: " + KeyLabel(key) + " también es «" + label + "» en " + sys->full + " (perfil " + name +
-                                        "). Mientras juegas hará las dos cosas.";
+                            conflict_ = TrFmt("Ojo: %s también es «%s» en %s (perfil %s). Mientras juegas hará las dos cosas.",
+                                              KeyLabel(key).c_str(), Tr(label), Tr(sys->full.c_str()), name.c_str());
             }
         }
         capture = {};
@@ -514,8 +514,8 @@ void Input::AssignCaptured(SDL_Scancode key, int pad_code) {
         m.keys[id] = key;
         for (int i = 0; i < static_cast<int>(Hotkey::Count); ++i)
             if (hk_keys[i] == key && key != SDL_SCANCODE_UNKNOWN)
-                conflict_ = "Ojo: " + KeyLabel(key) + " también es el atajo «" + HotkeyInfo(static_cast<Hotkey>(i)).name +
-                            "». Mientras juegas hará las dos cosas; puedes cambiar el atajo en Controles » Atajos.";
+                conflict_ = TrFmt("Ojo: %s también es el atajo «%s». Mientras juegas hará las dos cosas; puedes cambiar el atajo en Controles » Atajos.",
+                                  KeyLabel(key).c_str(), Tr(HotkeyInfo(static_cast<Hotkey>(i)).name));
     }
     if (!capture.queue.empty()) {
         capture.button = capture.queue.front();
