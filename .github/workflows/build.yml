@@ -181,6 +181,10 @@ jobs:
             done
           done
           grep -h "Motor gráfico" build-linux/user/satronho.log | tail -2 || true
+          # Reparto de los guías (regla de Ridds): 2000 avisos tienen que salir 600/460/450/350/140.
+          rm -rf build-linux/user
+          SDL_RENDER_DRIVER=software SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy SATRONHO_QA="reparto=1;frames=40" timeout 120 build-linux/satronho-emulation
+          grep -q "QA reparto: MechaRidds 600, Samy 460, Troya 450, Ñoño 350, Juana 140" build-linux/user/satronho.log || { echo "::error::El reparto de los guías no se cumple"; grep "QA reparto" build-linux/user/satronho.log; exit 1; }
           # Desplazamiento: cada pantalla se baja mucho y se mueve de lado, como con el dedo. Si la
           # página crece sin fin o se corre de lado, la app sale con código 2 y no se publica.
           mkdir -p /tmp/juegos-prueba

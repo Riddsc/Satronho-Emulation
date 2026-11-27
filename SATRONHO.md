@@ -239,3 +239,21 @@ juego anota en el registro: cortes, descartes, búfer y tirones.
   de la carpeta.
 - BIOS: `SystemDef::bios` lista los archivos que reconoce cada núcleo; `App::ImportBios` copia el
   archivo elegido con el nombre correcto (por nombre, tamaño y pistas como «jap» o «usa»).
+
+## Reparto de los guías (build 28)
+
+Regla de Ridds: MechaRidds 30 %; el resto 65 % Samy y Troya, 25 % Ñoño, 10 % Juana (`kGuideShare` en
+`sys/guide_chat.h`, `Guias.reparto` en `Estilo.kt`).
+- Avisos y tarjetas: `App::Toast` y `App::SpeakerKey` pasan por `App::Speaker`, que cuenta cada aparición
+  (`guias.vistas.<guía>` en satronho.ini). Sale el guía pedido si cabe en su parte; si no, el que más se
+  ha quedado atrás. Un aviso igual que sigue en pantalla no cuenta otra vez.
+- Textos de pantalla (`GuideSays`, `NPage::Guide`, barras de progreso): `App::StableSpeaker` asigna un
+  guía a cada texto una sola vez (`guias.texto.<hash>`), con el mismo reparto. Los textos que cambian
+  (números, nombres) llevan una clave fija (último parámetro de `GuideSays`).
+- La presentación de un guía («Soy Juana…») la dice siempre él (`NamesItself`).
+- Consejos: `PickGuide`/`Guias.alAzar` elige el guía y luego uno de sus consejos (nunca de otro).
+- Chat: si le preguntas a uno, contesta él; si preguntas a todos, el que más sabe pasa por `Speaker`.
+- En Kotlin, los textos propios usan `Guias.estable(preferido, clave)` (prefs `satronho_guias`).
+- Revisión: `SATRONHO_QA="reparto=1;frames=40"` → el registro dice cuántos avisos dijo cada uno
+  (tiene que dar 600 / 460 / 450 / 350 / 140 de 2000).
+- Mover y ordenar (build 28): `util/move.*`; ver `CONTINUAR.md`.

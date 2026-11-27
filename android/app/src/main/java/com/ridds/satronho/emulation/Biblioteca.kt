@@ -291,20 +291,16 @@ fun PantallaBiblioteca(e: Estado, b: Biblioteca) {
     }
 }
 
-// Reparto de las apariciones de los guías (de 1000, build 27): MechaRidds 300 y el resto (700) 65 % Samy y
-// Troya, 25 % Ñoño y 10 % Juana. El mismo reparto que C++ (PickGuide) y que Satronho NX.
-private val repartoGuias = listOf("mecharidds" to 300, "samy" to 230, "troya" to 225, "nono" to 175, "juana" to 70)
-
-/** Elige el próximo consejo: primero el guía (según el reparto) y luego uno de sus consejos. */
+/**
+ * Elige el próximo consejo: primero el guía (según el reparto, Guias.reparto) y luego uno de SUS
+ * consejos. Si el único que tiene es el que ya está, se repite ese (antes se tomaba uno de otro guía
+ * y el reparto no se cumplía).
+ */
 internal fun elegirConsejo(b: Biblioteca, actual: Int): Int {
     if (b.consejos.isEmpty()) return 0
-    var r = kotlin.random.Random.nextInt(repartoGuias.sumOf { it.second })
-    var guia = repartoGuias.first().first
-    for ((g, peso) in repartoGuias) {
-        if (r < peso) { guia = g; break }
-        r -= peso
-    }
-    val suyos = b.consejos.indices.filter { b.consejos[it].guia == guia && it != actual.mod(b.consejos.size) }
+    val guia = Guias.alAzar()
+    val propios = b.consejos.indices.filter { b.consejos[it].guia == guia }
+    val suyos = propios.filter { it != actual.mod(b.consejos.size) }.ifEmpty { propios }
     return if (suyos.isNotEmpty()) suyos.random() else kotlin.random.Random.nextInt(b.consejos.size)
 }
 
@@ -501,7 +497,7 @@ private fun MenuJuego(abierto: Boolean, g: Juego, cerrar: () -> Unit) {
 @Composable
 private fun SinJuegos(b: Biblioteca) {
     Column(Modifier.fillMaxSize().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Avatar("samy", 72.dp)
+        Avatar(Guias.estable("samy", "sin_juegos"), 72.dp)
         Spacer(Modifier.height(14.dp))
         Text(
             t(if (b.buscando) "Buscando tus juegos…" else "Todavía no hay juegos"),

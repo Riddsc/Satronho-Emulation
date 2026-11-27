@@ -74,6 +74,56 @@ object Guias {
         "juana" -> "Juana"
         else -> "MechaRidds"
     }
+
+    /**
+     * Reparto de las apariciones (regla de Ridds, de 1000): MechaRidds 300 (30 %); el resto (700) se
+     * reparte 65 % Samy y Troya, 25 % Ñoño y 10 % Juana. El mismo que C++ (kGuideShare) y que NX.
+     */
+    val reparto = listOf("mecharidds" to 300, "samy" to 230, "troya" to 225, "nono" to 175, "juana" to 70)
+
+    /** Un guía al azar según el reparto. */
+    fun alAzar(): String = dePeso(kotlin.random.Random.nextInt(1000))
+
+    private fun dePeso(v0: Int): String {
+        var v = v0
+        for ((g, peso) in reparto) {
+            if (v < peso) return g
+            v -= peso
+        }
+        return reparto.last().first
+    }
+
+    private var prefs: android.content.SharedPreferences? = null
+    private val fijos = HashMap<String, Int>() // textos fijos asignados a cada guía
+
+    /** Al abrir la app: lee a quién le tocó cada texto fijo (para no cambiarlo y seguir parejo). */
+    fun iniciar(ctx: android.content.Context) {
+        val p = ctx.getSharedPreferences("satronho_guias", android.content.Context.MODE_PRIVATE)
+        prefs = p
+        fijos.clear()
+        for ((k, v) in p.all) if (k.startsWith("texto.") && v is String) fijos[v] = (fijos[v] ?: 0) + 1
+    }
+
+    /**
+     * El guía de un texto fijo de la pantalla (build 28). Se asigna una sola vez (queda guardado) y
+     * se reparten parejo según el reparto: le toca al pedido si no pasa su parte, si no al que más se
+     * ha quedado atrás. Lo mismo que C++ (App::StableSpeaker). La presentación de un guía («Soy
+     * Juana») la dice siempre él. `clave`: algo fijo de ese lugar (no un texto que cambie).
+     */
+    fun estable(pedido: String, clave: String): String {
+        if (clave.contains("Soy " + nombre(pedido))) return pedido
+        val p = prefs ?: return pedido
+        p.getString("texto.$clave", null)?.let { return it }
+        val total = fijos.values.sum()
+        fun falta(g: String) = (reparto.first { it.first == g }.second * (total + 1)) / 1000.0 - (fijos[g] ?: 0)
+        var g = if (reparto.any { it.first == pedido }) pedido else reparto.first().first
+        // El pedido solo si cabe entero en su parte; si no, el que más se ha quedado atrás.
+        val mejor = reparto.maxByOrNull { falta(it.first) }!!.first
+        if (falta(g) < 1.0 && falta(g) < falta(mejor)) g = mejor
+        fijos[g] = (fijos[g] ?: 0) + 1
+        p.edit().putString("texto.$clave", g).apply()
+        return g
+    }
 }
 
 private var poppins: FontFamily? = null

@@ -321,7 +321,7 @@ fun VentanaConfirmar(c: Confirmar) {
 fun VentanaZip(z: Zip) {
     Velo {
         Ventana {
-            GuiaDice("samy", z.titulo)
+            GuiaDice(Guias.estable("samy", "zip"), z.titulo)
             Spacer(Modifier.height(10.dp))
             LazyColumn(Modifier.heightIn(max = 340.dp)) {
                 items(z.opciones) { (entrada, titulo) ->
@@ -419,7 +419,7 @@ fun Explorador(x: Explorar) {
             }
             if (!permiso) {
                 Column(Modifier.padding(18.dp)) {
-                    GuiaDice("samy", t("Para ver tus carpetas necesito el permiso de «acceso a todos los archivos». Lo das en la pantalla que se abre y vuelves aquí."))
+                    GuiaDice(Guias.estable("samy", "permiso_carpetas"), t("Para ver tus carpetas necesito el permiso de «acceso a todos los archivos». Lo das en la pantalla que se abre y vuelves aquí."))
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = { SatronhoUi.orden("permiso") }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(t("Dar permiso")) }
                 }

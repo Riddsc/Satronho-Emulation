@@ -791,12 +791,72 @@ void App::DrawWhatsNew() {
 
 // ---------------------------------------------------------------- guías: consejos y conversación
 
+GuideId App::Speaker(GuideId wanted, const std::string& text_es) {
+    int g = static_cast<int>(wanted);
+    if (g < 0 || g > 4) g = 0;
+    if (!NamesItself(g, text_es)) {
+        long long total = 0;
+        for (long long n : guide_seen_) total += n;
+        // Cuánto le falta a cada uno para su parte, contando esta aparición.
+        auto falta = [&](int i) { return kGuideShare[i] * static_cast<double>(total + 1) / 1000.0 - static_cast<double>(guide_seen_[i]); };
+        // El pedido solo si cabe entero en su parte; si no, el que más se ha quedado atrás.
+        int best = 0;
+        for (int i = 1; i < 5; ++i)
+            if (falta(i) > falta(best)) best = i;
+        if (falta(g) < 1.0 && falta(g) < falta(best)) g = best;
+    }
+    ++guide_seen_[g];
+    ini_.SetI64(std::string("guias.vistas.") + Guide(static_cast<GuideId>(g)).key, guide_seen_[g]);
+    return static_cast<GuideId>(g);
+}
+
+// A cada texto fijo de la pantalla se le asigna un guía una sola vez (queda en satronho.ini, así no
+// cambia cada vez que lo ves) y se reparten parejo: le toca al pedido si no pasa su parte, si no al
+// que más se ha quedado atrás. Con pocos textos, mezclarlos al azar no daba el reparto.
+GuideId App::StableSpeaker(GuideId wanted, const std::string& key) {
+    int w = static_cast<int>(wanted);
+    if (w < 0 || w > 4) w = 0;
+    if (NamesItself(w, key)) return wanted;
+    uint32_t h = 2166136261u;
+    for (unsigned char c : key) h = (h ^ c) * 16777619u;
+    char hex[16];
+    std::snprintf(hex, sizeof hex, "%08x", h);
+    const std::string ik = std::string("guias.texto.") + hex;
+    const std::string stored = ini_.Get(ik);
+    for (int i = 0; i < 5; ++i)
+        if (stored == Guide(static_cast<GuideId>(i)).key) return static_cast<GuideId>(i);
+    long long total = 0;
+    for (long long n : guide_fixed_) total += n;
+    auto falta = [&](int i) { return kGuideShare[i] * static_cast<double>(total + 1) / 1000.0 - static_cast<double>(guide_fixed_[i]); };
+    int g = w;
+    int best = 0;
+    for (int i = 1; i < 5; ++i)
+        if (falta(i) > falta(best)) best = i;
+    if (falta(g) < 1.0 && falta(g) < falta(best)) g = best;
+    ++guide_fixed_[g];
+    ini_.Set(ik, Guide(static_cast<GuideId>(g)).key);
+    return static_cast<GuideId>(g);
+}
+
+std::string App::SpeakerKey(const char* wanted_key, const std::string& text_es) {
+    GuideId w = GuideId::MechaRidds;
+    for (int i = 0; i < static_cast<int>(GuideId::Count); ++i)
+        if (std::string(wanted_key) == Guide(static_cast<GuideId>(i)).key) w = static_cast<GuideId>(i);
+    return Guide(Speaker(w, text_es)).key;
+}
+
 int App::NextTip() {
     if (tips_.empty()) return 0;
+    // Primero el guía (según el reparto) y luego uno de SUS consejos. Si el único que tiene es el que
+    // ya está, se repite ese: antes se tomaba uno de otro guía y el reparto no se cumplía.
     const int want = PickGuide(Rng());
-    std::vector<int> pool;
+    std::vector<int> pool, own;
     for (int i = 0; i < static_cast<int>(tips_.size()); ++i)
-        if (static_cast<int>(tips_[i].guide) == want && i != tip_index_) pool.push_back(i);
+        if (static_cast<int>(tips_[i].guide) == want) {
+            own.push_back(i);
+            if (i != tip_index_) pool.push_back(i);
+        }
+    if (pool.empty()) pool = own;
     if (pool.empty())
         for (int i = 0; i < static_cast<int>(tips_.size()); ++i)
             if (i != tip_index_) pool.push_back(i);
@@ -846,6 +906,9 @@ void App::AskGuides(const std::string& text) {
     }
     chat_.push_back({-1, text, {}, now});
     ChatReply r = AnswerQuestion(text, BuildChatContext(), chat_guide_);
+    // Pregunta a todos: contesta quien más sabe del tema, mientras no pase su parte del reparto.
+    // (Si le preguntaste a uno en particular, contesta ese.)
+    if (chat_guide_ < 0 && r.guide >= 0 && r.guide < 5) r.guide = static_cast<int>(Speaker(static_cast<GuideId>(r.guide), r.text));
     // El guía «escribe» un ratito antes de responder.
     const double typing = std::clamp(r.text.size() / 260.0, 0.45, 1.2);
     chat_.push_back({r.guide, r.text, r.buttons, now + typing});
@@ -1466,7 +1529,7 @@ void App::DrawUnpack() {
     const float p = unpack_progress_;
     const std::string text = TrFmt("Estoy sacando «%s» del archivo comprimido: %d %%. Solo pasa la primera vez; después abre al instante.",
                                    unpack_game_.title.c_str(), static_cast<int>(p * 100));
-    GuideSays(GuideId::Samy, text.c_str(), w - S(44));
+    GuideSays(GuideId::Samy, text.c_str(), w - S(44), "descomprimir");
     ImGui::Dummy({0, S(10)});
     const ImVec2 bp = ImGui::GetCursorScreenPos();
     const float bw = ImGui::GetContentRegionAvail().x, bh = S(8);
@@ -1528,7 +1591,7 @@ void App::DrawArchivePicker() {
     ImGui::PushStyleColor(ImGuiCol_Border, V4(Color::Amber, 0.45f));
     if (ImGui::BeginPopupModal("##elegir_juego", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
         const float inner = w - S(52);
-        GuideSays(GuideId::Samy, ("«" + archive_pick_.title + "» trae varios juegos adentro. ¿Cuál abrimos?").c_str(), inner);
+        GuideSays(GuideId::Samy, ("«" + archive_pick_.title + "» trae varios juegos adentro. ¿Cuál abrimos?").c_str(), inner, "varios_juegos");
         ImGui::Dummy({0, S(10)});
         ImGui::BeginChild("##lista_zip", {inner, std::min(S(330), S(62) * archive_pick_.choices.size() + S(6))});
         std::string chosen;
@@ -1879,7 +1942,8 @@ void App::DrawSlowPrompt() {
                                            "Si bajo la resolución de %s a %s, sigue justo donde vas y debería ir fluido. "
                                            "Lo recuerdo solo para este juego.",
                                            perf_.fps, core_.Fps(), ResLabel(now, sys_).c_str(), ResLabel(lower, sys_).c_str());
-            NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"lento\",\"guia\":\"nono\",\"titulo\":" + NativeUi::Quote(Tr("Ñoño tiene una idea")) +
+            NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"lento\",\"guia\":" + NativeUi::Quote(SpeakerKey("nono", "lento")) +
+                           ",\"titulo\":" + NativeUi::Quote(Tr("Tengo una idea")) +
                            ",\"texto\":" + NativeUi::Quote(text) + ",\"botones\":[[\"seguir\"," + NativeUi::Quote(Tr("Seguir así")) +
                            "],[\"bajar\"," + NativeUi::Quote(Tr("Bajar la resolución")) + "]]}");
         }
@@ -1900,7 +1964,7 @@ void App::DrawSlowPrompt() {
         const std::string text = Fmt("Este juego va lento en tu equipo (%.0f cuadros por segundo; la consola hace %.0f). Está en %s. "
                                      "Si la bajo a %s, el juego se reinicia justo donde vas y debería ir fluido.",
                                      perf_.fps, core_.Fps(), ResLabel(now, sys_).c_str(), ResLabel(lower, sys_).c_str());
-        GuideSays(GuideId::Nono, text.c_str(), inner);
+        GuideSays(GuideId::Nono, text.c_str(), inner, "va_lento");
         ImGui::Dummy({0, S(14)});
         const float bw = (inner - S(12)) * 0.5f;
         bool close = false;

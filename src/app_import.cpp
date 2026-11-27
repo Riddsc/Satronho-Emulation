@@ -152,7 +152,7 @@ void App::SetupPublicFolder() {
     }
     const bool nueva = EnsureGamesTree(root);
     if (nueva)
-        NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"carpeta_nueva\",\"guia\":\"samy\",\"titulo\":" + NativeUi::Quote(Tr("Tu carpeta Satronho Games")) +
+        NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"carpeta_nueva\",\"guia\":" + NativeUi::Quote(SpeakerKey("samy", "carpeta_nueva")) + ",\"titulo\":" + NativeUi::Quote(Tr("Tu carpeta Satronho Games")) +
                        ",\"texto\":" +
                        NativeUi::Quote(Tr("Te armé «Satronho Games» en la memoria del celular, con una carpeta para cada consola, otra para las BIOS y otra para "
                                           "las claves de NX. ¿Busco juegos en todo el teléfono para ordenarlos ahí?")) +
@@ -370,7 +370,7 @@ void App::DrawDataMove() {
     const int done = move_done_, total = move_total_;
     const std::string text = TrFmt("Estoy pasando tus juegos, partidas y estados a «%s», en la memoria del celular: así no se borran si desinstalas la app. %d de %d archivos.",
                                    Paths::ToUtf8(move_to_.filename()).c_str(), done, total);
-    GuideSays(GuideId::Nono, text.c_str(), w - S(44));
+    GuideSays(GuideId::Nono, text.c_str(), w - S(44), "mudanza");
     ImGui::Dummy({0, S(10)});
     const ImVec2 bp = ImGui::GetCursorScreenPos();
     const float bw = ImGui::GetContentRegionAvail().x, bh = S(8);
@@ -761,7 +761,7 @@ void App::DrawImport() {
     } else {
         text = Tr("No pude agregar los juegos. Abajo te cuento qué pasó.");
     }
-    GuideSays(working ? GuideId::Samy : (st.errors.empty() ? GuideId::Samy : GuideId::Nono), text.c_str(), w - S(44));
+    GuideSays(working ? GuideId::Samy : (st.errors.empty() ? GuideId::Samy : GuideId::Nono), text.c_str(), w - S(44), working ? "importar" : "importar_listo");
     if (working) {
         ImGui::Dummy({0, S(10)});
         const ImVec2 p = ImGui::GetCursorScreenPos();
@@ -896,7 +896,7 @@ std::string App::NativeImportJson() {
     const char* guide = working ? "samy" : (st.errors.empty() ? "samy" : "nono");
     char prog[32];
     std::snprintf(prog, sizeof prog, "%.3f", working ? progress : 1.0f);
-    return ",\"progreso\":{\"id\":\"importar\",\"guia\":\"" + std::string(guide) + "\",\"texto\":" + NativeUi::Quote(text) + ",\"avance\":" + prog +
+    return ",\"progreso\":{\"id\":\"importar\",\"guia\":\"" + StableGuideKey(guide, working ? "importar" : "importar_listo") + "\",\"texto\":" + NativeUi::Quote(text) + ",\"avance\":" + prog +
            ",\"trabajando\":" + (working ? "true" : "false") + ",\"detalles\":" + details + ",\"botones\":" + buttons +
            ",\"nota\":" + NativeUi::Quote(working ? Tr("Puedes dejar la app abierta mientras tanto. Los juegos grandes de PS1 tardan un poco.") : "") + "}";
 }

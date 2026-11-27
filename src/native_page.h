@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "sys/guide_chat.h"
+
 #include <functional>
 #include <map>
 #include <string>
@@ -72,7 +74,8 @@ public:
 
     // Un guía habla (banner con su carita).
     void Guide(const std::string& guide, const std::string& text) {
-        Item("{\"tipo\":\"guia\",\"guia\":" + Q(guide) + ",\"texto\":" + Q(T(text)) + "}");
+        // El guía sale del reparto (fijo para cada texto), no de quien se escribió.
+        Item("{\"tipo\":\"guia\",\"guia\":" + Q(StableGuideKey(guide, text)) + ",\"texto\":" + Q(T(text)) + "}");
     }
 
     // Fila de consolas para elegir una (Gráficos, Núcleo, Controles).

@@ -48,6 +48,10 @@
         {
           "tipo": "mejora",
           "texto": "Más textos traducidos (errores al abrir un juego, atajos, discos .chd) y las novedades del celular dicen el número de build."
+        },
+        {
+          "tipo": "arreglo",
+          "texto": "Los guías aparecen como deben: MechaRidds el 30 % de las veces; el resto, 65 % Samy y Troya, 25 % Ñoño y 10 % Juana. Vale para avisos, tarjetas, explicaciones de cada pantalla, consejos y el chat. MechaRidds y Juana traen consejos nuevos."
         }
       ]
     },

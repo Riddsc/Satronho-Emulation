@@ -34,7 +34,11 @@ Ridds pidió revisar el repo de pies a cabeza y arreglar todo. Qué cambió y d�
 **Falta probar en el teléfono**: ordenar un juego con estados y uno de varios discos; dos mandos TERIOS;
 un juego con emoji en el nombre compartido por WhatsApp; abrir NX, cerrar el hub a la fuerza y volver.
 **En PC**: abrir un juego de Switch (NX ya bajado no debe bajarse otra vez).
-**Pendiente de Ridds**: el reparto de los guías en los avisos fijos (ver la conversación de la build 28).
+- **Reparto de los guías** (Ridds: «no respetar la regla fue el error»): ahora todo pasa por el reparto
+  (ver `SATRONHO.md` » Reparto de los guías y la regla en `CLAUDE.md`). Probado: 2000 avisos pedidos casi
+  todos a Samy salen 600/460/450/350/140; 10 textos de pantalla salen 3/2/2/2/1. Consejos nuevos de
+  MechaRidds (5) y Juana (3). La tarjeta «Ñoño tiene una idea» ahora dice «Tengo una idea».
+  **Ojo**: Satronho NX (otro repo) tiene sus propios guías; revisar que también cumpla el reparto.
 
 ## Build 27 publicada (26 nov): pantalla inteligente, Switch completo, NX en PC, fluidez y visuales
 

@@ -190,7 +190,7 @@ void App::PollPhoneScan() {
     const int n = phone_result_.NewGames();
     if (native_page_ != "escaneo") {
         if (n > 0)
-            NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"escaneo\",\"guia\":\"samy\",\"titulo\":" + NativeUi::Quote(Tr("¡Encontré juegos!")) + ",\"texto\":" +
+            NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"escaneo\",\"guia\":" + NativeUi::Quote(SpeakerKey("samy", "escaneo")) + ",\"titulo\":" + NativeUi::Quote(Tr("¡Encontré juegos!")) + ",\"texto\":" +
                            NativeUi::Quote(TrFmt("Hay %d juegos en tu teléfono que todavía no están en la biblioteca. ¿Te los muestro?", n)) +
                            ",\"botones\":[[\"no\"," + NativeUi::Quote(Tr("Ahora no")) + "],[\"ver\"," + NativeUi::Quote(Tr("Ver")) + "]]}");
         else
@@ -419,7 +419,7 @@ void App::NativePagePhoneScan(NPage& p) {
 std::string App::NativeOrganizeJson() const {
     if (organize_state_ != 1) return {};
     const int done = organize_done_, total = organize_total_;
-    return ",\"progreso\":{\"id\":\"ordenar\",\"guia\":\"samy\",\"texto\":" +
+    return ",\"progreso\":{\"id\":\"ordenar\",\"guia\":\"" + StableGuideKey("samy", "ordenar") + "\",\"texto\":" +
            NativeUi::Quote(TrFmt("Estoy ordenando tus juegos en Satronho Games, cada uno en la carpeta de su consola. %d de %d.", done, total)) +
            ",\"avance\":" + NPage::Num(total > 0 ? static_cast<float>(done) / total : -1.0f) + ",\"nota\":" +
            NativeUi::Quote(Tr("No cierres la app mientras tanto.")) + ",\"botones\":[]}";
@@ -756,7 +756,7 @@ void App::RecordSession() {
     text += " " + std::string(Tr(smooth ? "¡Fue fluido de principio a fin!" : "Hubo partes lentas: si se repite, prueba bajar la resolución en sus ajustes."));
     const char* guide = smooth ? "samy" : "nono";
     if (NativeMode())
-        NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"resumen:" + current_.key + "\",\"guia\":\"" + guide + "\",\"titulo\":" +
+        NativeUi::Emit("{\"t\":\"tarjeta\",\"id\":\"resumen:" + current_.key + "\",\"guia\":" + NativeUi::Quote(SpeakerKey(guide, text)) + ",\"titulo\":" +
                        NativeUi::Quote(Tr("Resumen de la sesión")) + ",\"texto\":" + NativeUi::Quote(text) + ",\"botones\":[[\"ok\"," +
                        NativeUi::Quote(Tr("Cerrar")) + "],[\"ficha\"," + NativeUi::Quote(Tr("Ver su ficha")) + "]]}");
     else

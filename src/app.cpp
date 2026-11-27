@@ -169,6 +169,15 @@ bool App::Init() {
         if (!moved.empty()) Log::Info("Opciones de CD pasadas a Beetle PSX HW: %zu", moved.size());
     }
     settings_.Load(ini_);
+    for (int i = 0; i < static_cast<int>(GuideId::Count); ++i)
+        guide_seen_[i] = std::max(0LL, ini_.GetI64(std::string("guias.vistas.") + Guide(static_cast<GuideId>(i)).key, 0));
+    for (const auto& [k, v] : ini_.Values())
+        if (k.rfind("guias.texto.", 0) == 0)
+            for (int i = 0; i < static_cast<int>(GuideId::Count); ++i)
+                if (v == Guide(static_cast<GuideId>(i)).key) ++guide_fixed_[i];
+    SetStableGuideHook([](void* user, int wanted, const std::string& key) {
+        return static_cast<int>(static_cast<App*>(user)->StableSpeaker(static_cast<GuideId>(wanted), key));
+    }, this);
     MigrateGfxOptions();
     if (qa_.count("fresh")) settings_ = Settings{};
     if (qa_.count("gpu")) settings_.gpu_api["cd"] = settings_.gpu_api["n64"] = std::atoi(qa_["gpu"].c_str());
@@ -681,6 +690,16 @@ void App::ApplySafeArea() {
 
 void App::Toast(const std::string& text_es, GuideId guide, double seconds) {
     const std::string text = Tr(text_es);
+    // El mismo aviso que sigue en pantalla solo se alarga (y no cuenta otra aparición).
+    if (!(NativeMode() && !NativeNeedsImGui())) {
+        const double now = SDL_GetTicks() / 1000.0;
+        for (auto& t : toasts_)
+            if (t.text == text) {
+                t.until = now + seconds;
+                return;
+            }
+    }
+    guide = Speaker(guide, text_es);
     if (NativeMode() && !NativeNeedsImGui()) {
         // En el celular los avisos los muestra Android (una tarjeta chica con el guía).
         NativeUi::Emit("{\"t\":\"aviso\",\"guia\":" + NativeUi::Quote(Guide(guide).key) + ",\"texto\":" + NativeUi::Quote(text) +
@@ -688,13 +707,6 @@ void App::Toast(const std::string& text_es, GuideId guide, double seconds) {
         return;
     }
     const double now = SDL_GetTicks() / 1000.0;
-    // Si el mismo aviso sigue en pantalla, solo se alarga.
-    for (auto& t : toasts_) {
-        if (t.text == text) {
-            t.until = now + seconds;
-            return;
-        }
-    }
     toasts_.push_back({text, guide, now, now + seconds});
     if (toasts_.size() > 4) toasts_.erase(toasts_.begin());
 }
@@ -921,6 +933,17 @@ void App::QaTick() {
         Log::Info("QA respaldo: %s, %d juegos", ok ? "ok" : "nada", n);
     }
     if (qa_frames_ == wanted / 2 && qa_.count("restaurar")) RestoreAndTell(Paths::FromUtf8(qa_["restaurar"]));
+    // Reparto de los guías: 2000 avisos pedidos como están escritos en el código (casi la mitad para
+    // Samy) y se anota cuántos dijo cada uno. Tiene que dar 30 / 23 / 22,5 / 17,5 / 7 %.
+    if (qa_frames_ == wanted / 2 && qa_.count("reparto")) {
+        for (auto& n : guide_seen_) n = 0;
+        const GuideId pedidos[] = {GuideId::Samy, GuideId::Samy, GuideId::Samy, GuideId::Samy, GuideId::Samy, GuideId::Samy, GuideId::Samy,
+                                   GuideId::Samy, GuideId::Samy, GuideId::Nono, GuideId::Nono, GuideId::Nono, GuideId::MechaRidds,
+                                   GuideId::MechaRidds, GuideId::MechaRidds, GuideId::Troya, GuideId::Troya, GuideId::Troya, GuideId::Juana, GuideId::Juana};
+        for (int i = 0; i < 2000; ++i) Toast("prueba " + std::to_string(i), pedidos[(i * 7) % 20], 0.1);
+        Log::Info("QA reparto: MechaRidds %lld, Samy %lld, Troya %lld, Ñoño %lld, Juana %lld", guide_seen_[0], guide_seen_[1], guide_seen_[2],
+                  guide_seen_[3], guide_seen_[4]);
+    }
     // Ordenar en «Satronho Games» (lo de Android) con toda la biblioteca, para revisarlo en el PC.
     if (qa_frames_ == wanted / 3 && qa_.count("ordenar")) {
         Paths::SetPublicRoot(Paths::FromUtf8(qa_["ordenar"]));

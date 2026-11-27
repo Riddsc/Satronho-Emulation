@@ -144,7 +144,16 @@ private:
     void DrawHiddenGames();
     void DrawWelcome();
     void DrawCoreMissing();
-    void GuideSays(GuideId id, const char* text, float width = 0);
+    // key: para textos que cambian (con números o nombres), una clave fija de ese lugar de la pantalla.
+    void GuideSays(GuideId id, const char* text, float width = 0, const char* key = nullptr);
+    // Reparto de los guías (regla de Ridds: MechaRidds 30 %; el resto 65 % Samy y Troya, 25 % Ñoño,
+    // 10 % Juana). Speaker: para avisos y tarjetas (cada uno cuenta); sale el guía pedido si cabe en
+    // su parte, si no el que más se ha quedado atrás. StableSpeaker: textos de pantalla (fijos).
+    GuideId Speaker(GuideId wanted, const std::string& text_es);
+    GuideId StableSpeaker(GuideId wanted, const std::string& key);
+    long long guide_fixed_[5] = {0, 0, 0, 0, 0}; // textos fijos asignados a cada guía (guias.texto.* en satronho.ini)
+    std::string SpeakerKey(const char* wanted_key, const std::string& text_es);
+    long long guide_seen_[5] = {0, 0, 0, 0, 0}; // apariciones de cada guía (se guardan en satronho.ini)
 
     // Acabados de la etapa 1 (app_extra.cpp)
     void ApplyTheme();

@@ -659,7 +659,7 @@ fun AsistenteNx(a: Nx.Asistente) {
                 }
                 if (Nx.problema.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    GuiaDice("nono", Nx.problema)
+                    GuiaDice(Guias.estable("nono", "nx_problema"), Nx.problema)
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(t("Las claves y el firmware tienen que salir de tu propia Switch. Satronho no los incluye ni los baja de internet."),

@@ -159,7 +159,7 @@ fun VigilaCalor(activo: Boolean) {
             if (decimas >= 420) {
                 avisado = true
                 val texto = TrFmtKt("El celular está a %d °C. Si se calienta más, se pone lento solo: dale un respiro o baja la resolución.", decimas / 10)
-                SatronhoUi.avisos.add(Aviso("nono", texto, 8.0))
+                SatronhoUi.avisos.add(Aviso(Guias.estable("nono", "calor"), texto, 8.0))
             }
         }
     }

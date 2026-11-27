@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdint>
 #include <cstring>
 
 #include "sys/systems.h"
@@ -185,12 +186,44 @@ enum Intent {
 int PickGuide(unsigned r) {
     // De 1000 (build 27, pedido de Ridds): MechaRidds 300; el resto (700) se reparte 65 % Samy y Troya,
     // 25 % Ñoño y 10 % Juana → Samy 230, Troya 225, Ñoño 175, Juana 70.
-    const unsigned v = r % 1000;
-    if (v < 300) return Mecha;
-    if (v < 530) return Samy;
-    if (v < 755) return Troya;
-    if (v < 930) return Nono;
+    unsigned v = r % 1000;
+    for (int g = 0; g < 5; ++g) {
+        if (v < static_cast<unsigned>(kGuideShare[g])) return g;
+        v -= static_cast<unsigned>(kGuideShare[g]);
+    }
     return Juana;
+}
+
+bool NamesItself(int guide, const std::string& text) {
+    if (guide < 0 || guide > 4) return false;
+    return text.find(std::string("Soy ") + kNames[guide]) != std::string::npos;
+}
+
+namespace {
+StableGuideFn g_stable_hook = nullptr;
+void* g_stable_user = nullptr;
+} // namespace
+
+void SetStableGuideHook(StableGuideFn fn, void* user) {
+    g_stable_hook = fn;
+    g_stable_user = user;
+}
+
+int StableGuide(int wanted, const std::string& text) {
+    if (NamesItself(wanted, text)) return wanted;
+    if (g_stable_hook) return g_stable_hook(g_stable_user, wanted, text);
+    // FNV-1a del texto en español: el mismo texto, el mismo guía, en PC y en el celular.
+    uint32_t h = 2166136261u;
+    for (unsigned char c : text) h = (h ^ c) * 16777619u;
+    return PickGuide(h);
+}
+
+std::string StableGuideKey(const std::string& wanted_key, const std::string& text) {
+    static const char* keys[] = {"mecharidds", "samy", "troya", "nono", "juana"};
+    int w = 0;
+    for (int i = 0; i < 5; ++i)
+        if (wanted_key == keys[i]) w = i;
+    return keys[StableGuide(w, text)];
 }
 
 std::vector<std::string> SuggestedQuestions(int guide) {

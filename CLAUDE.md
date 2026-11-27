@@ -21,6 +21,11 @@ Antes de tocar nada lee, en este orden:
 
 - Los textos de la app hablan con la voz de los guías (Samy, Troya, Ñoño, Juana, MechaRidds) y usan
   los nombres Satronho («Satronho Octa · para juegos de NES»), nunca logos ni marcas como nombre.
+- **Reparto de los guías (regla de Ridds, no se negocia):** MechaRidds aparece el 30 %; el otro 70 % se
+  reparte 65 % Samy y Troya (juntos), 25 % Ñoño y 10 % Juana (de 1000: 300 / 230 / 225 / 175 / 70). No se
+  escoge el guía a mano para que «quede bonito»: todo aviso, tarjeta o explicación pasa por el reparto
+  (`App::Speaker`, `App::StableSpeaker`, `StableGuideKey` en C++; `Guias.estable` / `Guias.alAzar` en
+  Kotlin). Lo que se escribe en el código es solo el guía *preferido*. Revisión: `SATRONHO_QA="reparto=1"`.
 - Cada build nueva: agregar una entrada al principio de `assets/novedades.json` con
   `"version": "Esta build"` y pasar la anterior a `"Build N"` (la primera entrada son las notas del
   Release).

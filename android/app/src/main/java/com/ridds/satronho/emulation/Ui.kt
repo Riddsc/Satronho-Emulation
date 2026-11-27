@@ -85,6 +85,7 @@ object SatronhoUi {
         }
         actividad = act
         superficie = sdlSurface
+        Guias.iniciar(act)
         // Mandos de verdad (Bluetooth o USB): con uno conectado se esconde el control en pantalla.
         try {
             (act.getSystemService(Context.INPUT_SERVICE) as InputManager).registerInputDeviceListener(escuchaMandos, Handler(Looper.getMainLooper()))

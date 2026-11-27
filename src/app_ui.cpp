@@ -95,7 +95,9 @@ std::string NiceValue(const CoreOption::Value& v) {
 
 } // namespace
 
-void App::GuideSays(GuideId id, const char* text, float width) {
+void App::GuideSays(GuideId id, const char* text, float width, const char* key) {
+    // El guía de cada explicación sale del reparto (fijo para cada texto), no de quien se escribió.
+    id = StableSpeaker(id, key ? std::string(key) : std::string(text ? text : ""));
     const GuideInfo& g = Guide(id);
     if (settings_.guides) {
         GuideBanner(guides_[static_cast<int>(id)], g.name, g.role, g.color, text, width);
@@ -1166,7 +1168,7 @@ void App::DrawSuggested() {
     Title("Configuración sugerida", "Ñoño revisa tu equipo y deja todo listo para jugar");
     ImGui::Dummy({0, S(6)});
     const Suggestion s = Suggest(hw_, settings_);
-    GuideSays(GuideId::Nono, s.summary.c_str());
+    GuideSays(GuideId::Nono, s.summary.c_str(), 0, "sugerida");
     ImGui::Dummy({0, S(14)});
 
     const float avail = ImGui::GetContentRegionAvail().x;
@@ -1277,7 +1279,7 @@ void App::DrawNews() {
     const std::string intro = build_ > 0
         ? Fmt("Estás en la build %d. Aquí te cuento qué trae cada versión: lo que agregamos, mejoramos y arreglamos.", build_)
         : std::string("Esta es una versión de desarrollo. Aquí te cuento qué trae cada build.");
-    GuideSays(GuideId::Juana, intro.c_str());
+    GuideSays(GuideId::Juana, intro.c_str(), 0, "novedades");
     ImGui::Dummy({0, S(14)});
     DrawUpdatePanel();
 
@@ -3312,7 +3314,7 @@ void App::DrawWelcome() {
             const Suggestion s = Suggest(hw_, settings_);
             Heading("Tu equipo", 22);
             ImGui::Dummy({0, S(2)});
-            GuideSays(GuideId::Nono, (s.summary + Fmt(" (Detecté %s, %.0f GB de RAM y %s.)", hw_.cpu.c_str(), hw_.ram_mb / 1024.0, hw_.gpu.c_str())).c_str(), inner);
+            GuideSays(GuideId::Nono, (s.summary + Fmt(" (Detecté %s, %.0f GB de RAM y %s.)", hw_.cpu.c_str(), hw_.ram_mb / 1024.0, hw_.gpu.c_str())).c_str(), inner, "sugerida_bienvenida");
             ImGui::Dummy({0, S(10)});
             for (const auto& c : s.changes) {
                 const ImVec2 p = ImGui::GetCursorScreenPos();

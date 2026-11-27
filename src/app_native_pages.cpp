@@ -690,7 +690,7 @@ std::string App::NativeExtrasJson() {
     s += NativeImportJson();
     s += NativeOrganizeJson();
     if (move_state_ == 1)
-        s += ",\"progreso\":{\"id\":\"mudanza\",\"guia\":\"samy\",\"texto\":" +
+        s += ",\"progreso\":{\"id\":\"mudanza\",\"guia\":\"" + StableGuideKey("samy", "mudanza") + "\",\"texto\":" +
              Quote(TrFmt("Estoy pasando tus juegos, partidas y estados a «%s», en la memoria del celular: así no se borran si desinstalas la app. %d de %d archivos.",
                          Paths::ToUtf8(move_to_.filename()).c_str(), move_done_.load(), move_total_.load())) +
              ",\"avance\":" + NPage::Num(move_total_ > 0 ? static_cast<float>(move_done_) / move_total_ : -1.0f) +

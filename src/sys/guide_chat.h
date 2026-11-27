@@ -59,8 +59,25 @@ ChatReply ChatGreeting(const ChatContext& ctx, int guide);
 // Preguntas sugeridas (botoncitos) para empezar.
 std::vector<std::string> SuggestedQuestions(int guide);
 
-// Elige qué guía aparece (consejos, saludos): MechaRidds cerca del 40 %; el resto se reparte
-// Samy y Troya 65 % (mitad y mitad), Ñoño 25 % y Juana 10 %.
+// Reparto de las apariciones de los guías (regla de Ridds, de 1000): MechaRidds 300 (30 %); el
+// resto (700) se reparte 65 % Samy y Troya, 25 % Ñoño y 10 % Juana. En el orden de GuideId:
+// MechaRidds, Samy, Troya, Ñoño, Juana. El mismo reparto está en Kotlin (Guias.reparto) y en NX.
+constexpr int kGuideShare[5] = {300, 230, 225, 175, 70};
+
+// Elige qué guía aparece (consejos, saludos) al azar, según el reparto.
 int PickGuide(unsigned random);
+
+// ¿El texto es la presentación del propio guía («Soy Juana…»)? Esos los dice siempre él.
+bool NamesItself(int guide, const std::string& text);
+
+// Guía fijo para un texto que se dibuja muchas veces (explicaciones de las pantallas): sale del
+// texto mismo, así no cambia en cada cuadro, y en el conjunto de textos se cumple el reparto.
+int StableGuide(int wanted, const std::string& text);
+// La app guarda a quién le tocó cada texto fijo y los reparte parejo (App::StableSpeaker); sin la
+// app (pruebas), se usa el texto mismo.
+using StableGuideFn = int (*)(void* user, int wanted, const std::string& key);
+void SetStableGuideHook(StableGuideFn fn, void* user);
+// Lo mismo con la clave del guía («samy», «nono»…), para lo que se arma en JSON.
+std::string StableGuideKey(const std::string& wanted_key, const std::string& text);
 
 } // namespace Satronho

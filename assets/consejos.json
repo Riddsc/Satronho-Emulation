@@ -91,6 +91,38 @@
     {
       "guia": "nono",
       "texto": "Cada jugador recuerda su mando: si uno se desconecta, el otro sigue con el suyo."
+    },
+    {
+      "guia": "mecharidds",
+      "texto": "Cada consola de Satronho tiene su nombre: Octa es NES, Hexa es SNES, CD es PS1… En la biblioteca ves cuál es cuál."
+    },
+    {
+      "guia": "mecharidds",
+      "texto": "¿Juegas en PC y en el celular? En Herramientas » Partidas respaldas todo en un .zip y lo restauras en el otro."
+    },
+    {
+      "guia": "mecharidds",
+      "texto": "Los juegos de Switch se abren con Satronho NX, otra app de la familia. Yo la preparo por ti la primera vez."
+    },
+    {
+      "guia": "mecharidds",
+      "texto": "Ordena tus juegos en Satronho Games: cada consola en su carpeta, y tus partidas se van con ellos."
+    },
+    {
+      "guia": "mecharidds",
+      "texto": "Si algo falla, en Ajustes está «Enviar el registro»: con eso Ridds ve lo que pasó y lo arreglamos."
+    },
+    {
+      "guia": "juana",
+      "texto": "Cuando sale una build nueva te aviso aquí mismo y la instalo por ti con un toque."
+    },
+    {
+      "guia": "juana",
+      "texto": "Las novedades de cada build dicen qué es nuevo, qué mejoró y qué se arregló."
+    },
+    {
+      "guia": "juana",
+      "texto": "Las builds salen en GitHub, en la página de Satronho Emulation. Nada se instala sin que tú lo apruebes."
     }
   ]
 }
