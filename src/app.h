@@ -380,7 +380,7 @@ private:
     void LaunchNxDesktop(const Game& g);
     void PollNxDesktop();               // cada cuadro: avisos y tiempo jugado al volver de NX
     std::thread nx_desk_worker_;
-    std::atomic<int> nx_desk_state_{0};  // 0 nada, 1 bajando, 2 abriendo, 3 jugando, 4 volvió, 5 error
+    std::atomic<int> nx_desk_state_{0};  // 0 nada, 1 bajando, 2 abriendo, 3 jugando, 4 volvió, 5 error, 6 actualizando
     std::atomic<long long> nx_desk_secs_{0};
     std::string nx_desk_key_;
     int nx_desk_shown_ = 0;
@@ -392,6 +392,7 @@ private:
     void BackupAndShare(const std::vector<Game>& games, const std::string& what);
     std::string RestoreSaves(const fs::path& zip, int* restored, std::vector<std::string>* missing);
     void RestoreAndTell(const fs::path& zip);
+    int restore_states_skipped_ = 0; // estados de otro núcleo que no se copiaron al restaurar
     PhoneScan phone_scan_;
     PhoneScan::Result phone_result_;
     bool phone_result_ready_ = false;

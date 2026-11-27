@@ -145,6 +145,12 @@ object SatronhoUi {
                 Nx.revisarJuegos(it, biblioteca)
                 try { ContinuarWidget.actualizar(it, biblioteca) } catch (e: Throwable) { Log.e(TAG, "Widget", e) }
             }
+            tiempoNxPendiente?.let { (clave, s) ->
+                if (biblioteca.juegos.any { it.clave == clave }) {
+                    orden("nx_volvio|$clave|$s")
+                    tiempoNxPendiente = null
+                }
+            }
             if (continuarPendiente.isNotEmpty() && biblioteca.juegos.any { it.clave == continuarPendiente } && !estado.enJuego) {
                 orden("continuar|$continuarPendiente")
                 continuarPendiente = ""
@@ -201,6 +207,15 @@ object SatronhoUi {
         marco.visibility = if (imgui) View.GONE else View.VISIBLE
         modoAnterior = modo
         imguiAnterior = imgui
+    }
+
+    /** Tiempo jugado en NX que espera a que la biblioteca esté lista (si el hub se había cerrado). */
+    private var tiempoNxPendiente: Pair<String, Long>? = null
+
+    /** Se anota el tiempo de un juego de NX; si la biblioteca todavía no cargó, cuando cargue. */
+    fun tiempoNx(clave: String, segundos: Long) {
+        if (biblioteca.juegos.any { it.clave == clave }) orden("nx_volvio|$clave|$segundos")
+        else tiempoNxPendiente = clave to segundos
     }
 
     /** Juego que pidió el widget «Continuar» (se abre cuando la biblioteca esté lista). */
@@ -314,16 +329,26 @@ object SatronhoUi {
         // Puente de mandos (como Satronho NX): cada mando que ve Android se le ofrece a C++; si SDL no
         // lo toma en unos segundos, C++ lo conecta como mando virtual y le mandamos botones y palancas.
         try {
-            // Un mismo mando a veces aparece como dos dispositivos (botones por un lado, palancas por el
-            // otro): se juntan por fabricante y modelo y todo va al primero.
+            // Un mismo mando a veces aparece como dos dispositivos: uno con los botones y otro solo con
+            // las palancas. Ese segundo se junta con el de botones del mismo fabricante y modelo. Dos
+            // mandos iguales (los dos con botones) quedan separados: cada uno es un jugador (build 28;
+            // antes se juntaban y los dos movían al jugador 1).
             val todos = InputDevice.getDeviceIds().filter { esMandoFisico(InputDevice.getDevice(it)) }.sorted()
             val nuevoGrupo = HashMap<Int, Int>()
-            val primeros = HashMap<Long, Int>()
+            val conBotones = HashMap<Long, Int>()
+            val soloPalancas = ArrayList<Pair<Int, Long>>()
             for (id in todos) {
                 val d = InputDevice.getDevice(id) ?: continue
                 val clave = if (d.vendorId != 0 && d.productId != 0) (d.vendorId.toLong() shl 16) or d.productId.toLong() else -id.toLong() - 1
-                nuevoGrupo[id] = primeros.getOrPut(clave) { id }
+                val botones = d.hasKeys(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_START).any { it }
+                if (botones) {
+                    nuevoGrupo[id] = id
+                    conBotones.putIfAbsent(clave, id)
+                } else {
+                    soloPalancas.add(id to clave)
+                }
             }
+            for ((id, clave) in soloPalancas) nuevoGrupo[id] = conBotones[clave] ?: id
             grupo = nuevoGrupo
             val ahora = nuevoGrupo.values.toSet()
             for (id in ahora - ofrecidos) {

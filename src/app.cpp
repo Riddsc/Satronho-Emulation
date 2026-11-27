@@ -418,6 +418,15 @@ void App::LoadAssets() {
         return ss.str();
     };
     news_ = Json::Parse(read(a / "novedades.json"));
+    // La primera entrada dice «Esta build» en el repo; el paquete de Windows ya trae el número, pero el
+    // APK no (sale directo de assets/). Aquí se pone el número real en los dos.
+    {
+        auto it = news_.obj.find("builds");
+        if (build_ > 0 && it != news_.obj.end() && !it->second.arr.empty()) {
+            auto v = it->second.arr[0].obj.find("version");
+            if (v != it->second.arr[0].obj.end() && v->second.str == "Esta build") v->second.str = "Build " + std::to_string(build_);
+        }
+    }
     const Json tips = Json::Parse(read(a / "consejos.json"));
     for (const auto& t : tips["consejos"].arr) {
         const std::string g = t["guia"].String();

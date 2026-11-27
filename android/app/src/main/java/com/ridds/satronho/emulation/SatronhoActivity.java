@@ -155,6 +155,7 @@ public class SatronhoActivity extends SDLActivity {
             if (uri.getLastPathSegment() != null) nombre = uri.getLastPathSegment();
         }
         nombre = nombre.replaceAll("[\\\\/:*?\"<>|]", "_");
+        if (nombre.trim().isEmpty() || nombre.equals(".") || nombre.equals("..")) nombre = "juego";
         try {
             File dir = new File(getExternalFilesDir(null), "recibidos");
             dir.mkdirs();
@@ -165,7 +166,14 @@ public class SatronhoActivity extends SDLActivity {
                     return;
                 }
             }
+            // Si ya llegó otro archivo con el mismo nombre (y es distinto), este va como «nombre (2).zip».
             File out = new File(dir, nombre);
+            if (out.exists() && total > 0 && out.length() != total) {
+                int punto = nombre.lastIndexOf('.');
+                String base = punto > 0 ? nombre.substring(0, punto) : nombre, ext = punto > 0 ? nombre.substring(punto) : "";
+                for (int n = 2; out.exists(); n++) out = new File(dir, base + " (" + n + ")" + ext);
+                nombre = out.getName();
+            }
             File part = new File(dir, nombre + ".part");
             long copiados = 0;
             try (InputStream in = getContentResolver().openInputStream(uri); OutputStream o = new FileOutputStream(part)) {

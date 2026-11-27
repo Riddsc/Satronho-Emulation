@@ -97,10 +97,27 @@ std::string Fingerprint(const Game& g) {
     return Hash::Sha256(buf.data(), buf.size());
 }
 
-// Nombre base que usan los núcleos para la partida de este juego («Super Mario World (USA)»).
-std::string SaveStem(const Game& g) {
-    const fs::path rom = g.Archived() ? g.path : g.path; // el hub abre los .zip por su nombre
-    return Paths::SafeName(Paths::ToUtf8(rom.stem()));
+// Nombres base que pueden tener la partida de este juego («Super Mario World (USA)»). Un cartucho
+// dentro de un .zip usa el nombre del .zip; un disco dentro de un .zip se saca a la caché y usa el
+// nombre del archivo de adentro (build 28: antes solo se buscaba el del .zip y esas partidas no
+// entraban al respaldo si se llamaban distinto). El primero es el que se usa al restaurar si no hay nada.
+std::vector<std::string> SaveStems(const Game& g) {
+    const std::string outer = Paths::SafeName(Paths::ToUtf8(g.path.stem()));
+    if (!g.Archived()) return {outer};
+    const std::string inner = Paths::SafeName(Paths::ToUtf8(fs::path(Paths::FromUtf8(g.entry)).stem()));
+    const SystemDef* sys = SystemById(g.system);
+    std::vector<std::string> out = sys && sys->disc ? std::vector<std::string>{inner, outer} : std::vector<std::string>{outer, inner};
+    if (out[0] == out[1]) out.pop_back();
+    return out;
+}
+
+// El núcleo que usa esta consola en este equipo: los estados de un núcleo no sirven en otro (Mega
+// usa BlastEm en el PC y Genesis Plus GX en el celular).
+std::string CoreId(const SystemDef& s) {
+    std::string f = CoreFile(s);
+    if (f.rfind("lib", 0) == 0) f = f.substr(3);
+    const size_t at = f.find("_libretro");
+    return at == std::string::npos ? f : f.substr(0, at);
 }
 
 // Lo que es de toda la consola y no de un juego: las tarjetas de PSP y las VMU de Sueño.
@@ -125,7 +142,8 @@ bool App::BackupSaves(const std::vector<Game>& games, const fs::path& out, int* 
         const SystemDef* sys = SystemById(g.system);
         if (!sys || sys->external) continue;
         const fs::path saves = Paths::Saves() / sys->id;
-        const std::string stem = LowerB(SaveStem(g));
+        std::vector<std::string> stems;
+        for (const auto& st : SaveStems(g)) stems.push_back(LowerB(st));
         std::string dir = sys->id + "/" + Paths::SafeName(g.title);
         for (int n = 2; used_dirs.count(dir); ++n) dir = sys->id + "/" + Paths::SafeName(g.title) + " " + std::to_string(n);
         int added = 0;
@@ -136,11 +154,15 @@ bool App::BackupSaves(const std::vector<Game>& games, const fs::path& out, int* 
                 if (!it->is_regular_file(ec)) continue;
                 const std::string name = Paths::ToUtf8(it->path().filename());
                 const std::string low = LowerB(name);
-                if (low.rfind(stem, 0) != 0 || low.size() <= stem.size() || low[stem.size()] != '.') continue;
+                size_t stem_len = 0;
+                for (const auto& stem : stems)
+                    if (low.rfind(stem, 0) == 0 && low.size() > stem.size() && low[stem.size()] == '.') stem_len = stem.size();
+                if (stem_len == 0) continue;
                 if (low.size() > 4 && low.substr(low.size() - 4) == ".bak") continue;
+                if (low.find(".anterior") != std::string::npos) continue;
                 std::vector<uint8_t> data;
                 if (!ReadAll(it->path(), data)) continue;
-                files.push_back({dir + "/partida/{juego}" + name.substr(stem.size()), std::move(data)});
+                files.push_back({dir + "/partida/{juego}" + name.substr(stem_len), std::move(data)});
                 ++added;
             }
         // Los estados (las ranuras y el automático, con su miniatura).
@@ -179,7 +201,7 @@ bool App::BackupSaves(const std::vector<Game>& games, const fs::path& out, int* 
         ++count;
         manifest += (first ? "" : ",") + std::string("{\"carpeta\":") + NativeUi::Quote(dir) + ",\"sistema\":" + NativeUi::Quote(sys->id) +
                     ",\"titulo\":" + NativeUi::Quote(g.title) + ",\"huella\":" + NativeUi::Quote(Fingerprint(g)) + ",\"archivo\":" +
-                    NativeUi::Quote(Paths::ToUtf8(g.path.filename())) + "}";
+                    NativeUi::Quote(Paths::ToUtf8(g.path.filename())) + ",\"nucleo\":" + NativeUi::Quote(CoreId(*sys)) + "}";
         first = false;
     }
     manifest += "]}";
@@ -197,6 +219,8 @@ fs::path App::BackupFolder() const {
 }
 
 void App::BackupAndShare(const std::vector<Game>& games, const std::string& what) {
+    // Con un juego abierto, su partida se guarda antes: si no, el respaldo llevaba la de antes.
+    if (in_game_) core_.SaveSram();
     char stamp[32];
     const std::time_t now = std::time(nullptr);
     std::strftime(stamp, sizeof stamp, "%Y-%m-%d %H-%M", std::localtime(&now));
@@ -242,8 +266,10 @@ std::string App::RestoreSaves(const fs::path& zip, int* restored, std::vector<st
         return o;
     };
     int ok = 0;
+    int states_skipped = 0;
     for (const auto& j : m["juegos"].arr) {
         const std::string dir = j["carpeta"].String(), sys = j["sistema"].String(), title = j["titulo"].String(), fp = j["huella"].String();
+        const std::string core = j["nucleo"].String();
         const Game* match = nullptr;
         for (const auto& g : lib)
             if (g.system == sys && !fp.empty() && fp_of(g) == fp) {
@@ -260,15 +286,33 @@ std::string App::RestoreSaves(const fs::path& zip, int* restored, std::vector<st
             if (missing) missing->push_back(title);
             continue;
         }
-        const std::string stem = SaveStem(*match);
         const fs::path saves = Paths::Saves() / sys;
+        // El nombre con el que este juego guarda: el que ya tenga partida, o el que usará al abrirse.
+        const std::vector<std::string> stems = SaveStems(*match);
+        std::string stem = stems.front();
+        {
+            std::error_code ec;
+            for (const auto& st : stems)
+                for (auto it = fs::directory_iterator(saves, ec); !ec && it != fs::directory_iterator(); it.increment(ec)) {
+                    const std::string low = LowerB(Paths::ToUtf8(it->path().filename())), ls = LowerB(st);
+                    if (low.rfind(ls, 0) == 0 && low.size() > ls.size() && low[ls.size()] == '.') { stem = st; break; }
+                }
+        }
+        // Estados de otro núcleo (por ejemplo Mega del PC en el celular) no cargan: no se copian.
+        const SystemDef* sdef = SystemById(sys);
+        const bool same_core = core.empty() || !sdef || core == CoreId(*sdef);
         for (const auto& e : entries) {
             if (e.name.rfind(dir + "/", 0) != 0) continue;
             const std::string rest = e.name.substr(dir.size() + 1);
             fs::path dst;
             if (rest.rfind("partida/{juego}", 0) == 0) dst = saves / Paths::FromUtf8(stem + rest.substr(15));
-            else if (rest.rfind("estados/", 0) == 0) dst = Paths::States() / Paths::FromUtf8(match->key + "-" + Paths::SafeName(match->title) + "." + rest.substr(8));
-            else continue;
+            else if (rest.rfind("estados/", 0) == 0) {
+                if (!same_core) {
+                    ++states_skipped;
+                    continue;
+                }
+                dst = Paths::States() / Paths::FromUtf8(match->key + "-" + Paths::SafeName(match->title) + "." + rest.substr(8));
+            } else continue;
             std::vector<uint8_t> data;
             if (!Archive::ExtractToMemory(zip, e.name, data)) continue;
             std::error_code ec;
@@ -293,11 +337,21 @@ std::string App::RestoreSaves(const fs::path& zip, int* restored, std::vector<st
         if (Archive::ExtractToMemory(zip, e.name, data)) WriteAll(Paths::Saves() / sys / Paths::FromUtf8(rel), data);
     }
     if (restored) *restored = ok;
+    if (states_skipped > 0) {
+        Log::Info("Restaurar: %d estados de otro núcleo no se copiaron", states_skipped);
+        restore_states_skipped_ = states_skipped;
+    }
     Log::Info("Restaurar partidas de %s: %d juegos", Paths::ToUtf8(zip).c_str(), ok);
     return {};
 }
 
 void App::RestoreAndTell(const fs::path& zip) {
+    // Con un juego abierto, al salir su partida en memoria pisaría la restaurada.
+    if (in_game_) {
+        Toast("Primero sal del juego y luego restauras el respaldo; si no, el juego pisa la partida restaurada.", GuideId::Juana, 7);
+        return;
+    }
+    restore_states_skipped_ = 0;
     int n = 0;
     std::vector<std::string> missing;
     const std::string err = RestoreSaves(zip, &n, &missing);
@@ -311,6 +365,10 @@ void App::RestoreAndTell(const fs::path& zip) {
         Toast(TrFmt("Restauré %d juegos. %d no están en tu biblioteca (por ejemplo «%s»): agrégalos y vuelve a restaurar.", n,
                     static_cast<int>(missing.size()), missing.front().c_str()),
               GuideId::Juana, 9);
+    if (restore_states_skipped_ > 0)
+        Toast(TrFmt("%d estados no los pasé: son de otro núcleo (otra versión de la consola) y no cargarían aquí. Las partidas sí quedaron.",
+                    restore_states_skipped_),
+              GuideId::Juana, 8);
     games_dirty_ = true;
     native_lib_t_ = -10;
 }

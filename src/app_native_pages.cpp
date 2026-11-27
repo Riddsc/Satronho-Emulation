@@ -12,6 +12,8 @@
 #include <fstream>
 
 #include "app.h"
+
+#include <atomic>
 #include "native_page.h"
 #include "sys/android.h"
 #include "sys/native_ui.h"
@@ -737,16 +739,26 @@ bool App::NativeCommandExtra(const std::vector<std::string>& a) {
         // juego para que estén en memoria cuando toques Jugar (la primera lectura del celular es lenta).
         if (const Game* g = FindGame(arg(1))) {
             const SystemDef* sd = SystemById(g->system);
-            if (sd && !sd->external && g->key != prefetched_key_) {
+            if (sd && !sd->external && !in_game_ && g->key != prefetched_key_) {
                 prefetched_key_ = g->key;
                 std::vector<fs::path> files{Paths::Cores() / CoreFile(*sd), g->path};
-                std::thread([files] {
+                // Build 28: una sola lectura a la vez. Si el carrusel se para en otro juego, la anterior
+                // se suelta (antes cada parada lanzaba otra lectura de hasta 96 MB que nadie cortaba).
+                static std::atomic<unsigned> generation{0};
+                const unsigned mine = ++generation;
+                std::thread([files, mine] {
+                    // Medio segundo de espera: si solo ibas pasando por el juego, no se lee nada.
+                    for (int i = 0; i < 5; ++i) {
+                        SDL_Delay(100);
+                        if (generation != mine) return;
+                    }
                     std::vector<char> buf(1 << 20);
                     for (const auto& f : files) {
                         std::ifstream in(f, std::ios::binary);
                         size_t total = 0;
                         // Hasta 96 MB por archivo (los discos grandes no hace falta leerlos enteros).
                         while (in && total < (96u << 20)) {
+                            if (generation != mine) return;
                             in.read(buf.data(), static_cast<std::streamsize>(buf.size()));
                             total += static_cast<size_t>(in.gcount());
                         }

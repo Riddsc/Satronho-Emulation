@@ -76,7 +76,9 @@ las devuelve) y vuelve a abrir la app. `user/` (modo portátil) nunca se toca.
   para Linux y abre la app en modo de revisión (offscreen + render software) en varias páginas; si
   se cae, no hay Release. Push a `main` con cambios en código o assets → Release `build-N` (N =
   número de ejecución del workflow) con el zip, su `.sha256` y las notas de la primera entrada de
-  `assets/novedades.json`. Desde otra rama compila y prueba, pero no publica.
+  `assets/novedades.json`. «Build» solo corre en `main` (o a mano, con workflow_dispatch). Desde las ramas
+  `build-N` corre solo «Android» y sube el APK de prueba al Release `prueba-N`. La caché de núcleos se
+  guarda solo si están todos (build 28, claves `cores-v2-…` y `android-cores-v2-…`).
 - Local (entorno remoto): compila nativo en Linux con SDL3 de `release-3.4.20`, y para Windows con
   llvm-mingw (`cmake/llvm-mingw.cmake`). Revisión visual con Xvfb y el modo de revisión:
   `SATRONHO_QA="page=ajustes;tab=0;frames=50;shot=/tmp/x.png"` (también `rom=`, `continuar=1` (con

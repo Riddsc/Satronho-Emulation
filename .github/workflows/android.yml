@@ -2,12 +2,12 @@ name: Android
 
 # APK de Satronho Emulation (arm64, Android 8 o más nuevo). Desde la rama de trabajo solo compila;
 # llamado desde «Build» en main, sube el APK al mismo Release que la versión de Windows.
-# Desde las ramas build-25, build-26 y build-27 sube el APK a un Release de prueba («prueba-25», «prueba-26», marcado como prueba: la app
+# Desde las ramas build-25 a build-28 sube el APK a un Release de prueba («prueba-N», marcado como prueba: la app
 # no lo ofrece como actualización) para probar en el celular antes de publicar.
 # No se usan artifacts de Actions: los núcleos van en la caché y el APK directo al Release.
 on:
   push:
-    branches: [etapa-2, build-25, build-26, build-27]
+    branches: [etapa-2, build-25, build-26, build-27, build-28]
     paths:
       - "src/**"
       - "android/**"
@@ -57,12 +57,13 @@ jobs:
           gradle-version: "8.14.3"
 
       # Los núcleos tardan mucho: se guardan en la caché (no cuenta como artifacts).
+      # Se restaura y se guarda por separado: la caché solo se guarda con TODOS los núcleos (build 28).
       - name: Caché de los núcleos de Android
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: build-android-cores
-          key: android-cores-${{ env.SATRONHO_NDK }}-${{ hashFiles('scripts/build-core-*.sh') }}
+          key: android-cores-v2-${{ env.SATRONHO_NDK }}-${{ hashFiles('scripts/build-core-*.sh') }}
 
       - name: Núcleo de NES (Nestopia UE)
         if: steps.cache.outputs.cache-hit != 'true'
@@ -109,7 +110,26 @@ jobs:
         run: scripts/ppsspp-assets.sh assets/system/PPSSPP
 
       - name: Núcleos listos
-        run: ls -la build-android-cores/arm64-v8a || true
+        id: cores-ok
+        run: |
+          ls -la build-android-cores/arm64-v8a || true
+          faltan=""
+          for c in nestopia mgba genesis_plus_gx bsnes mednafen_psx_hw mupen64plus_next melondsds mednafen_saturn flycast ppsspp; do
+            [ -s "build-android-cores/arm64-v8a/lib${c}_libretro_android.so" ] || faltan="$faltan $c"
+          done
+          if [ -n "$faltan" ]; then
+            echo "::warning::Faltan núcleos de Android:$faltan (el APK sale sin ellos y la caché no se guarda; se reintentan en la próxima)"
+            echo "completos=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "completos=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Guardar la caché de los núcleos de Android
+        if: steps.cache.outputs.cache-hit != 'true' && steps.cores-ok.outputs.completos == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build-android-cores
+          key: ${{ steps.cache.outputs.cache-primary-key }}
 
       - name: Llave de firma
         env:
@@ -132,7 +152,7 @@ jobs:
 
       - name: APK
         env:
-          SATRONHO_BUILD: ${{ inputs.build || (github.ref == 'refs/heads/build-25' && '25') || (github.ref == 'refs/heads/build-26' && '26') || (github.ref == 'refs/heads/build-27' && '27') || '0' }}
+          SATRONHO_BUILD: ${{ inputs.build || (github.ref == 'refs/heads/build-25' && '25') || (github.ref == 'refs/heads/build-26' && '26') || (github.ref == 'refs/heads/build-27' && '27') || (github.ref == 'refs/heads/build-28' && '28') || '0' }}
         run: |
           cd android
           gradle --no-daemon assembleRelease
@@ -149,8 +169,8 @@ jobs:
           sha256sum "$APK" | cut -d' ' -f1 > "$APK.sha256"
           gh release upload "${{ inputs.tag }}" "$APK" "$APK.sha256" --clobber
 
-      - name: Subir la prueba (ramas build-25, build-26 y build-27)
-        if: inputs.tag == '' && (github.ref == 'refs/heads/build-25' || github.ref == 'refs/heads/build-26' || github.ref == 'refs/heads/build-27')
+      - name: Subir la prueba (ramas build-25 a build-28)
+        if: inputs.tag == '' && (github.ref == 'refs/heads/build-25' || github.ref == 'refs/heads/build-26' || github.ref == 'refs/heads/build-27' || github.ref == 'refs/heads/build-28')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

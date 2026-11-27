@@ -3,6 +3,39 @@
 Notas de traspaso entre sesiones de Claude. Lo más nuevo va arriba. Lee también `CLAUDE.md` (cómo
 trabaja Ridds) y `SATRONHO.md` (cómo está hecho).
 
+## Build 28 en prueba (rama `build-28`, Release `prueba-28`): revisión completa y arreglos
+
+Ridds pidió revisar el repo de pies a cabeza y arreglar todo. Qué cambió y dónde:
+- **Mover sin perder nada** (`util/move.*`): `Move::File` compara el contenido; si en el destino hay otro
+  distinto, los juegos se quedan donde están (`Conflict::Keep`) y las partidas/estados del destino se
+  apartan como `.anterior` (`Conflict::Aside`). Lo usan la mudanza (`BeginDataMove`) y ordenar (`BeginOrganize`).
+- **Ordenar**: `PartsOfFile` entra a los .cue/.gdi de un .m3u (antes los .bin se quedaban atrás), cada pista
+  conserva su subcarpeta respecto al juego, y si algo falla lo ya movido vuelve (nunca queda partido).
+- **Claves nuevas**: `App::ApplyRekeys` = `Library::Rekey` (ahora pasa *todos* los campos `<clave>.*`),
+  `Covers::Rekey` (propias y bajadas), `RenameStates` (ordenar no renombraba los estados → se perdía
+  «Continuar») y la caché de discos descomprimidos.
+- **NX en PC**: anota en `user/satronho-nx/.satronho-origen` de qué enlace salió; si `remoto/nx.json` cambia,
+  baja la nueva aparte (`satronho-nx.nuevo`), comprueba la `.sha256` si existe y solo entonces reemplaza.
+  Estado 6 = actualizando. `Net::Download` en Windows ya no usa la caché de IE.
+- **Android**: `Nx.lanzar` abre el asistente si falta el archivo; el juego lanzado se guarda en las prefs
+  (`lanzado_clave/desde`) y `SatronhoUi.tiempoNx` espera a la biblioteca → el tiempo no se pierde si
+  Android cierra el hub. Puente: dos mandos iguales con botones = dos jugadores (solo se juntan los
+  «solo palancas»). `sys/jni_text.h`: Java↔C++ por UTF-16 (emojis en rutas). Recibidos: nombre repetido →
+  «nombre (2)».
+- **Respaldos**: `SaveStems` (disco dentro de .zip usa el nombre de adentro), `"nucleo"` en el manifiesto
+  (estados de otro núcleo no se restauran), respaldo guarda la SRAM del juego abierto, restaurar se niega
+  con un juego abierto.
+- **CI**: caché de núcleos con `cache/restore` + `cache/save` solo si están todos (claves `-v2-`: la primera
+  build vuelve a compilar todos los núcleos, tarda más).
+- Precarga del carrusel: una a la vez, espera medio segundo, se corta si cambias de juego.
+- Textos: ~30 traducciones nuevas en `extra.txt`; «Esta build» se cambia por «Build N» al cargar.
+- Modo de revisión nuevo: `ordenar=<carpeta>` (ordena toda la biblioteca ahí, como en Android).
+
+**Falta probar en el teléfono**: ordenar un juego con estados y uno de varios discos; dos mandos TERIOS;
+un juego con emoji en el nombre compartido por WhatsApp; abrir NX, cerrar el hub a la fuerza y volver.
+**En PC**: abrir un juego de Switch (NX ya bajado no debe bajarse otra vez).
+**Pendiente de Ridds**: el reparto de los guías en los avisos fijos (ver la conversación de la build 28).
+
 ## Build 27 publicada (26 nov): pantalla inteligente, Switch completo, NX en PC, fluidez y visuales
 
 Ridds pidió todo en la 27, sin APK de prueba. Qué trae y dónde está:
