@@ -26,6 +26,7 @@
 #include "util/archive.h"
 #include "util/i18n.h"
 #include "util/log.h"
+#include "util/move.h"
 
 namespace Satronho {
 
@@ -196,6 +197,42 @@ void App::SyncBiosFolder() {
         }
 }
 
+// Los estados llevan la clave del juego al principio del nombre («<clave>-<título>.estado1» y su
+// .png): cuando un juego se mueve y cambia de clave, se renombran para que sigan siendo suyos.
+void App::RenameStates(const fs::path& states, const std::vector<std::pair<std::string, std::string>>& rekeys) {
+    std::map<std::string, std::string> by_old(rekeys.begin(), rekeys.end());
+    std::error_code ec;
+    if (by_old.empty() || !fs::exists(states, ec)) return;
+    std::vector<fs::path> names;
+    for (auto it = fs::directory_iterator(states, ec); !ec && it != fs::directory_iterator(); it.increment(ec)) names.push_back(it->path());
+    for (const auto& path : names) {
+        const std::string name = Paths::ToUtf8(path.filename());
+        const size_t dash = name.find('-');
+        if (dash == std::string::npos) continue;
+        const auto k = by_old.find(name.substr(0, dash));
+        if (k == by_old.end() || k->second == k->first) continue;
+        const fs::path to = states / Paths::FromUtf8(k->second + name.substr(dash));
+        std::error_code e;
+        if (fs::exists(to, e)) fs::rename(to, Move::AsideName(to), e);
+        e.clear();
+        fs::rename(path, to, e);
+    }
+}
+
+// Todo lo que va con la clave de un juego que se movió: biblioteca, portadas, estados y la caché de
+// discos descomprimidos.
+void App::ApplyRekeys(const std::vector<std::pair<std::string, std::string>>& rekeys, const fs::path& states) {
+    if (rekeys.empty()) return;
+    library_.Rekey(rekeys);
+    covers_.Rekey(rekeys);
+    if (!states.empty()) RenameStates(states, rekeys);
+    const fs::path cache = Paths::User() / "cache" / "descomprimidos";
+    for (const auto& [ok, nk] : rekeys) {
+        std::error_code e;
+        if (ok != nk && fs::exists(cache / ok, e) && !fs::exists(cache / nk, e)) fs::rename(cache / ok, cache / nk, e);
+    }
+}
+
 void App::BeginDataMove(const fs::path& to) {
     if (move_state_ != 0) return;
     if (move_thread_.joinable()) move_thread_.join();
@@ -235,29 +272,14 @@ void App::BeginDataMove(const fs::path& to) {
         }
         move_total_ = static_cast<int>(files.size());
         std::vector<std::pair<std::string, std::string>> rekeys;
-        int failed = 0;
+        int failed = 0, aside = 0;
         for (const auto& [f, p] : files) {
-            std::error_code e;
             const fs::path dst = p->to / f.lexically_relative(p->from);
-            fs::create_directories(dst.parent_path(), e);
-            bool ok = false;
-            const uint64_t size = fs::file_size(f, e);
-            if (fs::exists(dst, e) && fs::file_size(dst, e) == size) {
-                ok = true; // ya estaba (una mudanza que se cortó a la mitad)
-            } else {
-                fs::rename(f, dst, e);
-                if (!e) {
-                    ok = true;
-                } else {
-                    // Otra unidad (la carpeta de la app y la memoria pública lo son en Android): se
-                    // copia y, solo si quedó completa, se quita el original.
-                    e.clear();
-                    fs::copy_file(f, dst, fs::copy_options::overwrite_existing, e);
-                    ok = !e && fs::file_size(dst, e) == size;
-                }
-            }
+            // Juegos: si en el destino hay otro juego con el mismo nombre, el nuestro se queda donde
+            // está. Partidas y estados: el del destino (más viejo) se aparta como «.anterior», nunca
+            // se borra ni se pisa (build 28; antes bastaba con que midieran lo mismo).
+            const bool ok = Move::File(f, dst, p->games ? Move::Conflict::Keep : Move::Conflict::Aside, &aside);
             if (ok) {
-                if (fs::exists(f, e)) fs::remove(f, e);
                 if (p->games) rekeys.push_back({Library::KeyFor(f), Library::KeyFor(dst)});
             } else {
                 ++failed;
@@ -265,19 +287,9 @@ void App::BeginDataMove(const fs::path& to) {
             }
             ++move_done_;
         }
+        if (aside > 0) Log::Info("Mudanza: %d partidas o estados del destino quedaron apartados como .anterior", aside);
         // Los estados llevan la clave del juego en el nombre («<clave>-<título>.estado1»).
-        std::map<std::string, std::string> by_old(rekeys.begin(), rekeys.end());
-        const fs::path states = to / "Estados";
-        if (fs::exists(states, ec))
-            for (auto it = fs::directory_iterator(states, ec); !ec && it != fs::directory_iterator(); it.increment(ec)) {
-                const std::string name = Paths::ToUtf8(it->path().filename());
-                const size_t dash = name.find('-');
-                if (dash == std::string::npos) continue;
-                const auto k = by_old.find(name.substr(0, dash));
-                if (k == by_old.end() || k->second == k->first) continue;
-                std::error_code e;
-                fs::rename(it->path(), states / Paths::FromUtf8(k->second + name.substr(dash)), e);
-            }
+        RenameStates(to / "Estados", rekeys);
         // Las carpetas que quedaron vacías se quitan (solo si están vacías).
         for (const auto& p : pairs) {
             std::vector<fs::path> dirs;
@@ -307,14 +319,18 @@ void App::PollDataMove() {
         rekeys.swap(move_rekeys_);
         failed = move_failed_;
     }
-    library_.Rekey(rekeys);
+    ApplyRekeys(rekeys, {}); // los estados ya se renombraron en la mudanza
     Paths::SetPublicRoot(move_to_);
     ini_.Set("android.carpeta_publica", Paths::ToUtf8(move_to_));
     // La carpeta de juegos de la biblioteca pasa a la nueva.
     const std::string old_games = Paths::StoreFolder(move_from_games_), new_games = Paths::StoreFolder(move_to_ / "Juegos");
-    for (auto& f : settings_.folders)
-        if (f == old_games) f = new_games;
     std::error_code ec;
+    // Si algún juego no se pudo mover (otro con el mismo nombre en el destino), su carpeta vieja se
+    // queda en la biblioteca para que no desaparezca.
+    const bool old_has_games = failed > 0 && fs::exists(move_from_games_, ec) && !fs::is_empty(move_from_games_, ec);
+    if (!old_has_games)
+        for (auto& f : settings_.folders)
+            if (f == old_games) f = new_games;
     if (fs::exists(move_to_ / "Juegos", ec) && std::find(settings_.folders.begin(), settings_.folders.end(), new_games) == settings_.folders.end())
         settings_.folders.push_back(new_games);
     SaveConfig();

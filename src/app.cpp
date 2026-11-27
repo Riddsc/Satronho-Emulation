@@ -912,6 +912,15 @@ void App::QaTick() {
         Log::Info("QA respaldo: %s, %d juegos", ok ? "ok" : "nada", n);
     }
     if (qa_frames_ == wanted / 2 && qa_.count("restaurar")) RestoreAndTell(Paths::FromUtf8(qa_["restaurar"]));
+    // Ordenar en «Satronho Games» (lo de Android) con toda la biblioteca, para revisarlo en el PC.
+    if (qa_frames_ == wanted / 3 && qa_.count("ordenar")) {
+        Paths::SetPublicRoot(Paths::FromUtf8(qa_["ordenar"]));
+        phone_result_ = {};
+        PhoneScan::Folder f;
+        f.games = library_.Snapshot();
+        phone_result_.folders.push_back(f);
+        BeginOrganize();
+    }
     if (qa_frames_ < wanted) return;
     if (qa_.count("shot") && gl_) {
         int w, h;

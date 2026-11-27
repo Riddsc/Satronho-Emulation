@@ -304,10 +304,15 @@ void Library::Rekey(const std::vector<std::pair<std::string, std::string>>& old_
         std::lock_guard lock(mutex_);
         for (const auto& [ok, nk] : old_new) {
             if (ok == nk) continue;
-            for (const char* field : {".favorito", ".tiempo", ".ultima", ".oculto", ".ajuste.mando", ".ajuste.motor", ".ajuste.res"}) {
-                if (!meta_.Values().count(ok + field)) continue;
-                meta_.Set(nk + field, meta_.Get(ok + field));
-                meta_.Erase(ok + field);
+            // Todo lo del juego pasa a la clave nueva (favorito, tiempo, sesiones, nombre e ícono de
+            // Switch, juego/actualización/DLC, ajustes del juego…), no solo una lista fija.
+            const std::string from = ok + ".";
+            std::vector<std::pair<std::string, std::string>> fields;
+            for (auto it = meta_.Values().lower_bound(from); it != meta_.Values().end() && it->first.compare(0, from.size(), from) == 0; ++it)
+                fields.push_back({it->first.substr(from.size()), it->second});
+            for (const auto& [field, value] : fields) {
+                meta_.Set(nk + "." + field, value);
+                meta_.Erase(from + field);
             }
         }
     }
