@@ -23,6 +23,7 @@
 #include "util/process.h"
 #include "util/archive.h"
 #include "util/net.h"
+#include "util/move.h"
 
 namespace Satronho {
 
@@ -63,23 +64,23 @@ void WriteIfMissing(const fs::path& file, const std::string& text) {
     out << text;
 }
 
-// Los archivos que van con un juego de disco (.cue → .bin, .gdi → pistas, .m3u → discos).
-std::vector<fs::path> PartsOf(const Game& g) {
-    std::vector<fs::path> parts;
-    if (g.Archived() || (g.ext != "cue" && g.ext != "gdi" && g.ext != "m3u")) return parts;
-    std::ifstream in(g.path);
+// Los archivos que van con un juego de disco (.cue → .bin, .gdi → pistas, .m3u → discos y, desde la
+// build 28, también las pistas de cada disco del .m3u). Van en orden: primero las pistas, después los
+// .cue de cada disco; el archivo del juego no va (se mueve al final).
+void PartsOfFile(const fs::path& file, const std::string& ext, int depth, std::vector<fs::path>& parts) {
+    std::ifstream in(file);
     std::string line;
     int lines = 0;
     while (std::getline(in, line) && ++lines < 400) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
         std::string name;
-        if (g.ext == "cue") {
+        if (ext == "cue") {
             const size_t a = line.find('"'), b = line.rfind('"');
             std::string low = line;
             for (auto& c : low) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
             if (low.find("file") == std::string::npos || a == std::string::npos || b <= a) continue;
             name = line.substr(a + 1, b - a - 1);
-        } else if (g.ext == "gdi") {
+        } else if (ext == "gdi") {
             // «1 0 4 2352 track01.bin 0» (el nombre puede ir entre comillas)
             const size_t q1 = line.find('"');
             if (q1 != std::string::npos) {
@@ -101,8 +102,22 @@ std::vector<fs::path> PartsOf(const Game& g) {
             if (line.empty() || line[0] == '#') continue;
             name = line;
         }
-        if (!name.empty()) parts.push_back(g.path.parent_path() / Paths::FromUtf8(name));
+        if (name.empty()) continue;
+        const fs::path part = file.parent_path() / Paths::FromUtf8(name);
+        if (depth == 0 && ext == "m3u") {
+            // Cada disco del .m3u trae sus propias pistas: van antes que el disco.
+            std::string pe = Paths::ToUtf8(part.extension());
+            for (auto& c : pe) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            if (pe == ".cue" || pe == ".gdi") PartsOfFile(part, pe.substr(1), 1, parts);
+        }
+        if (std::find(parts.begin(), parts.end(), part) == parts.end()) parts.push_back(part);
     }
+}
+
+std::vector<fs::path> PartsOf(const Game& g) {
+    std::vector<fs::path> parts;
+    if (g.Archived() || (g.ext != "cue" && g.ext != "gdi" && g.ext != "m3u")) return parts;
+    PartsOfFile(g.path, g.ext, 0, parts);
     return parts;
 }
 
@@ -263,31 +278,44 @@ void App::BeginOrganize() {
     move_thread_ = std::thread([this, items, root] {
         std::vector<std::pair<std::string, std::string>> rekeys;
         int failed = 0;
-        auto move_one = [](const fs::path& from, const fs::path& to) {
-            std::error_code e;
-            if (fs::exists(to, e)) return fs::file_size(to, e) == fs::file_size(from, e); // ya estaba
-            fs::create_directories(to.parent_path(), e);
-            fs::rename(from, to, e);
-            if (!e) return true;
-            e.clear();
-            const uint64_t size = fs::file_size(from, e);
-            fs::copy_file(from, to, fs::copy_options::overwrite_existing, e);
-            if (e || fs::file_size(to, e) != size) return false;
-            fs::remove(from, e);
-            return true;
-        };
         for (const auto& it : items) {
             const SystemDef* sys = SystemById(it.g.system);
             const fs::path dir = root / "Juegos" / Paths::FromUtf8(sys ? sys->name : std::string("Otros"));
+            const fs::path base = it.g.path.parent_path();
             const fs::path dst = dir / it.g.path.filename();
+            // Cada pista conserva su subcarpeta respecto al juego («Disco 1/juego.cue»), así el .cue o
+            // el .m3u siguen encontrándola. Una pista fuera de la carpeta del juego («../x.bin») no se
+            // puede ordenar sin romperlo: ese juego se queda donde está.
+            std::vector<std::pair<fs::path, fs::path>> plan;
             bool ok = true;
-            // Las pistas primero; el .cue/.gdi/.m3u al final (así nunca queda uno sin sus pistas).
             for (const auto& part : it.parts) {
                 std::error_code e;
                 if (!fs::exists(part, e)) continue;
-                ok &= move_one(part, dir / part.filename());
+                const fs::path rel = part.lexically_relative(base);
+                if (rel.empty() || *rel.begin() == "..") { ok = false; break; }
+                plan.push_back({part, dir / rel});
             }
-            ok = ok && move_one(it.g.path, dst);
+            plan.push_back({it.g.path, dst});
+            // Las pistas primero; el .cue/.gdi/.m3u al final. Si algo falla, lo que ya se movió vuelve
+            // a su lugar: un juego nunca queda partido entre dos carpetas.
+            struct Done {
+                fs::path from, to;
+                bool was_there; // ya había una copia idéntica en el destino
+            };
+            std::vector<Done> done;
+            if (ok)
+                for (const auto& [from, to] : plan) {
+                    std::error_code e;
+                    const bool was_there = fs::exists(to, e);
+                    if (!Move::File(from, to, Move::Conflict::Keep)) { ok = false; break; }
+                    done.push_back({from, to, was_there});
+                }
+            if (!ok)
+                for (auto r = done.rbegin(); r != done.rend(); ++r) {
+                    std::error_code e;
+                    if (r->was_there) fs::copy_file(r->to, r->from, fs::copy_options::skip_existing, e);
+                    else Move::File(r->to, r->from, Move::Conflict::Keep);
+                }
             if (ok) rekeys.push_back({it.g.key, Library::KeyFor(dst)});
             else {
                 ++failed;
@@ -312,7 +340,10 @@ void App::PollOrganize() {
         std::lock_guard lock(move_mutex_);
         rekeys.swap(move_rekeys_);
     }
-    library_.Rekey(rekeys);
+    // Biblioteca, portadas y estados (antes los estados se quedaban con la clave vieja y «Continuar»
+    // se perdía).
+    ApplyRekeys(rekeys, Paths::States());
+    if (Paths::PrivateStates() != Paths::States()) RenameStates(Paths::PrivateStates(), rekeys);
     const std::string games = Paths::StoreFolder(Paths::PublicRoot() / "Juegos");
     if (std::find(settings_.folders.begin(), settings_.folders.end(), games) == settings_.folders.end()) settings_.folders.push_back(games);
     SaveConfig();

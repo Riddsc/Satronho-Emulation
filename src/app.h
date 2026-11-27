@@ -307,6 +307,8 @@ private:
     std::atomic<int> move_done_{0}, move_total_{0};
     std::mutex move_mutex_;
     std::vector<std::pair<std::string, std::string>> move_rekeys_; // claves de juego vieja → nueva
+    static void RenameStates(const fs::path& states, const std::vector<std::pair<std::string, std::string>>& rekeys);
+    void ApplyRekeys(const std::vector<std::pair<std::string, std::string>>& rekeys, const fs::path& states);
     int move_failed_ = 0;
     fs::path move_to_, move_from_games_;
     double public_check_t_ = 0;

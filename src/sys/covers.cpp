@@ -349,6 +349,32 @@ void Covers::RemoveCustom(const Game& g) {
     changed_ = true;
 }
 
+void Covers::Rekey(const std::vector<std::pair<std::string, std::string>>& old_new) {
+    if (old_new.empty()) return;
+    std::error_code ec;
+    // Cada carpeta de portadas: «propias» y una por consola (las bajadas).
+    std::vector<fs::path> dirs;
+    for (auto it = fs::directory_iterator(dir_, ec); !ec && it != fs::directory_iterator(); it.increment(ec))
+        if (it->is_directory(ec)) dirs.push_back(it->path());
+    for (const auto& [ok, nk] : old_new) {
+        if (ok == nk) continue;
+        for (const auto& d : dirs)
+            for (const char* ext : {".png", ".jpg", ".nada"}) {
+                const fs::path from = d / (ok + ext), to = d / (nk + ext);
+                std::error_code e;
+                if (fs::exists(from, e) && !fs::exists(to, e)) fs::rename(from, to, e);
+            }
+        for (const std::string& k : {ok, nk}) {
+            auto it = cache_.find(k);
+            if (it == cache_.end()) continue;
+            Ui::FreeImage(it->second.img);
+            Ui::FreeImage(it->second.blur);
+            cache_.erase(it);
+        }
+    }
+    changed_ = true;
+}
+
 void Covers::QueueDownloads(const std::vector<Game>& games) {
     std::error_code ec;
     int added = 0;

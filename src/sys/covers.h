@@ -43,6 +43,8 @@ public:
 
     void SetCustom(const Game& g, const fs::path& image);
     void RemoveCustom(const Game& g);
+    // Un juego cambió de clave (se movió de carpeta): sus portadas (propias y bajadas) pasan a la nueva.
+    void Rekey(const std::vector<std::pair<std::string, std::string>>& old_new);
     bool HasCustom(const Game& g) const;
     bool HasCover(const Game& g) const;
     // Archivo de la carátula (propia o descargada); puede no existir todavía. Para la interfaz nativa.
